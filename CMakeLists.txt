@@ -15,6 +15,11 @@ macro (add_sources)
     endif()
 endmacro()
 
-add_sources(src/main.cpp)
+add_sources(
+    src/main.cpp
+    src/dep_parser/parser.cpp
+    src/extensions/error_reporter.cpp)
 
-add_executable(main ${SRCS})
+add_executable(lazyrt ${SRCS})
+target_include_directories(lazyrt PRIVATE ${PROJECT_SOURCE_DIR}/include)
+
