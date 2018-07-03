@@ -1,0 +1,17 @@
+// stores everything
+
+namespace UTestRunner;
+
+table FileRecord {
+	path:string;
+	md5:[ubyte];
+	includes:[string];
+	dependsOn:[string];
+}
+
+table FileTree {
+	rootPath:string;
+	records:[FileRecord];
+}
+
+root_type FileTree;

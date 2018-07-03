@@ -1,16 +1,20 @@
-#include "error_reporter.hpp"
+#include "extensions/error_reporter.hpp"
 
 ErrorStream::~ErrorStream()
 {
-    std::cerr << std::endl;
+    if (!_written)
+        std::cerr << std::endl;
 }
 
-ErrorStream &errors()
+ErrorStream errors()
 {
     return ErrorStream();
 }
 
-ErrorStream &operator<<(ErrorStream &stream, const std::string &text)
+ErrorStream operator<<(ErrorStream stream, const std::string &text)
 {
     std::cerr << text << ' ';
+    stream._written = true;
+
+    return stream;
 }
