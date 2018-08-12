@@ -1,20 +1,5 @@
 set(CMAKE_VERBOSE_MAKEFILE ON)
-cmake_minimum_required(VERSION 2.8)
-
-macro (add_sources)
-    file (RELATIVE_PATH _relPath "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    foreach (_src ${ARGN})
-        if (_relPath)
-            list (APPEND SRCS "${_relPath}/${_src}")
-        else()
-            list (APPEND SRCS "${_src}")
-        endif()
-    endforeach()
-    if (_relPath)
-        # propagate SRCS to parent directory
-        set (SRCS ${SRCS} PARENT_SCOPE)
-    endif()
-endmacro()
+cmake_minimum_required(VERSION 3.8)
 
 set(FLATBUFFERS_GENERATED_HEADERS
     include/flatbuffers_schemes/file_tree_generated.h
@@ -54,8 +39,7 @@ set(HEADERS
     include/types/file_tree.hpp
     include/types/splitted_path.hpp)
 
-add_sources(
-#set(SRCS
+set(SRCS
     ${FLATBUFFERS_SRCS}
     src/main.cpp
     src/parsers/parser.cpp
@@ -128,13 +112,14 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 #set(Boost_ROOT C:/include/boost)
 set(BOOST_ROOT D:/Soft/boost-lib/boost_1_62_0)
-#set(BOOST_INCLUDEDIR D:/Soft/boost_1_67_0)
-#set(BOOST_LIBRARYDIR D:/Soft/boost_1_67_0/stage/lib)
 #mapped_file - iostreams
 find_package(Boost 1.45.0 COMPONENTS filesystem system REQUIRED)
 
 if(Boost_FOUND)
     message("MESSAGE: Boost_FOUND!")
+    message("libs:" ${Boost_LIBRARIES})
+    message("include:" ${Boost_INCLUDE_DIRS})
+
     target_include_directories(lazyrt PRIVATE ${Boost_INCLUDE_DIRS})
     target_link_libraries(lazyrt ${Boost_LIBRARIES})
 endif()
