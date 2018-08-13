@@ -1,10 +1,37 @@
-set(CMAKE_VERBOSE_MAKEFILE ON)
 cmake_minimum_required(VERSION 3.8)
 
+##
+## PROJECT
+## name and version
+##
+project(lazyut VERSION 0.1.0 LANGUAGES CXX)
+
+##
+## INCLUDE
+##
+##
+
+##
+## CONFIGURATION
+##
+set(LAZYUT_TARGET_NAME                  ${PROJECT_NAME})
+set(LAZYUT_CONFIG_INSTALL_DIR           "lib/cmake/${PROJECT_NAME}"
+  CACHE INTERNAL "")
+set(LAZYUT_INCLUDE_INSTALL_DIR          "include")
+set(LAZYUT_TARGETS_EXPORT_NAME          "${PROJECT_NAME}Targets")
+set(LAZYUT_CMAKE_CONFIG_TEMPLATE        "cmake/config.cmake.in")
+set(LAZYUT_CMAKE_CONFIG_DIR             "${CMAKE_CURRENT_BINARY_DIR}")
+set(LAZYUT_CMAKE_VERSION_CONFIG_FILE    "${LAZYUT_CMAKE_CONFIG_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
+set(LAZYUT_CMAKE_PROJECT_CONFIG_FILE    "${LAZYUT_CMAKE_CONFIG_DIR}/${PROJECT_NAME}Config.cmake")
+set(LAZYUT_CMAKE_PROJECT_TARGETS_FILE   "${LAZYUT_CMAKE_CONFIG_DIR}/${PROJECT_NAME}Targets.cmake")
+
+##
+## HEADERS
+## project .h .hpp files
+##
 set(FLATBUFFERS_GENERATED_HEADERS
     include/flatbuffers_schemes/file_tree_generated.h
     )
-
 set(FLATBUFFERS_HEADERS
     ${FLATBUFFERS_GENERATED_HEADERS}
     include/flatbuffers/code_generators.h
@@ -20,15 +47,6 @@ set(FLATBUFFERS_HEADERS
     include/flatbuffers/registry.h
     include/flatbuffers/minireflect.h
     )
-
-set(FLATBUFFERS_SRCS
-    src/flatbuffers/code_generators.cpp
-    src/flatbuffers/idl_parser.cpp
-    src/flatbuffers/idl_gen_text.cpp
-    src/flatbuffers/reflection.cpp
-    src/flatbuffers/util.cpp
-    )
-
 set(HEADERS
     ${FLATBUFFERS_HEADERS}
     include/parsers/parser.hpp
@@ -39,6 +57,17 @@ set(HEADERS
     include/types/file_tree.hpp
     include/types/splitted_path.hpp)
 
+##
+## SOURCES
+## project .cpp files
+##
+set(FLATBUFFERS_SRCS
+    src/flatbuffers/code_generators.cpp
+    src/flatbuffers/idl_parser.cpp
+    src/flatbuffers/idl_gen_text.cpp
+    src/flatbuffers/reflection.cpp
+    src/flatbuffers/util.cpp
+    )
 set(SRCS
     ${FLATBUFFERS_SRCS}
     src/main.cpp
@@ -52,59 +81,13 @@ set(SRCS
     src/types/file_tree.cpp
     src/types/splitted_path.cpp)
 
-# +++ C++11 flags block
-if(EXISTS "${CMAKE_TOOLCHAIN_FILE}")
-  # do not apply any global settings if the toolchain
-  # is being configured externally
-elseif(APPLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wextra -Wno-unused-parameter")
-elseif(CMAKE_COMPILER_IS_GNUCXX)
-  if(CYGWIN)
-    set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=gnu++11")
-  else(CYGWIN)
-    set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=c++0x")
-  endif(CYGWIN)
-  set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
-  if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.4)
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
-      set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -faligned-new")
-    endif()
-    set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -Wunused-result -Werror=unused-result -Wunused-parameter -Werror=unused-parameter")
-  endif()
-
-  # Certain platforms such as ARM do not use signed chars by default
-  # which causes issues with certain bounds checks.
-  set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -fsigned-char")
-
-elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -pedantic -Werror -Wextra -Wno-unused-parameter")
-  if(NOT "${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
-    set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-  endif()
-  if(NOT ("${CMAKE_SYSTEM_NAME}" MATCHES "FreeBSD" OR
-          "${CMAKE_SYSTEM_NAME}" MATCHES "Linux"))
-    set(CMAKE_EXE_LINKER_FLAGS
-        "${CMAKE_EXE_LINKER_FLAGS} -lc++abi")
-  endif()
-elseif(MSVC)
-  # Visual Studio pedantic build settings
-  # warning C4512: assignment operator could not be generated
-  # warning C4316: object allocated on the heap may not be aligned
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4 /WX /wd4512 /wd4316")
-endif()
-# --- C++11 flags block
-
-add_executable(lazyrt ${SRCS} ${HEADERS})
-target_include_directories(lazyrt PRIVATE ${PROJECT_SOURCE_DIR}/include)
+##
+## TARGET
+## create target and add include path
+##
+add_executable(${LAZYUT_TARGET_NAME} ${SRCS} ${HEADERS})
+target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_compile_features(${LAZYUT_TARGET_NAME} PRIVATE cxx_std_11)
 
 # link boost
 set(Boost_USE_STATIC_LIBS OFF)
@@ -120,8 +103,8 @@ if(Boost_FOUND)
     message("libs:" ${Boost_LIBRARIES})
     message("include:" ${Boost_INCLUDE_DIRS})
 
-    target_include_directories(lazyrt PRIVATE ${Boost_INCLUDE_DIRS})
-    target_link_libraries(lazyrt ${Boost_LIBRARIES})
+    target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${LAZYUT_TARGET_NAME} ${Boost_LIBRARIES})
 endif()
 
 if (WIN32)
