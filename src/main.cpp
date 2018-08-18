@@ -1,5 +1,5 @@
 #include <iostream>
-#include "parsers/parser.hpp"
+#include "directoryparser.hpp"
 #include "extensions/help_functions.hpp"
 
 #include "flatbuffers/flatbuffers.h"
@@ -39,27 +39,37 @@ void pushFiles(flatbuffers::FlatBufferBuilder &builder,
 
 int main(int /*argc*/, const char */*argv*/[])
 {
-    Parser parser;
-    double cpu0 = getCpuTime();
+    DirectoryParser parser;
+    Profiler prf;
+    std::string srcDirName("D:\\Study\\TestCoveredProjects\\cppcheck\\lib");
+    parser.parseDirectory(srcDirName);
+    prf.step("parsed directory " + srcDirName);
 
-    parser.parseDirectory("D:\\Study\\smart-sort");
-//    parser.parseDirectory("D:\\Jobs\\pro");
-    double cpu1 = getCpuTime();
+    DirectoryParser testsParser;
+    std::string testDirName("D:\\Study\\TestCoveredProjects\\cppcheck\\test");
+    FileTree &testTree = testsParser.fileTree();
+    testTree._includePaths.push_back(parser.fileTree()._rootDirectoryNode);
+    testsParser.parseDirectory(testDirName);
+    testTree.parseFiles();
+    testTree.print();
 
     FileTree &tree = parser.fileTree();
-    tree.print();
+//    tree.print();
 
-    if (FileTree *restoredTree = restoreFileTree(TEST_FNAME)) {
-        restoredTree->print();
-        tree.parseModifiedFiles(restoredTree);
+//    if (FileTree *restoredTree = restoreFileTree(TEST_FNAME)) {
+//        restoredTree->print();
+//        tree.parseModifiedFiles(restoredTree);
 
-        delete restoredTree;
-    }
+//        delete restoredTree;
+//    }
+//    else {
+//        tree.parseFiles();
+//        tree.print();
+//    }
+    prf.step("parsed (modified) files " + srcDirName);
 
-
-    // Create a `FlatBufferBuilder`, which will be used to create our
-    // monsters' FlatBuffers.
     {
+        // store to binary file
         flatbuffers::FlatBufferBuilder builder(1024);
 
         std::vector<flatbuffers::Offset<UTestRunner::FileRecord> > fileRecords;
@@ -75,11 +85,7 @@ int main(int /*argc*/, const char */*argv*/[])
         MY_ASSERT(data != NULL);
         writeBinaryFile(TEST_FNAME, data, builder.GetSize());
     }
+    prf.step("stored binary " + srcDirName);
 
-
-    std::cout << "\nCPU time: " << cpu1 - cpu0 << std::endl;
-
-//    int x;
-//    std::cin >> x;
     return 0;
 }

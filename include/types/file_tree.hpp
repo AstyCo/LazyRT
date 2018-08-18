@@ -11,7 +11,6 @@
 using std::string;
 using std::list;
 
-//typedef boost::filesystem::path Path;
 typedef boost::filesystem::path BoostPath;
 
 struct IncludeDirective
@@ -53,7 +52,7 @@ public:
     SplittedPath _path;
     Type _type;
 
-    list<string> _listIncludes;
+    list<IncludeDirective> _listIncludes;
     list<string> _listDependents;
 public:
     MD5::HashArray _hashArray;
@@ -63,35 +62,38 @@ public:
 class FileNode
 {
 public:
+    typedef std::list<FileNode*> child_list;
+    typedef child_list::iterator child_iterator;
+    typedef child_list::const_iterator child_const_iterator;
+public:
+
     explicit FileNode(const SplittedPath &path, FileRecord::Type type);
     virtual ~FileNode();
 
+    FileNode *findChild(const HashedFileName &hfname) const;
     void addChild(FileNode *child);
-    FileNode *createChild(const HashedFileName &hfname, FileRecord::Type type);
+    FileNode *findOrNewChild(const HashedFileName &hfname, FileRecord::Type type);
     void removeChild(FileNode *child);
-    void setParent(FileNode *parent);
+
+    const FileRecord &record() const { return _record;}
+    FileRecord &record() { return _record;}
 
     FileNode *parent() const { return _parent;}
+    void setParent(FileNode *parent);
 
     list<FileNode*> &childs() { return _childs;}
     const list<FileNode*> &childs() const { return _childs;}
 
+    bool hasRegularFiles() const;
+    bool isRegularFile() const { return _record.isRegularFile();}
+    bool isDirectory() const { return _record.isDirectory();}
+
+    void destroy();
+
+public:
     ///---Debug
     void print(int indent = 0) const;
     ///
-
-    typedef std::list<FileNode*> child_list;
-    typedef child_list::iterator child_iterator;
-    typedef child_list::const_iterator child_const_iterator;
-
-    bool hasRegularFiles() const;
-    void destroy();
-    const FileRecord &record() const { return _record;}
-    FileRecord &record() { return _record;}
-    bool isRegularFile() const { return _record.isRegularFile();}
-    bool isDirectory() const { return _record.isDirectory();}
-    FileNode *findChild(const HashedFileName &hfname) const;
-
 private:
     FileNode *_parent;
     std::list<FileNode*> _childs;
@@ -115,13 +117,14 @@ public:
     void clean();
     void removeEmptyDirectories();
     void calculateFileHashes();
+    void parseFiles();
     void parseModifiedFiles(const FileTree *restored_file_tree);
 
     ///---Debug
     void print() const;
     ///
 
-    FileNode *createNode(const SplittedPath &path);
+    FileNode *addFile(const SplittedPath &path);
 
     void setRootDirectoryNode(FileNode *node);
 
@@ -145,6 +148,7 @@ private:
     FileNode *searchInIncludePaths(const SplittedPath &path);
 
     const char *skipSpaces(const char *line);
+    const char *skipSpacesAndComments(const char *line);
     void analyzeLine(const char *line, FileNode *node);
 };
 

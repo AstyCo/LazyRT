@@ -74,7 +74,7 @@ void FileNode::addChild(FileNode *child)
     _childs.push_back(child);
 }
 
-FileNode *FileNode::createChild(const HashedFileName &hfname, FileRecord::Type type)
+FileNode *FileNode::findOrNewChild(const HashedFileName &hfname, FileRecord::Type type)
 {
     if (FileNode *foundChild = findChild(hfname))
         return foundChild;
@@ -102,12 +102,18 @@ void FileNode::setParent(FileNode *parent)
 
 void FileNode::print(int indent) const
 {
+    std::string strIndents;
     for (int i = 0; i < indent; ++i)
-        std::cout << '\t';
-    std::cout << _record._path.string();
+        strIndents.push_back('\t');
+
+    std::cout << strIndents << _record._path.string();
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
+    for (auto &incl : _record._listIncludes)
+        std::cout << strIndents << "\tinclude: " << incl.filename << std::endl;
+    for (auto &dep : _record._listDependents)
+        std::cout << strIndents << "\tdependents: " << dep << std::endl;
 
     list<FileNode*>::const_iterator it = _childs.begin();
     while (it != _childs.end()) {
@@ -175,11 +181,17 @@ void FileTree::calculateFileHashes()
     _state = CachesCalculated;
 }
 
+void FileTree::parseFiles()
+{
+    MY_ASSERT(_state == CachesCalculated);
+    std::cout << std::endl << "parse all files:" << std::endl;
+    parseFilesRecursive(_rootDirectoryNode);
+}
+
 void FileTree::parseModifiedFiles(const FileTree *restored_file_tree)
 {
     MY_ASSERT(_state == CachesCalculated);
     std::cout << std::endl << "parseModifiedFiles:" << std::endl;
-//    parseFilesRecursive(_rootDirectoryNode);
     parseModifiedFilesRecursive(_rootDirectoryNode, restored_file_tree->_rootDirectoryNode);
 }
 
@@ -193,7 +205,7 @@ void FileTree::print() const
     }
 }
 
-FileNode *FileTree::createNode(const SplittedPath &path)
+FileNode *FileTree::addFile(const SplittedPath &path)
 {
     const std::list<HashedFileName> &splittedPath = path.splittedPath();
     if (!_rootDirectoryNode)
@@ -205,7 +217,7 @@ FileNode *FileTree::createNode(const SplittedPath &path)
         FileRecord::Type type = ((fname == splittedPath.back())
                                  ? FileRecord::RegularFile
                                  : FileRecord::Directory);
-        currentNode = currentNode->createChild(fname, type);
+        currentNode = currentNode->findOrNewChild(fname, type);
         MY_ASSERT(currentNode);
     }
     return currentNode;
@@ -298,7 +310,7 @@ void FileTree::parseFilesRecursive(FileNode *node)
 void FileTree::parseFile(FileNode *node)
 {
     MY_ASSERT(node->isRegularFile());
-    std::cout << "parseFile " << node->record()._path.string() << std::endl;
+    VERBAL(std::cout << "parseFile " << node->record()._path.string() << std::endl;)
 
     static const int BUFFER_SIZE = 200/*16*1024*/;
 
@@ -369,9 +381,9 @@ FileNode *FileTree::searchInCurrentDir(const SplittedPath &path, FileNode *dir)
         return NULL;
     }
     // found file
-    std::cout << "found in '" << dir->record()._path.string()
+    VERBAL(std::cout << "found in '" << dir->record()._path.string()
               << "' include file "
-              << path.string() << std::endl;
+              << path.string() << std::endl;)
     return current_dir;
 }
 
@@ -395,19 +407,48 @@ const char *FileTree::skipSpaces(const char *line)
     return line;
 }
 
+const char *FileTree::skipSpacesAndComments(const char *line)
+{
+    MY_ASSERT(line);
+    bool commentState = false;
+    for (;*line;++line) {
+        if (commentState) {
+            if (!strncmp(line, "*/", 2)) {
+                commentState = false;
+                ++line;
+            }
+            continue;
+        }
+        if (*line == '/') {
+            if (*(line + 1) == '*') {
+                // comment
+                commentState = true;
+                ++line;
+                continue;
+            }
+            else {
+                return line;
+            }
+        }
+        if (!isspace(*line))
+            return line;
+    }
+    return line;
+}
+
 void FileTree::analyzeLine(const char *line, FileNode *node)
 {
-    line = skipSpaces(line);
+    line = skipSpacesAndComments(line);
     if (*line != '#')
         return;
-    line = skipSpaces(line + 1);
+    line = skipSpacesAndComments(line + 1);
     static const char *str_include = "include";
     static const int str_include_len = strlen("include");
     for (int i = 0; i < str_include_len; ++i) {
         if (line[i] != str_include[i])
             return;
     }
-    line = skipSpaces(line + str_include_len);
+    line = skipSpacesAndComments(line + str_include_len);
     // parse filename
     char pairChar;
     IncludeDirective dir;
@@ -420,6 +461,7 @@ void FileTree::analyzeLine(const char *line, FileNode *node)
         dir.type = IncludeDirective::Brackets;
     }
     else {
+        std::cout << std::string(line) << std::endl;
         MY_ASSERT(false)
     }
     ++line;
@@ -430,9 +472,8 @@ void FileTree::analyzeLine(const char *line, FileNode *node)
     FileNode *includedFile = searchIncludedFile(dir, node);
 
     if (includedFile)
-        node->record()._listIncludes.push_back(includedFile->record()._path.string());
-    else
-        std::cout << "not found " << dir.filename << std::endl;
+        node->record()._listIncludes.push_back(dir);
+    VERBAL(else std::cout << "not found " << dir.filename << std::endl;)
 }
 
 std::__cxx11::string IncludeDirective::toPrint() const

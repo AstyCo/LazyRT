@@ -7,9 +7,12 @@
 #include <sstream>
 #include <vector>
 
-void Asserter(const char *file, int line);
 #define MY_ASSERT(x) if (!(x)) Asserter(__FILE__, __LINE__);
 
+#define VERBAL(x)
+
+
+void Asserter(const char *file, int line);
 
 template <typename T>
 std::string numberToString ( T Number )
@@ -40,6 +43,17 @@ void writeBinaryFile(const char *fname, T *data, size_t length)
     fwrite(data , sizeof(T), length, pFile);
     fclose(pFile);
 }
+
+class Profiler
+{
+    bool _started;
+    double _startTime;
+public:
+    Profiler();
+    void start();
+    void step(const std::string &eventName);
+    void finish(const std::string &eventName);
+};
 
 std::vector<char> strToVChar(const std::string &str);
 

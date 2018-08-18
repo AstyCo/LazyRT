@@ -39,3 +39,32 @@ std::vector<char> strToVChar(const std::__cxx11::string &str)
               std::back_inserter(result));
     return result;
 }
+
+Profiler::Profiler()
+{
+    start();
+}
+
+void Profiler::start()
+{
+    _started = true;
+    _startTime = getCpuTime();
+}
+
+void Profiler::step(const std::string &eventName)
+{
+    if (!_started || eventName.empty())
+        return;
+    double newTime = getCpuTime();
+
+    std::cout << eventName << " CPU time: " << newTime - _startTime << std::endl;
+
+    _startTime = newTime;
+}
+
+void Profiler::finish(const std::string &eventName)
+{
+    MY_ASSERT(_started);
+    step(eventName);
+    _started = false;
+}

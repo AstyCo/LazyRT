@@ -49,7 +49,7 @@ set(FLATBUFFERS_HEADERS
     )
 set(HEADERS
     ${FLATBUFFERS_HEADERS}
-    include/parsers/parser.hpp
+    include/directoryparser.hpp
     include/extensions/error_reporter.hpp
     include/extensions/help_functions.hpp
     include/extensions/md5.hpp
@@ -71,7 +71,7 @@ set(FLATBUFFERS_SRCS
 set(SRCS
     ${FLATBUFFERS_SRCS}
     src/main.cpp
-    src/parsers/parser.cpp
+    src/directoryparser.cpp
     src/extensions/error_reporter.cpp
     src/extensions/help_functions.cpp
     src/extensions/profiling.cpp
@@ -87,7 +87,7 @@ set(SRCS
 ##
 add_executable(${LAZYUT_TARGET_NAME} ${SRCS} ${HEADERS})
 target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_compile_features(${LAZYUT_TARGET_NAME} PRIVATE cxx_std_11)
+target_compile_features(${LAZYUT_TARGET_NAME} PUBLIC cxx_std_11)
 
 # link boost
 set(Boost_USE_STATIC_LIBS OFF)
