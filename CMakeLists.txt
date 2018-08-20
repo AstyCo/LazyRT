@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 ##
 ## PROJECT
@@ -87,22 +87,17 @@ set(SRCS
 ##
 add_executable(${LAZYUT_TARGET_NAME} ${SRCS} ${HEADERS})
 target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_compile_features(${LAZYUT_TARGET_NAME} PUBLIC cxx_std_11)
+target_compile_features(${LAZYUT_TARGET_NAME} PRIVATE cxx_std_11)
 
 # link boost
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-#set(Boost_ROOT C:/include/boost)
-set(BOOST_ROOT D:/Soft/boost-lib/boost_1_62_0)
-#mapped_file - iostreams
+#C:/Soft/boost/boost_1_62_0
+message(BOOST_ROOT='${BOOST_ROOT}')
 find_package(Boost 1.45.0 COMPONENTS filesystem system REQUIRED)
 
 if(Boost_FOUND)
-    message("MESSAGE: Boost_FOUND!")
-    message("libs:" ${Boost_LIBRARIES})
-    message("include:" ${Boost_INCLUDE_DIRS})
-
     target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
     target_link_libraries(${LAZYUT_TARGET_NAME} ${Boost_LIBRARIES})
 endif()
