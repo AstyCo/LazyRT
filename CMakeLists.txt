@@ -55,7 +55,8 @@ set(HEADERS
     include/extensions/md5.hpp
     include/extensions/flatbuffers_extensions.hpp
     include/types/file_tree.hpp
-    include/types/splitted_path.hpp)
+    include/types/splitted_path.hpp
+    include/lazyut_global.hpp)
 
 ##
 ## SOURCES
@@ -94,12 +95,12 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 #C:/Soft/boost/boost_1_62_0
-message(BOOST_ROOT='${BOOST_ROOT}')
+
 find_package(Boost 1.45.0 COMPONENTS filesystem system REQUIRED)
 
 if(Boost_FOUND)
-    target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
-    target_link_libraries(${LAZYUT_TARGET_NAME} ${Boost_LIBRARIES})
+    target_include_directories(${LAZYUT_TARGET_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${LAZYUT_TARGET_NAME} PUBLIC ${Boost_LIBRARIES})
 endif()
 
 if (WIN32)

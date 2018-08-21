@@ -59,12 +59,13 @@ public:
     bool _isHashValid;
 };
 
+class FileTree;
 class FileNode
 {
 public:
-    typedef std::list<FileNode*> child_list;
-    typedef child_list::iterator child_iterator;
-    typedef child_list::const_iterator child_const_iterator;
+    typedef std::list<FileNode*> ListFileNode;
+    typedef ListFileNode::iterator FileNodeIterator;
+    typedef ListFileNode::const_iterator FileNodeConstIterator;
 public:
 
     explicit FileNode(const SplittedPath &path, FileRecord::Type type);
@@ -90,14 +91,62 @@ public:
 
     void destroy();
 
+    void installIncludes(const FileTree &fileTree);
+    void installDependencies();
+
+    FileNode *search(const SplittedPath &path);
+
 public:
     ///---Debug
     void print(int indent = 0) const;
+    void printIncludes(int indent = 0) const;
     ///
 private:
     FileNode *_parent;
-    std::list<FileNode*> _childs;
+    ListFileNode _childs;
     FileRecord _record;
+
+    ListFileNode _listIncludes;
+    ListFileNode _listImplements;
+
+    ListFileNode _listDependencies;
+};
+
+class FileTree;
+class SourceParser
+{
+public:
+    explicit SourceParser(const FileTree &ftree);
+
+    void parseFile(FileNode *node);
+    void parseFileOld(FileNode *node);
+
+    const char *skipLine(const char *p) const;
+    const char *skipSpaces(const char *line) const;
+    const char *skipSpacesAndComments(const char *line) const;
+    void analyzeLine(const char *line, FileNode *node);
+private:
+    const FileTree &_fileTree;
+
+private:
+    // States
+    int _lcbrackets;    // nesting of left curly brackets {
+    enum SpecialState
+    {
+        NoSpecialState,  //
+        HashSign,        // #
+        IncludeState,    // #include
+        NotIncludeMacroState, // #smth (not #include)
+        StructState,     // struct
+        ClassState,      // class
+        Quotes,          // "
+        MultiComments,   // /*
+        SingleComments   // //
+    };
+    SpecialState _state;
+
+    std::list<std::string> _currentNamespace;
+    std::list<std::string> _listUsingNamespace;
 };
 
 class FileTree
@@ -109,7 +158,8 @@ public:
         Restored,
         Filled,
         Filtered,
-        CachesCalculated
+        CachesCalculated,
+        IncludesInstalled
     };
 
     FileTree();
@@ -118,6 +168,7 @@ public:
     void removeEmptyDirectories();
     void calculateFileHashes();
     void parseFiles();
+    void installIncludeNodes();
     void parseModifiedFiles(const FileTree *restored_file_tree);
 
     ///---Debug
@@ -135,21 +186,22 @@ public:
 
     std::list<FileNode*> _includePaths;
 
-private:
+public:
     void removeEmptyDirectories(FileNode *node);
     void calculateFileHashes(FileNode *node);
     void parseModifiedFilesRecursive(FileNode *node, FileNode *restored_node);
     void parseFilesRecursive(FileNode *node);
-    void parseFile(FileNode *node);
 
-    FileNode *searchIncludedFile(const IncludeDirective &id, FileNode *node);
+    void installIncludeNodesRecursive(FileNode &node);
+    void installDependenciesRecursive(FileNode &node);
 
-    FileNode *searchInCurrentDir(const SplittedPath &path, FileNode *current_dir);
-    FileNode *searchInIncludePaths(const SplittedPath &path);
+    FileNode *searchIncludedFile(const IncludeDirective &id, FileNode *node) const;
 
-    const char *skipSpaces(const char *line);
-    const char *skipSpacesAndComments(const char *line);
-    void analyzeLine(const char *line, FileNode *node);
+    FileNode *searchInCurrentDir(const SplittedPath &path, FileNode *current_dir) const;
+    FileNode *searchInIncludePaths(const SplittedPath &path) const;
+
+private:
+    SourceParser _srcParser;
 };
 
 #endif // FILE_TREE_HPP

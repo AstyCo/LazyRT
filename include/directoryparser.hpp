@@ -30,4 +30,5 @@ private:
     FileNode *_currenDirectory;
 };
 
+
 #endif // DIRECTORY_PARSER_HPP

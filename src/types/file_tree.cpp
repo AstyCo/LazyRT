@@ -110,8 +110,10 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-    for (auto &incl : _record._listIncludes)
-        std::cout << strIndents << "\tinclude: " << incl.filename << std::endl;
+//    for (auto &incl : _record._listIncludes)
+//        std::cout << strIndents << "\tinclude: " << incl.filename << std::endl;
+    printIncludes(indent);
+    /// TODO
     for (auto &dep : _record._listDependents)
         std::cout << strIndents << "\tdependents: " << dep << std::endl;
 
@@ -122,11 +124,23 @@ void FileNode::print(int indent) const
     }
 }
 
+void FileNode::printIncludes(int indent) const
+{
+    std::string strIndents;
+    for (int i = 0; i < indent; ++i)
+        strIndents.push_back('\t');
+
+    for (auto file : _listIncludes) {
+        std::cout << strIndents << "f_incl:" << file->record()._path.string() << std::endl;
+        file->printIncludes(indent + 1);
+    }
+}
+
 bool FileNode::hasRegularFiles() const
 {
     if (_record._type == FileRecord::RegularFile)
         return true;
-    child_const_iterator it(_childs.begin());
+    FileNodeConstIterator it(_childs.begin());
     while(it != _childs.end()) {
         if ((*it)->hasRegularFiles())
             return true;
@@ -142,6 +156,35 @@ void FileNode::destroy()
     delete this;
 }
 
+void FileNode::installIncludes(const FileTree &fileTree)
+{
+    for (auto &include_directive : _record._listIncludes) {
+       if (FileNode *includedFile = fileTree.searchIncludedFile(include_directive, this))
+           _listIncludes.push_back(includedFile);
+    }
+}
+
+void FileNode::installDependencies()
+{
+//    for (auto inc)
+    /// TODO
+}
+
+FileNode *FileNode::search(const SplittedPath &path)
+{
+    FileNode *current_dir = this;
+    for (auto &fname : path.splittedPath()) {
+        if ((current_dir = current_dir->findChild(fname)))
+            continue;
+        return NULL;
+    }
+    // found file
+    VERBAL(std::cout << "found in '" << record()._path.string()
+           << "' include file "
+           << path.string() << std::endl);
+    return current_dir;
+}
+
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
 {
     for (auto child : _childs) {
@@ -152,7 +195,7 @@ FileNode *FileNode::findChild(const HashedFileName &hfname) const
 }
 
 FileTree::FileTree()
-    : _state(Clean), _rootDirectoryNode(NULL)
+    : _state(Clean), _rootDirectoryNode(NULL), _srcParser(*this)
 {
 
 }
@@ -186,6 +229,12 @@ void FileTree::parseFiles()
     MY_ASSERT(_state == CachesCalculated);
     std::cout << std::endl << "parse all files:" << std::endl;
     parseFilesRecursive(_rootDirectoryNode);
+}
+
+void FileTree::installIncludeNodes()
+{
+    MY_ASSERT(_rootDirectoryNode);
+    installIncludeNodesRecursive(*_rootDirectoryNode);
 }
 
 void FileTree::parseModifiedFiles(const FileTree *restored_file_tree)
@@ -242,8 +291,8 @@ void FileTree::removeEmptyDirectories(FileNode *node)
     if (node->record()._type == FileRecord::RegularFile)
         return;
 
-    FileNode::child_list &childs = node->childs();
-    FileNode::child_iterator it(childs.begin());
+    FileNode::ListFileNode &childs = node->childs();
+    FileNode::FileNodeIterator it(childs.begin());
 
     while(it != childs.end()) {
         removeEmptyDirectories(*it);
@@ -262,8 +311,8 @@ void FileTree::calculateFileHashes(FileNode *node)
     if (node->record()._type == FileRecord::RegularFile)
         node->record().calculateHash(_rootPath);
 
-    FileNode::child_list &childs = node->childs();
-    FileNode::child_iterator it(childs.begin());
+    FileNode::ListFileNode &childs = node->childs();
+    FileNode::FileNodeIterator it(childs.begin());
 
     while(it != childs.end()) {
         calculateFileHashes(*it);
@@ -281,7 +330,7 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
                                    restored_node->record()._hashArray))) {
             // md5 is different
             std::cout << node->record()._path.string() << " md5 is different" << std::endl;
-            parseFile(node);
+            _srcParser.parseFile(node);
         }
     }
     for (auto child : thisChilds) {
@@ -298,7 +347,7 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
 void FileTree::parseFilesRecursive(FileNode *node)
 {
     if (node->isRegularFile()) {
-        parseFile(node);
+        _srcParser.parseFile(node);
         return;
     }
     // else, if directory
@@ -307,14 +356,20 @@ void FileTree::parseFilesRecursive(FileNode *node)
 
 }
 
-void FileTree::parseFile(FileNode *node)
+SourceParser::SourceParser(const FileTree &ftree)
+    : _fileTree(ftree)
+{
+
+}
+
+void SourceParser::parseFileOld(FileNode *node)
 {
     MY_ASSERT(node->isRegularFile());
     VERBAL(std::cout << "parseFile " << node->record()._path.string() << std::endl;)
 
     static const int BUFFER_SIZE = 200/*16*1024*/;
 
-    std::string fname = (_rootPath + node->record()._path).string();
+    std::string fname = (_fileTree._rootPath + node->record()._path).string();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
     if(!data) {
@@ -351,7 +406,143 @@ void FileTree::parseFile(FileNode *node)
     delete data;
 }
 
-FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *node)
+const char *SourceParser::skipLine(const char *p) const
+{
+    for ( ; *p; ++p) {
+        if (p == '\n')
+            return p + 1;
+    }
+    return p;
+}
+
+void SourceParser::parseFile(FileNode *node)
+{
+    if (!node->isRegularFile())
+        return;
+    VERBAL(std::cout << "parseFile " << node->record()._path.string() << std::endl;)
+
+    static const int BUFFER_SIZE = 200/*16*1024*/;
+
+    std::string fname = (_fileTree._rootPath + node->record()._path).string();
+    auto data_pair = readFile(fname.c_str(), "r");
+    char *data = data_pair.first;
+    if(!data) {
+        errors() << "Failed to open the file" << '\'' + std::string(fname) + '\'';
+        return;
+    }
+    long bytes_read = data_pair.second;
+    long offset = 0;
+    for (char *p = data; *p != 0;)
+    {
+        switch (_state) {
+        case NoSpecialState:
+            break;
+        case NotIncludeMacroState:
+            p = skipLine(p);
+            break;
+        case HashSign:
+        {
+            // check if include directive
+            p = skipSpacesAndComments(p);
+            static const char *str_include = "include";
+            static const int str_include_len = strlen("include");
+            for (int i = 0; i < str_include_len; ++i) {
+                if (p[i] != str_include[i]) {
+                    _state = NotIncludeMacroState;
+                    break;
+                }
+            }
+            p = skipSpacesAndComments(p + str_include_len);
+            if (_state != NotIncludeMacroState)
+                _state = IncludeState;
+            break;
+        }
+        case IncludeState: {
+            // parse filename
+            char pairChar;
+            IncludeDirective dir;
+            if (*p == '"') {
+                pairChar = '"';
+                dir.type = IncludeDirective::Quotes;
+            }
+            else if (*p == '<') {
+                pairChar = '>';
+                dir.type = IncludeDirective::Brackets;
+            }
+            else {
+                std::cout << std::string(p) << std::endl;
+                MY_ASSERT(false)
+            }
+            ++p;
+            const char *end_of_filename = (char*) memchr(p, pairChar, strlen(p));
+            MY_ASSERT(end_of_filename)
+            // TODO check for \<newline>
+            dir.filename = std::string(p, end_of_filename - p);
+
+            FileNode *includedFile = _fileTree.searchIncludedFile(dir, node);
+
+            if (includedFile)
+                node->record()._listIncludes.push_back(dir);
+            VERBAL(else std::cout << "not found " << dir.filename << std::endl;)
+            break;
+        }
+        case StructState:
+            break;
+        case ClassState:
+            break;
+        case Quotes:
+            break;
+        case MultiComments:
+            break;
+        case SingleComments:
+            break;
+        }
+
+        char *pnl = (char*) memchr(p, '\n', bytes_read - (p - data));
+        // start looking for include
+        if (pnl) {
+            *pnl = 0;
+            p = skipSpacesAndComments(p);
+            if (*p != '#')
+                return;
+            p = skipSpacesAndComments(p + 1);
+
+        }
+        else {
+            offset = bytes_read - (p - data);
+            if (p == data) {
+                errors() << "Too big line in file, more than" << numberToString(BUFFER_SIZE);
+                return;
+            }
+            else {
+                if (p - data < bytes_read) {
+                    // copy
+                    memcpy(data, p, offset);
+                }
+            }
+            break;
+        }
+        p = pnl + 1;
+    }
+    // free file's data
+    delete data;
+}
+
+void FileTree::installIncludeNodesRecursive(FileNode &node)
+{
+    node.installIncludes(*this);
+    for (auto &child : node.childs())
+        installIncludeNodesRecursive(*child);
+}
+
+void FileTree::installDependenciesRecursive(FileNode &node)
+{
+    node.installDependencies();
+    for (auto &child : node.childs())
+        installDependenciesRecursive(*child);
+}
+
+FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *node) const
 {
     MY_ASSERT(node);
     const SplittedPath &path = id.filename;
@@ -369,25 +560,15 @@ FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *nod
     }
 }
 
-FileNode *FileTree::searchInCurrentDir(const SplittedPath &path, FileNode *dir)
+FileNode *FileTree::searchInCurrentDir(const SplittedPath &path, FileNode *dir) const
 {
     MY_ASSERT(dir && dir->isDirectory());
-    FileNode *current_dir = dir;
-    if (!current_dir)
+    if (!dir)
         return NULL;
-    for (auto &fname : path.splittedPath()) {
-        if ((current_dir = current_dir->findChild(fname)))
-            continue;
-        return NULL;
-    }
-    // found file
-    VERBAL(std::cout << "found in '" << dir->record()._path.string()
-              << "' include file "
-              << path.string() << std::endl;)
-    return current_dir;
+    return dir->search(path);
 }
 
-FileNode *FileTree::searchInIncludePaths(const SplittedPath &path)
+FileNode *FileTree::searchInIncludePaths(const SplittedPath &path) const
 {
     for (auto includePath : _includePaths) {
         if (FileNode *includeFile = searchInCurrentDir(path, includePath))
@@ -397,7 +578,7 @@ FileNode *FileTree::searchInIncludePaths(const SplittedPath &path)
     return NULL;
 }
 
-const char *FileTree::skipSpaces(const char *line)
+const char *SourceParser::skipSpaces(const char *line) const
 {
     MY_ASSERT(line);
     for (;*line;++line) {
@@ -407,7 +588,7 @@ const char *FileTree::skipSpaces(const char *line)
     return line;
 }
 
-const char *FileTree::skipSpacesAndComments(const char *line)
+const char *SourceParser::skipSpacesAndComments(const char *line) const
 {
     MY_ASSERT(line);
     bool commentState = false;
@@ -436,7 +617,7 @@ const char *FileTree::skipSpacesAndComments(const char *line)
     return line;
 }
 
-void FileTree::analyzeLine(const char *line, FileNode *node)
+void SourceParser::analyzeLine(const char *line, FileNode *node)
 {
     line = skipSpacesAndComments(line);
     if (*line != '#')
@@ -469,7 +650,7 @@ void FileTree::analyzeLine(const char *line, FileNode *node)
     MY_ASSERT(end_of_filename)
     dir.filename = std::string(line, end_of_filename - line);
 
-    FileNode *includedFile = searchIncludedFile(dir, node);
+    FileNode *includedFile = _fileTree.searchIncludedFile(dir, node);
 
     if (includedFile)
         node->record()._listIncludes.push_back(dir);

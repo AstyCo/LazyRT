@@ -25,8 +25,8 @@ void pushFiles(flatbuffers::FlatBufferBuilder &builder,
         records.push_back(fbs_frecord);
     }
 
-    const FileNode::child_list &childs = node->childs();
-    FileNode::child_const_iterator it(childs.cbegin());
+    const FileNode::ListFileNode &childs = node->childs();
+    FileNode::FileNodeConstIterator it(childs.cbegin());
     while (it != childs.cend()) {
         pushFiles(builder, records, *it);
 
@@ -41,16 +41,17 @@ int main(int /*argc*/, const char */*argv*/[])
 {
     DirectoryParser parser;
     Profiler prf;
-    std::string srcDirName("D:\\Study\\TestCoveredProjects\\cppcheck\\lib");
+    std::string srcDirName("C:\\experiments\\cppcheck\\lib");
     parser.parseDirectory(srcDirName);
     prf.step("parsed directory " + srcDirName);
 
     DirectoryParser testsParser;
-    std::string testDirName("D:\\Study\\TestCoveredProjects\\cppcheck\\test");
+    std::string testDirName("C:\\experiments\\cppcheck\\test");
     FileTree &testTree = testsParser.fileTree();
     testTree._includePaths.push_back(parser.fileTree()._rootDirectoryNode);
     testsParser.parseDirectory(testDirName);
     testTree.parseFiles();
+    testTree.installIncludeNodes();
     testTree.print();
 
     FileTree &tree = parser.fileTree();

@@ -2,6 +2,7 @@
 #define LAZYRT_HELP_FUNCTIONS_HPP
 
 #include "extensions/error_reporter.hpp"
+#include "lazyut_global.hpp"
 
 #include <string>
 #include <sstream>
@@ -9,7 +10,7 @@
 
 #define MY_ASSERT(x) if (!(x)) Asserter(__FILE__, __LINE__);
 
-#define VERBAL(x)
+#define VERBAL(x) x
 
 
 void Asserter(const char *file, int line);
