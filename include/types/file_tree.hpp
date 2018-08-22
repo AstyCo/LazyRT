@@ -28,6 +28,19 @@ struct IncludeDirective
     bool isBrackets() const { return type == Brackets;}
 };
 
+struct ScopedName
+{
+    std::list<std::string> data;
+
+    void clear() { data.clear();}
+    const std::string &name() const;
+    bool hasNamespace() const;
+    void pushScopeOrName(const std::string &word) { data.push_back(word);}
+    bool isEmpty() const { return data.empty();}
+
+    static const std::string emptyName;
+};
+
 class FileRecord
 {
 public:
@@ -54,6 +67,9 @@ public:
 
     list<IncludeDirective> _listIncludes;
     list<string> _listDependents;
+
+    list<ScopedName> _listDecl;
+    list<ScopedName> _listImpl;
 public:
     MD5::HashArray _hashArray;
     bool _isHashValid;
@@ -124,6 +140,16 @@ public:
     const char *skipLine(const char *p) const;
     const char *skipSpaces(const char *line) const;
     const char *skipSpacesAndComments(const char *line) const;
+    int skipSpacesAndCommentsR(const char *line, int len) const;
+
+
+    const char *parseName(const char *p, ScopedName &name) const;
+    const char *parseWord(const char *p, int &wordLength) const;
+
+    int parseNameR(const char *p, int len, ScopedName &name) const;
+    int parseWordR(const char *p, int len) const;
+
+    const char *readUntil(const char *p, const char *substr) const;
     void analyzeLine(const char *line, FileNode *node);
 private:
     const FileTree &_fileTree;
@@ -140,13 +166,16 @@ private:
         StructState,     // struct
         ClassState,      // class
         Quotes,          // "
+        OpenBracket,     // (
         MultiComments,   // /*
         SingleComments   // //
     };
     SpecialState _state;
 
-    std::list<std::string> _currentNamespace;
-    std::list<std::string> _listUsingNamespace;
+    ScopedName _currentNamespace;
+    std::list<ScopedName> _listUsingNamespace;
+
+    ScopedName _funcName;
 };
 
 class FileTree
