@@ -37,6 +37,7 @@ struct ScopedName
     bool hasNamespace() const;
     void pushScopeOrName(const std::string &word) { data.push_back(word);}
     bool isEmpty() const { return data.empty();}
+    std::string fullname() const;
 
     static const std::string emptyName;
 };
@@ -116,6 +117,8 @@ public:
     ///---Debug
     void print(int indent = 0) const;
     void printIncludes(int indent = 0) const;
+    void printDecls(int indent = 0) const;
+    void printImpls(int indent = 0) const;
     ///
 private:
     FileNode *_parent;
@@ -137,6 +140,8 @@ public:
     void parseFile(FileNode *node);
     void parseFileOld(FileNode *node);
 
+    const char *skipTemplate(const char *p) const;
+    int skipTemplateR(const char *line, int len) const;
     const char *skipLine(const char *p) const;
     const char *skipSpaces(const char *line) const;
     const char *skipSpacesAndComments(const char *line) const;
@@ -156,20 +161,21 @@ private:
 
 private:
     // States
-    int _lcbrackets;    // nesting of left curly brackets {
     enum SpecialState
     {
-        NoSpecialState,  //
-        HashSign,        // #
-        IncludeState,    // #include
-        NotIncludeMacroState, // #smth (not #include)
-        StructState,     // struct
-        ClassState,      // class
-        Quotes,          // "
-        OpenBracket,     // (
-        MultiComments,   // /*
-        SingleComments   // //
+        NoSpecialState,         //
+        HashSign,               // #
+        IncludeState,           // #include
+        NotIncludeMacroState,   // #smth (not #include)
+        StructState,            // struct
+        ClassState,             // class
+        Quotes,                 // "
+        OpenBracket,            // (
+        MultiComments,          // /*
+        SingleComments          // //
     };
+    static std::string stateToString(SpecialState state);
+
     SpecialState _state;
 
     ScopedName _currentNamespace;

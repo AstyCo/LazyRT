@@ -10,6 +10,9 @@
 #include <string.h>
 #include <fcntl.h>
 
+#define CLASS_LITER "class"
+#define STRUCT_LITER "struct"
+
 FileRecord::FileRecord(const SplittedPath &path, Type type)
     : _path(path), _type(type), _isHashValid(false)
 {
@@ -114,6 +117,8 @@ void FileNode::print(int indent) const
 //        std::cout << strIndents << "\tinclude: " << incl.filename << std::endl;
     printIncludes(indent);
     /// TODO
+    printImpls(indent);
+    printDecls(indent);
     for (auto &dep : _record._listDependents)
         std::cout << strIndents << "\tdependents: " << dep << std::endl;
 
@@ -134,6 +139,26 @@ void FileNode::printIncludes(int indent) const
         std::cout << strIndents << "f_incl:" << file->record()._path.string() << std::endl;
         file->printIncludes(indent + 1);
     }
+}
+
+void FileNode::printDecls(int indent) const
+{
+    std::string strIndents;
+    for (int i = 0; i < indent; ++i)
+        strIndents.push_back('\t');
+
+    for (auto &decl : _record._listDecl)
+        std::cout << strIndents << string("decl: ") << decl.fullname() << std::endl;
+}
+
+void FileNode::printImpls(int indent) const
+{
+    std::string strIndents;
+    for (int i = 0; i < indent; ++i)
+        strIndents.push_back('\t');
+
+    for (auto &impl : _record._listImpl)
+        std::cout << strIndents << string("impl: ") << impl.fullname() << std::endl;
 }
 
 bool FileNode::hasRegularFiles() const
@@ -406,6 +431,60 @@ void SourceParser::parseFileOld(FileNode *node)
     delete data;
 }
 
+const char *SourceParser::skipTemplate(const char *p) const
+{
+    p = skipSpacesAndComments(p);
+
+    int tmplDeep = 0;
+    for ( ; *p; ++p)
+    {
+        const char ch = *p;
+        switch (ch) {
+        case '<':
+            ++tmplDeep;
+            break;
+        case '>':
+            --tmplDeep;
+            continue;
+        default:
+            break;
+        }
+        if (0 == tmplDeep)
+            return p + 1;
+
+        if (!strncmp(p, "/*", 2))
+            p = skipSpacesAndComments(p);
+    }
+    return p;
+}
+
+int SourceParser::skipTemplateR(const char *line, int len) const
+{
+    int d = skipSpacesAndCommentsR(line, len);
+
+    int tmplDeep = 0;
+    for ( ; d < len; ++d)
+    {
+        const char ch = line[d];
+        switch (ch) {
+        case '>':
+            ++tmplDeep;
+            break;
+        case '<':
+            --tmplDeep;
+            continue;
+        default:
+            break;
+        }
+        if (0 == tmplDeep)
+            return d;
+
+        if (len - d > 0 && !strncmp(line - d - 1, "*/", 2))
+            d += skipSpacesAndCommentsR(line - d, len - d);
+    }
+    return d;
+}
+
 const char *SourceParser::skipLine(const char *p) const
 {
     for ( ; *p; ++p) {
@@ -421,8 +500,6 @@ void SourceParser::parseFile(FileNode *node)
         return;
     VERBAL(std::cout << "parseFile " << node->record()._path.string() << std::endl;)
 
-    static const int BUFFER_SIZE = 200/*16*1024*/;
-
     std::string fname = (_fileTree._rootPath + node->record()._path).string();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
@@ -432,8 +509,12 @@ void SourceParser::parseFile(FileNode *node)
     }
     long bytes_read = data_pair.second;
     long offset = 0;
+    int lcbrackets = 0;
+
+    _state = NoSpecialState;
     for (const char *p = data; *p != 0;)
     {
+        std::cout << "ch '" << *p << "' state " << stateToString(_state) << std::endl;
         switch (_state)
         {
         case NoSpecialState:
@@ -445,7 +526,7 @@ void SourceParser::parseFile(FileNode *node)
                 _state = Quotes;
                 break;
             case '{':
-                ++_lcbrackets;
+                ++lcbrackets;
                 if (!_funcName.isEmpty()) {
                     // impl global func
                     node->record()._listImpl.push_back(_funcName);
@@ -453,33 +534,52 @@ void SourceParser::parseFile(FileNode *node)
                 }
                 break;
             case '}':
-                MY_ASSERT(_lcbrackets > 0);
-                --_lcbrackets;
+                MY_ASSERT(lcbrackets > 0);
+                --lcbrackets;
                 break;
-            case '(':
-            {
-                _funcName = _currentNamespace;
-                parseNameR(p - 1, p - data - 1, _funcName);
-                break;
-            }
-            case ';':
-            {
-                if (!_funcName.isEmpty()) {
-                    // decl func
-                    node->record()._listDecl.push_back(_funcName);
-                    _funcName.clear();
-                }
-            }
+
             default:
                 break;
             }
-            if (_lcbrackets > 0)
-                break;
+            if (lcbrackets == 0) {
+                switch (ch) {
+                case '#':
+                    _state = HashSign;
+                    break;
+                case '(':
+                {
+                    _funcName = _currentNamespace;
+                    /// TODO check if function
+                    parseNameR(p - 1, p - data - 1, _funcName);
+                    break;
+                }
+                case ';':
+                {
+                    if (!_funcName.isEmpty()) {
+                        // decl func
+                        node->record()._listDecl.push_back(_funcName);
+                        _funcName.clear();
+                    }
+                }
+                default:
+                    break;
+                }
+                if (!strncmp(p, CLASS_LITER, sizeof(CLASS_LITER) - 1)) {
+                    p += sizeof(CLASS_LITER) - 2;
+                    _state = ClassState;
+                }
+                else if (!strncmp(p, STRUCT_LITER, sizeof(STRUCT_LITER) - 1)) {
+                    p += sizeof(STRUCT_LITER) - 2;
+                    _state = StructState;
+                }
+            }
+            ++p;
             break;
         }
         case NotIncludeMacroState:
         {
             p = skipLine(p);
+            _state = NoSpecialState;
             break;
         }
         case HashSign:
@@ -488,26 +588,23 @@ void SourceParser::parseFile(FileNode *node)
             p = skipSpacesAndComments(p);
             static const char *str_include = "include";
             static const int str_include_len = strlen("include");
-            for (int i = 0; i < str_include_len; ++i) {
-                if (p[i] != str_include[i]) {
-                    _state = NotIncludeMacroState;
-                    break;
-                }
-            }
-            p = skipSpacesAndComments(p + str_include_len);
-            if (_state != NotIncludeMacroState)
+            if (!strncmp(p, str_include, str_include_len))
                 _state = IncludeState;
+            else
+                _state = NotIncludeMacroState;
+            p = skipSpacesAndComments(p + str_include_len);
             break;
         }
         case IncludeState: {
             // parse filename
+            const char ch = *p;
             char pairChar;
             IncludeDirective dir;
-            if (*p == '"') {
+            if (ch == '"') {
                 pairChar = '"';
                 dir.type = IncludeDirective::Quotes;
             }
-            else if (*p == '<') {
+            else if (ch == '<') {
                 pairChar = '>';
                 dir.type = IncludeDirective::Brackets;
             }
@@ -527,6 +624,7 @@ void SourceParser::parseFile(FileNode *node)
                 node->record()._listIncludes.push_back(dir);
             VERBAL(else std::cout << "not found " << dir.filename << std::endl;)
             _state = NoSpecialState;
+            p = skipLine(end_of_filename);
             break;
         }
         case StructState:  // no difference between parsing
@@ -535,11 +633,12 @@ void SourceParser::parseFile(FileNode *node)
             ScopedName className = _currentNamespace;
             p = parseName(p, className);
             p = skipSpacesAndComments(p);
-            if (*p == ';') {
+            const char ch = *p;
+            if (ch == ';') {
                 // ref
                 // do nothing
             }
-            else if (*p == '{') {
+            else if (ch == '{') {
                 // decl
                 node->record()._listDecl.push_back(className);
             }
@@ -553,6 +652,7 @@ void SourceParser::parseFile(FileNode *node)
                     ++p; // skip next
                 else if (*p == '\"') {
                     _state = NoSpecialState;
+                    ++p;
                     break;
                 }
             }
@@ -571,33 +671,8 @@ void SourceParser::parseFile(FileNode *node)
             break;
         }
         }
-
-        char *pnl = (char*) memchr(p, '\n', bytes_read - (p - data));
-        // start looking for include
-        if (pnl) {
-            *pnl = 0;
-            p = skipSpacesAndComments(p);
-            if (*p != '#')
-                return;
-            p = skipSpacesAndComments(p + 1);
-
-        }
-        else {
-            offset = bytes_read - (p - data);
-            if (p == data) {
-                errors() << "Too big line in file, more than" << numberToString(BUFFER_SIZE);
-                return;
-            }
-            else {
-                if (p - data < bytes_read) {
-                    // copy
-                    memcpy(data, p, offset);
-                }
-            }
-            break;
-        }
-        p = pnl + 1;
     }
+
     // free file's data
     delete data;
 }
@@ -838,6 +913,23 @@ void SourceParser::analyzeLine(const char *line, FileNode *node)
     VERBAL(else std::cout << "not found " << dir.filename << std::endl;)
 }
 
+std::string SourceParser::stateToString(SourceParser::SpecialState state)
+{
+    switch (state) {
+    case NoSpecialState:       return "NoSpecialState";
+    case HashSign:             return "HashSign";
+    case IncludeState:         return "IncludeState";
+    case NotIncludeMacroState: return "NotIncludeMacroState";
+    case StructState:          return "StructState";
+    case ClassState:           return "ClassState";
+    case Quotes:               return "Quotes";
+    case OpenBracket:          return "OpenBracket";
+    case MultiComments:        return "MultiComments";
+    case SingleComments:       return "SingleComments";
+    }
+    return "UNKNOWN SpecialState";
+}
+
 std::__cxx11::string IncludeDirective::toPrint() const
 {
     switch (type) {
@@ -853,7 +945,7 @@ const std::string &ScopedName::name() const
 {
     auto listSize = data.size();
     if (listSize > 0)
-        return *data.back();
+        return data.back();
 
     return emptyName;
 }
@@ -861,4 +953,19 @@ const std::string &ScopedName::name() const
 bool ScopedName::hasNamespace() const
 {
     return data.size() > 1;
+}
+
+std::string ScopedName::fullname() const
+{
+    std::string result;
+    bool first = true;
+    for (auto &word : data) {
+        if (first)
+            first = false;
+        else
+            result.append(string("::"));
+        result.append(word);
+    }
+
+    return result;
 }

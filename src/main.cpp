@@ -41,21 +41,22 @@ int main(int /*argc*/, const char */*argv*/[])
 {
     DirectoryParser parser;
     Profiler prf;
-    std::string srcDirName("C:\\experiments\\cppcheck\\lib");
+    std::string srcDirName("C:\\experiments\\test");
     parser.parseDirectory(srcDirName);
     prf.step("parsed directory " + srcDirName);
 
-    DirectoryParser testsParser;
-    std::string testDirName("C:\\experiments\\cppcheck\\test");
-    FileTree &testTree = testsParser.fileTree();
-    testTree._includePaths.push_back(parser.fileTree()._rootDirectoryNode);
-    testsParser.parseDirectory(testDirName);
-    testTree.parseFiles();
-    testTree.installIncludeNodes();
-    testTree.print();
+//    DirectoryParser testsParser;
+//    std::string testDirName("C:\\experiments\\test");
+//    FileTree &testTree = testsParser.fileTree();
+//    testTree._includePaths.push_back(parser.fileTree()._rootDirectoryNode);
+//    testsParser.parseDirectory(testDirName);
+//    testTree.parseFiles();
+//    testTree.installIncludeNodes();
+//    testTree.print();
 
     FileTree &tree = parser.fileTree();
-//    tree.print();
+    tree.parseFiles();
+    tree.print();
 
 //    if (FileTree *restoredTree = restoreFileTree(TEST_FNAME)) {
 //        restoredTree->print();
