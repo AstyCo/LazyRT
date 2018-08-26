@@ -8,6 +8,8 @@
 #include <sstream>
 #include <vector>
 
+#define MY_PRINTEXT(x) \
+    std::cout << #x << " EXT_FILE : " << _currentFile->record()._path.string() << " LINE: " << _line << std::endl
 #define MY_ASSERT(x) if (!(x)) Asserter(__FILE__, __LINE__);
 #define MY_ASSERTF(x) \
 if (!(x)) {\
@@ -16,7 +18,9 @@ if (!(x)) {\
     exit(1); \
 }
 
-#define VERBAL(x) x
+#define VERBAL_0(x)
+#define VERBAL_1(x)
+#define VERBAL_2(x)
 
 
 void Asserter(const char *file, int line);
@@ -72,6 +76,8 @@ inline char osSeparator()
     return '/';
 #endif
 }
+
+long long file_size(const char *fname);
 
 
 #endif // LAZYRT_HELP_FUNCTIONS_HPP

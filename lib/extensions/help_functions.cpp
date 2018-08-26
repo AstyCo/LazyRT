@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef WIN32
+#include <windows.h> // file_size
+#include <fileapi.h> // file_size
+#else // POSIX
+
+#endif
+
 void Asserter(const char *file, int line)
 {
     std::cerr << "ASSERT at FILE:" << file << " LINE:"<< line << std::endl;
@@ -21,15 +28,12 @@ std::pair<char *, long> readFile(const char *fname, const char *mode)
         errors() << "file" << std::string(fname) << "can not be opened";
         return std::pair<char *, long>(NULL, 0);
     }
-    fseek(file, 0L, SEEK_END);
-    int length = ftell(file);
-    fseek(file, 0L, SEEK_SET);
-    char *data = new char[length + 1];
-    fread(data, sizeof(char), length, file);
+    long long fsize = file_size(fname);
+    char *data = new char[fsize + 1];
+    size_t read_count = fread(data, sizeof(char), fsize, file);
     fclose(file);
-    data[length] = 0;
 
-    return std::make_pair(data, length);
+    return std::make_pair(data, read_count);
 }
 
 std::vector<char> strToVChar(const std::__cxx11::string &str)
@@ -67,4 +71,27 @@ void Profiler::finish(const std::string &eventName)
     MY_ASSERT(_started);
     step(eventName);
     _started = false;
+}
+
+long long file_size(const char *fname)
+{
+#ifdef WIN32
+    HANDLE hFile = CreateFile(fname, GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile==INVALID_HANDLE_VALUE)
+        return -1; // error condition, could call GetLastError to find out more
+
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(hFile, &size))
+    {
+        CloseHandle(hFile);
+        return -1; // error condition, could call GetLastError to find out more
+    }
+
+    CloseHandle(hFile);
+    return size.QuadPart;
+#else // POSIX
+
+#endif
 }

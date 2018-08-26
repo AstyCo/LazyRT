@@ -12,10 +12,9 @@ public:
     explicit SourceParser(const FileTree &ftree);
 
     void parseFile(FileNode *node);
-    void parseFileOld(FileNode *node);
 
     const char *skipTemplate(const char *p) const;
-    int skipTemplateR(const char *line, int len) const;
+    int skipTemplateAndSpacesR(const char *line, int len) const;
     const char *skipLine(const char *p) const;
     const char *skipSpaces(const char *line) const;
     const char *skipSpacesAndComments(const char *line) const;
@@ -26,10 +25,13 @@ public:
     const char *parseWord(const char *p, int &wordLength) const;
 
     int parseNameR(const char *p, int len, ScopedName &name) const;
+    int dealWithOperatorOverloadingR(const char *p, int len, std::list<std::string> &nsname) const;
     int parseWordR(const char *p, int len) const;
+    bool checkIfFunctionHeadR(const char *p, int len) const;
 
     const char *readUntil(const char *p, const char *substr) const;
-    void analyzeLine(const char *line, FileNode *node);
+    const char *readUntilM(const char *p, const std::list<std::string> &substrings,
+                           std::list<std::string>::const_iterator &it) const;
 private:
     const FileTree &_fileTree;
 
@@ -43,7 +45,11 @@ private:
         NotIncludeMacroState,   // #smth (not #include)
         StructState,            // struct
         ClassState,             // class
+        TypedefState,           // typedef
+        UsingState,             // using
+        NamespaceState,         // namespace
         Quotes,                 // "
+        SingleQuotes,           // '
         OpenBracket,            // (
         MultiComments,          // /*
         SingleComments          // //

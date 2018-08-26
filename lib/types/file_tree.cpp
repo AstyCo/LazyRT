@@ -200,7 +200,7 @@ FileNode *FileNode::search(const SplittedPath &path)
         return NULL;
     }
     // found file
-    VERBAL(std::cout << "found in '" << record()._path.string()
+    VERBAL_2(std::cout << "found in '" << current_dir->record()._path.string()
            << "' include file "
            << path.string() << std::endl);
     return current_dir;
