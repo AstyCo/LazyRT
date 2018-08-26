@@ -9,6 +9,12 @@
 #include <vector>
 
 #define MY_ASSERT(x) if (!(x)) Asserter(__FILE__, __LINE__);
+#define MY_ASSERTF(x) \
+if (!(x)) {\
+    std::cerr << "ASSERT at FILE:" << __FILE__ << " LINE:"<< __LINE__ << std::endl; \
+    std::cerr << "EXT_FILE : " << _currentFile->record()._path.string() << " LINE: " << _line << std::endl; \
+    exit(1); \
+}
 
 #define VERBAL(x) x
 

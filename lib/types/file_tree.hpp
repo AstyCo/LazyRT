@@ -35,7 +35,7 @@ struct ScopedName
     void clear() { data.clear();}
     const std::string &name() const;
     bool hasNamespace() const;
-    void pushScopeOrName(const std::string &word) { data.push_back(word);}
+    void pushScopeOrName(const std::string &word) { data.push_front(word);}
     bool isEmpty() const { return data.empty();}
     std::string fullname() const;
 
@@ -182,6 +182,8 @@ private:
     std::list<ScopedName> _listUsingNamespace;
 
     ScopedName _funcName;
+    mutable int _line;
+    FileNode *_currentFile;
 };
 
 class FileTree

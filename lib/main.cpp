@@ -41,7 +41,7 @@ int main(int /*argc*/, const char */*argv*/[])
 {
     DirectoryParser parser;
     Profiler prf;
-    std::string srcDirName("C:\\experiments\\test");
+    std::string srcDirName("D:\\Study\\LazyUT\\test_files");
     parser.parseDirectory(srcDirName);
     prf.step("parsed directory " + srcDirName);
 
