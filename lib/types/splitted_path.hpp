@@ -1,9 +1,10 @@
 #ifndef SPLITTED_PATH_HPP
 #define SPLITTED_PATH_HPP
 
+#include "extensions/help_functions.hpp"
+
 #include <string>
 #include <list>
-#include "extensions/help_functions.hpp"
 
 class HashedString: public std::string
 {

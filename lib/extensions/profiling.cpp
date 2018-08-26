@@ -1,6 +1,8 @@
 //  Windows
 #ifdef _WIN32
+
 #include <Windows.h>
+
 double get_wall_time(){
     LARGE_INTEGER time,freq;
     if (!QueryPerformanceFrequency(&freq)){
@@ -29,8 +31,10 @@ double getCpuTime(){
 
 //  Posix/Linux
 #else
+
 #include <time.h>
 #include <sys/time.h>
+
 double getWallTime(){
     struct timeval time;
     if (gettimeofday(&time,NULL)){

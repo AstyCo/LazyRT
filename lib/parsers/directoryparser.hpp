@@ -1,11 +1,12 @@
 #ifndef DIRECTORY_PARSER_HPP
 #define DIRECTORY_PARSER_HPP
 
-#include <iostream>
-#include <vector>
+#include "types/file_tree.hpp"
 
 #include <boost/filesystem.hpp>
-#include "types/file_tree.hpp"
+
+#include <iostream>
+#include <vector>
 
 class DirectoryParser
 {

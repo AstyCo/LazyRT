@@ -30,64 +30,68 @@ set(LAZYUT_CMAKE_PROJECT_TARGETS_FILE   "${LAZYUT_CMAKE_CONFIG_DIR}/${PROJECT_NA
 ## project .h .hpp files
 ##
 set(FLATBUFFERS_GENERATED_HEADERS
-    include/flatbuffers_schemes/file_tree_generated.h
+    lib/flatbuffers_schemes/file_tree_generated.h
     )
 set(FLATBUFFERS_HEADERS
     ${FLATBUFFERS_GENERATED_HEADERS}
-    include/flatbuffers/code_generators.h
-    include/flatbuffers/base.h
-    include/flatbuffers/flatbuffers.h
-    include/flatbuffers/hash.h
-    include/flatbuffers/idl.h
-    include/flatbuffers/util.h
-    include/flatbuffers/reflection.h
-    include/flatbuffers/reflection_generated.h
-    include/flatbuffers/stl_emulation.h
-    include/flatbuffers/flexbuffers.h
-    include/flatbuffers/registry.h
-    include/flatbuffers/minireflect.h
+    lib/flatbuffers/code_generators.h
+    lib/flatbuffers/base.h
+    lib/flatbuffers/flatbuffers.h
+    lib/flatbuffers/hash.h
+    lib/flatbuffers/idl.h
+    lib/flatbuffers/util.h
+    lib/flatbuffers/reflection.h
+    lib/flatbuffers/reflection_generated.h
+    lib/flatbuffers/stl_emulation.h
+    lib/flatbuffers/flexbuffers.h
+    lib/flatbuffers/registry.h
+    lib/flatbuffers/minireflect.h
     )
 set(HEADERS
     ${FLATBUFFERS_HEADERS}
-    include/directoryparser.hpp
-    include/extensions/error_reporter.hpp
-    include/extensions/help_functions.hpp
-    include/extensions/md5.hpp
-    include/extensions/flatbuffers_extensions.hpp
-    include/types/file_tree.hpp
-    include/types/splitted_path.hpp
-    include/lazyut_global.hpp)
+    lib/extensions/error_reporter.hpp
+    lib/extensions/help_functions.hpp
+    lib/extensions/md5.hpp
+    lib/extensions/flatbuffers_extensions.hpp
+    lib/types/file_tree.hpp
+    lib/types/splitted_path.hpp
+    lib/types/scoped_name.hpp
+    lib/parsers/directoryparser.hpp
+    lib/parsers/sourceparser.hpp
+    lib/lazyut_global.hpp)
 
 ##
 ## SOURCES
 ## project .cpp files
 ##
 set(FLATBUFFERS_SRCS
-    src/flatbuffers/code_generators.cpp
-    src/flatbuffers/idl_parser.cpp
-    src/flatbuffers/idl_gen_text.cpp
-    src/flatbuffers/reflection.cpp
-    src/flatbuffers/util.cpp
+    lib/flatbuffers/code_generators.cpp
+    lib/flatbuffers/idl_parser.cpp
+    lib/flatbuffers/idl_gen_text.cpp
+    lib/flatbuffers/reflection.cpp
+    lib/flatbuffers/util.cpp
     )
 set(SRCS
     ${FLATBUFFERS_SRCS}
-    src/main.cpp
-    src/directoryparser.cpp
-    src/extensions/error_reporter.cpp
-    src/extensions/help_functions.cpp
-    src/extensions/profiling.cpp
-    src/extensions/murmur_hash_2.cpp
-    src/extensions/md5.cpp
-    src/extensions/flatbuffers_extensions.cpp
-    src/types/file_tree.cpp
-    src/types/splitted_path.cpp)
+    lib/main.cpp
+    lib/parsers/directoryparser.cpp
+    lib/parsers/sourceparser.cpp
+    lib/extensions/error_reporter.cpp
+    lib/extensions/help_functions.cpp
+    lib/extensions/profiling.cpp
+    lib/extensions/murmur_hash_2.cpp
+    lib/extensions/md5.cpp
+    lib/extensions/flatbuffers_extensions.cpp
+    lib/types/file_tree.cpp
+    lib/types/splitted_path.cpp
+    lib/types/scoped_name.cpp)
 
 ##
 ## TARGET
 ## create target and add include path
 ##
 add_executable(${LAZYUT_TARGET_NAME} ${SRCS} ${HEADERS})
-target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/lib)
 target_compile_features(${LAZYUT_TARGET_NAME} PRIVATE cxx_std_11)
 
 # link boost

@@ -1,8 +1,8 @@
 #ifndef LAZYRT_HELP_FUNCTIONS_HPP
 #define LAZYRT_HELP_FUNCTIONS_HPP
 
-#include "extensions/error_reporter.hpp"
 #include "lazyut_global.hpp"
+#include "extensions/error_reporter.hpp"
 
 #include <string>
 #include <sstream>

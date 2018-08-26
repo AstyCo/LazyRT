@@ -1,4 +1,5 @@
 #include "types/splitted_path.hpp"
+
 #include <string.h>
 
 #define STR_DOT (".")

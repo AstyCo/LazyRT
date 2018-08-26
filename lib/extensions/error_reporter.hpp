@@ -1,5 +1,6 @@
 #ifndef ERROR_REPORTER_HPP
 #define ERROR_REPORTER_HPP
+
 #include <iostream>
 
 class ErrorStream
