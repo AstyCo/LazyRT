@@ -143,8 +143,10 @@ void FileNode::printDecls(int indent) const
     for (int i = 0; i < indent; ++i)
         strIndents.push_back('\t');
 
-    for (auto &decl : _record._listDecl)
-        std::cout << strIndents << string("decl: ") << decl.fullname() << std::endl;
+    for (auto &decl : _record._listClassDecl)
+        std::cout << strIndents << string("class decl: ") << decl.fullname() << std::endl;
+    for (auto &decl : _record._listFuncDecl)
+        std::cout << strIndents << string("function decl: ") << decl.fullname() << std::endl;
 }
 
 void FileNode::printImpls(int indent) const

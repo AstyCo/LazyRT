@@ -13,8 +13,8 @@ public:
 
     void parseFile(FileNode *node);
 
-    const char *skipTemplate(const char *p) const;
-    int skipTemplateAndSpacesR(const char *line, int len) const;
+    const char *skipTemplateAndSpaces(const char *p) const;
+    int skipTemplateR(const char *line, int len) const;
     const char *skipLine(const char *p) const;
     const char *skipSpaces(const char *line) const;
     const char *skipSpacesAndComments(const char *line) const;
@@ -43,12 +43,17 @@ private:
         HashSign,               // #
         IncludeState,           // #include
         NotIncludeMacroState,   // #smth (not #include)
-        StructState,            // struct
+
         ClassState,             // class
+        StructState,            // struct
+        UnionState,             // union
         TypedefState,           // typedef
+
         UsingState,             // using
         NamespaceState,         // namespace
+        TemplateState,          // template
         Quotes,                 // "
+
         SingleQuotes,           // '
         OpenBracket,            // (
         MultiComments,          // /*
@@ -62,6 +67,7 @@ private:
     std::list<ScopedName> _listUsingNamespace;
 
     ScopedName _funcName;
+    ScopedName _classNameDecl;
     mutable int _line;
     FileNode *_currentFile;
 };

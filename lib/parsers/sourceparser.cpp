@@ -7,16 +7,20 @@
 
 #define CLASS_TOKEN "class"
 #define STRUCT_TOKEN "struct"
+#define UNION_TOKEN "union"
 #define NAMESPACE_TOKEN "namespace"
 #define TYPEDEF_TOKEN "typedef"
 #define USING_TOKEN "using"
 
 #define OPERATOR_TOKEN "operator"
+#define TEMPLATE_TOKEN "template"
 
 #define CHECK_TOKEN(TOKEN_NAME, STATE) \
     if (!strncmp(p, TOKEN_NAME, sizeof(TOKEN_NAME) - 1)) {\
-        p += sizeof(TOKEN_NAME) - 2;\
-        _state = STATE;\
+        if (!is_identifier_ch(*(p + sizeof(TOKEN_NAME) - 1))) {\
+            p += sizeof(TOKEN_NAME) - 2;\
+            _state = STATE;\
+        }\
     }
 
 #define M_MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -220,7 +224,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
     bool operatorOverloading = !nsname.empty();
     for (;;) {
         if (!operatorOverloading) {
-            d += skipTemplateAndSpacesR(p - d, len - d);
+            d += skipTemplateR(p - d, len - d);
             int wl = parseWordR(p - d, len - d);
             if (0 == wl)
                 break;
@@ -239,7 +243,12 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
         else {
             if (d < len) {
                 const char ch = *(p - d);
-                if (!(is_identifier_ch(ch) || ch == '}' || ch == ';')) {
+                if (!(is_identifier_ch(ch)
+                      || ch == '>'
+                      || ch =='&'
+                      || ch =='*'
+                      || ch == '}'
+                      || ch == ';')) {
                     nsname.clear();
                 }
             }
@@ -383,12 +392,17 @@ std::string SourceParser::stateToString(SourceParser::SpecialState state)
     case HashSign:              return "HashSign";
     case IncludeState:          return "IncludeState";
     case NotIncludeMacroState:  return "NotIncludeMacroState";
-    case StructState:           return "StructState";
+
     case ClassState:            return "ClassState";
+    case StructState:           return "StructState";
+    case UnionState:            return "UnionState";
     case TypedefState:          return "TypedefState";
+
     case UsingState:            return "UsingState";
     case NamespaceState:        return "NamespaceState";
+    case TemplateState:         return "TemplateState";
     case Quotes:                return "Quotes";
+
     case SingleQuotes:          return "SingleQuotes";
     case OpenBracket:           return "OpenBracket";
     case MultiComments:         return "MultiComments";
@@ -403,7 +417,7 @@ SourceParser::SourceParser(const FileTree &ftree)
 
 }
 
-const char *SourceParser::skipTemplate(const char *p) const
+const char *SourceParser::skipTemplateAndSpaces(const char *p) const
 {
     p = skipSpacesAndComments(p);
 
@@ -417,22 +431,24 @@ const char *SourceParser::skipTemplate(const char *p) const
             break;
         case '>':
             --tmplDeep;
+            if (0 == tmplDeep)
+                return p + 1;
             continue;
         default:
+            if (0 == tmplDeep)
+                return p;
             break;
         }
-        if (0 == tmplDeep)
-            return p + 1;
 
         if (!strncmp(p, "/*", 2))
-            p = skipSpacesAndComments(p);
+            p = skipSpacesAndComments(p) - 1;
     }
     return p;
 }
 
-int SourceParser::skipTemplateAndSpacesR(const char *line, int len) const
+int SourceParser::skipTemplateR(const char *line, int len) const
 {
-    int d = skipSpacesAndCommentsR(line, len);
+    int d = 0;
 
     int tmplDeep = 0;
     for (; d < len; ++d) {
@@ -502,6 +518,7 @@ void SourceParser::parseFile(FileNode *node)
     int lcbrackets = 0;
     int nsbrackets = 0;
     std::list<int> listNsbracketsAt;
+    std::list<int> listClassDeclAt;
 
     _line = 1;
     _currentFile = node;
@@ -539,10 +556,20 @@ void SourceParser::parseFile(FileNode *node)
                 --lcbrackets;
                 if (!listNsbracketsAt.empty() &&
                         (lcbrackets == listNsbracketsAt.back())) {
-//                    MY_PRINTEXT(pop at );
-//                    std::cout << "pop_ns " << lcbrackets << ", " << nsbrackets << std::endl;
                     listNsbracketsAt.pop_back();
                     --nsbrackets;
+                }
+                if (!listClassDeclAt.empty() &&
+                        (lcbrackets == listClassDeclAt.back())) {
+                    MY_ASSERTF(!_classNameDecl.isEmpty());
+                    if (!_classNameDecl.isEmpty()) {
+                        listClassDeclAt.pop_back();
+                        p = skipSpacesAndComments(p + 1);
+                        if (*p == ';') {
+                            node->record()._listClassDecl.push_back(_classNameDecl);
+                        }
+                        _classNameDecl.clear();
+                    }
                 }
                 break;
             case '#':
@@ -578,8 +605,8 @@ void SourceParser::parseFile(FileNode *node)
                 }
                 case ')':
                     if (!_funcName.isEmpty()) {
-                        // impl global func
-                        MY_PRINTEXT(function/method);
+                        // impl function/method
+                        MY_PRINTEXT(function/method impl);
                         std::cout << _funcName.fullname() << std::endl;
 
                         node->record()._listImpl.push_back(_funcName);
@@ -590,7 +617,10 @@ void SourceParser::parseFile(FileNode *node)
                 {
                     if (!_funcName.isEmpty()) {
                         // decl func
-                        node->record()._listDecl.push_back(_funcName);
+                        MY_PRINTEXT(func decl);
+                        std::cout << _funcName.fullname() << std::endl;
+
+                        node->record()._listFuncDecl.push_back(_funcName);
                         _funcName.clear();
                     }
                 }
@@ -598,23 +628,14 @@ void SourceParser::parseFile(FileNode *node)
                     break;
                 }
 
+                CHECK_TOKEN(USING_TOKEN, UsingState);
                 CHECK_TOKEN(NAMESPACE_TOKEN, NamespaceState);
-                CHECK_TOKEN(CLASS_TOKEN, NamespaceState);
+                CHECK_TOKEN(CLASS_TOKEN, ClassState);
                 CHECK_TOKEN(STRUCT_TOKEN, StructState);
+                CHECK_TOKEN(UNION_TOKEN, UnionState);
                 CHECK_TOKEN(TYPEDEF_TOKEN, TypedefState);
+                CHECK_TOKEN(TEMPLATE_TOKEN, TemplateState);
 
-                if (!strncmp(p, NAMESPACE_TOKEN, sizeof(NAMESPACE_TOKEN) - 1)) {
-                    p += sizeof(NAMESPACE_TOKEN) - 2;
-                    _state = NamespaceState;
-                }
-                if (!strncmp(p, CLASS_TOKEN, sizeof(CLASS_TOKEN) - 1)) {
-                    p += sizeof(CLASS_TOKEN) - 2;
-                    _state = ClassState;
-                }
-                else if (!strncmp(p, STRUCT_TOKEN, sizeof(STRUCT_TOKEN) - 1)) {
-                    p += sizeof(STRUCT_TOKEN) - 2;
-                    _state = StructState;
-                }
             }
             ++p;
             break;
@@ -680,13 +701,19 @@ void SourceParser::parseFile(FileNode *node)
             p = skipLine(end_of_filename);
             break;
         }
+        case TemplateState:
+        {
+            p = skipTemplateAndSpaces(p);
+            _state = NoSpecialState;
+            break;
+        }
+        case UnionState:
         case StructState:  // no difference between parsing
         case ClassState:   // struct ... and class ...
         {
             ScopedName className = _currentNamespace;
             p = parseName(p, className);
-            p = skipSpacesAndComments(p);
-            const char ch = *p;
+
             static std::list<std::string> chl = initChl();
             std::list<std::string>::const_iterator it;
             p = readUntilM(p, chl, it);
@@ -699,7 +726,8 @@ void SourceParser::parseFile(FileNode *node)
                 switch (ch) {
                 case '{':
                     // decl
-                    node->record()._listDecl.push_back(className);
+                    _classNameDecl = className;
+                    listClassDeclAt.push_back(lcbrackets);
                     --p; // lcbracket++
                     break;
                 case ';':

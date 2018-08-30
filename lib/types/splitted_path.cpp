@@ -64,25 +64,6 @@ SplittedPath SplittedPath::operator+(const SplittedPath &extra_path) const
     return concatenatedResult;
 }
 
-
-
-//std::__cxx11::list::iterator SplittedPath::find(const SplittedPath &root) const
-//{
-//    auto &rootFileNames = root.splittedPath();
-//    auto &thisFileNames = splittedPath();
-//    auto rootIter = rootFileNames.cbegin();
-//    auto thisIter = thisFileNames.cbegin();
-
-//    while ((rootIter != rootFileNames.cend())
-//           && (thisIter != thisFileNames.cend())) {
-
-
-//        ++rootIter;
-//        ++thisIter;
-//    }
-
-//}
-
 HashedFileName::HashedFileName(const std::__cxx11::string &str)
     : HashedString(str)
 {

@@ -58,7 +58,9 @@ public:
     list<IncludeDirective> _listIncludes;
     list<string> _listDependents;
 
-    list<ScopedName> _listDecl;
+    list<ScopedName> _listClassDecl;
+    list<ScopedName> _listFuncDecl;
+
     list<ScopedName> _listImpl;
 public:
     MD5::HashArray _hashArray;
