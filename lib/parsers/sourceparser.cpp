@@ -485,7 +485,7 @@ const char *SourceParser::skipLine(const char *p) const
            << '\'' << std::endl;)
     ++_line;
     for ( ; *p; ++p) {
-        if (*p == '\n')
+        if (*p == '\n' && *(p - 1) != '\\')
             return p + 1;
     }
     return p;
@@ -568,6 +568,7 @@ void SourceParser::parseFile(FileNode *node)
                         if (*p == ';') {
                             node->record()._listClassDecl.push_back(_classNameDecl);
                         }
+                        --p;
                         _classNameDecl.clear();
                     }
                 }
@@ -606,10 +607,14 @@ void SourceParser::parseFile(FileNode *node)
                 case ')':
                     if (!_funcName.isEmpty()) {
                         // impl function/method
-                        MY_PRINTEXT(function/method impl);
-                        std::cout << _funcName.fullname() << std::endl;
+                        p = skipSpacesAndComments(p + 1);
+                        if (*p == '{') {
+                            MY_PRINTEXT(function/method impl);
+                            std::cout << _funcName.fullname() << std::endl;
 
-                        node->record()._listImpl.push_back(_funcName);
+                            node->record()._listImpl.push_back(_funcName);
+                        }
+                        --p;
                         _funcName.clear();
                     }
                     break;
