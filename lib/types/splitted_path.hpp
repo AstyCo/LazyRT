@@ -9,6 +9,8 @@
 class HashedString: public std::string
 {
 public:
+    typedef MurmurHashType HashType;
+public:
     HashedString(const std::string &str);
 
     MurmurHashType hash() const;

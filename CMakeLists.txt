@@ -56,8 +56,9 @@ set(HEADERS
     lib/types/file_tree.hpp
     lib/types/splitted_path.hpp
     lib/types/scoped_name.hpp
-    lib/parsers/directoryparser.hpp
     lib/parsers/sourceparser.hpp
+    lib/dependency_analyzer.hpp
+    lib/directoryreader.hpp
     lib/lazyut_global.hpp)
 
 ##
@@ -74,7 +75,8 @@ set(FLATBUFFERS_SRCS
 set(SRCS
     ${FLATBUFFERS_SRCS}
     lib/main.cpp
-    lib/parsers/directoryparser.cpp
+    lib/directoryreader.cpp
+    lib/dependency_analyzer.cpp
     lib/parsers/sourceparser.cpp
     lib/extensions/error_reporter.cpp
     lib/extensions/help_functions.cpp

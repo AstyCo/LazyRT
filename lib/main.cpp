@@ -1,5 +1,5 @@
 
-#include "parsers/directoryparser.hpp"
+#include "directoryreader.hpp"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers_schemes/file_tree_generated.h"
 #include "extensions/help_functions.hpp"
@@ -19,9 +19,10 @@ void pushFiles(flatbuffers::FlatBufferBuilder &builder,
 {
     if (node->isRegularFile()) {
         auto frecord = node->record();
-        auto fbs_frecord = UTestRunner::CreateFileRecord(builder,
-                                                     builder.CreateString(frecord._path.string()),
-                                                     builder.CreateVector(frecord._hashArray, 16));
+        auto fbs_frecord = UTestRunner::CreateFileRecord(
+                    builder,
+                    builder.CreateString(frecord._path.string()),
+                    builder.CreateVector(frecord._hashArray, 16));
         records.push_back(fbs_frecord);
     }
 
@@ -39,10 +40,10 @@ void pushFiles(flatbuffers::FlatBufferBuilder &builder,
 
 int main(int /*argc*/, const char */*argv*/[])
 {
-    DirectoryParser parser;
+    DirectoryReader dirReader;
     Profiler prf;
-    std::string srcDirName("D:\\Study\\LazyUT\\test_files");
-    parser.parseDirectory(srcDirName);
+    std::string srcDirName("C:\\experiments\\LazyUT\\test_files");
+    dirReader.readDirectory(srcDirName);
     prf.step("parsed directory " + srcDirName);
 
 //    DirectoryParser testsParser;
@@ -54,7 +55,7 @@ int main(int /*argc*/, const char */*argv*/[])
 //    testTree.installIncludeNodes();
 //    testTree.print();
 
-    FileTree &tree = parser.fileTree();
+    FileTree &tree = dirReader.fileTree();
     tree.parseFiles();
     tree.print();
 

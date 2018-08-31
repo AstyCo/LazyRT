@@ -1,4 +1,4 @@
-#include "parsers/directoryparser.hpp"
+#include "directoryreader.hpp"
 #include "extensions/error_reporter.hpp"
 #include "extensions/help_functions.hpp"
 
@@ -24,32 +24,24 @@ std::vector<std::string> initSourceFileExtensions()
     return exts;
 }
 
-const std::vector<std::string> DirectoryParser::_sourceFileExtensions = initSourceFileExtensions();
+const std::vector<std::string> DirectoryReader::_sourceFileExtensions = initSourceFileExtensions();
 
-enum ParsingState
-{
-    LookingForMacro,
-    MacroDirective,
-    IncludeMacroDirective,
-    ReadingFilename
-};
-
-DirectoryParser::DirectoryParser()
+DirectoryReader::DirectoryReader()
 {
 }
 
-void DirectoryParser::parseDirectory(const char *directory_path)
+void DirectoryReader::readDirectory(const char *directory_path)
 {
-    parseDirectory(BoostPath(directory_path));
+    readDirectory(BoostPath(directory_path));
 }
 
-void DirectoryParser::parseDirectory(const BoostPath &directory_path)
+void DirectoryReader::readDirectory(const BoostPath &directory_path)
 {
     _fileTree.clean();
     _fileTree._rootPath = directory_path.string();
     _currenDirectory = NULL;
 
-    parseDirectoryRecursively(directory_path, directory_path);
+    readDirectoryRecursively(directory_path, directory_path);
     _fileTree._state = FileTree::Filled;
 
     removeEmptyDirectories();
@@ -57,7 +49,7 @@ void DirectoryParser::parseDirectory(const BoostPath &directory_path)
 
 }
 
-void DirectoryParser::parseDirectoryRecursively(const BoostPath &directory_path, const BoostPath &dir_base)
+void DirectoryReader::readDirectoryRecursively(const BoostPath &directory_path, const BoostPath &dir_base)
 {
     try {
         if (!exists(directory_path)) {
@@ -84,7 +76,7 @@ void DirectoryParser::parseDirectoryRecursively(const BoostPath &directory_path,
             directory_iterator end;
             while (it != end) {
                 _currenDirectory = directoryNode;
-                parseDirectoryRecursively(*it, dir_base);
+                readDirectoryRecursively(*it, dir_base);
                 ++it;
             }
         }
@@ -99,13 +91,13 @@ void DirectoryParser::parseDirectoryRecursively(const BoostPath &directory_path,
     }
 }
 
-void DirectoryParser::removeEmptyDirectories()
+void DirectoryReader::removeEmptyDirectories()
 {
     MY_ASSERT(_fileTree._rootDirectoryNode);
     _fileTree.removeEmptyDirectories();
 }
 
-bool DirectoryParser::isSourceFile(const path &file_path) const
+bool DirectoryReader::isSourceFile(const path &file_path) const
 {
     MY_ASSERT(boost::filesystem::is_regular_file(file_path));
     return std::find(_sourceFileExtensions.begin(),

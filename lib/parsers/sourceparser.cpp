@@ -12,11 +12,14 @@
 #define TYPEDEF_TOKEN "typedef"
 #define USING_TOKEN "using"
 
+#define CONST_TOKEN "const"
 #define OPERATOR_TOKEN "operator"
 #define TEMPLATE_TOKEN "template"
 
+
+#define CMP_TOKEN(TOKEN_NAME) (!strncmp(p, TOKEN_NAME, sizeof(TOKEN_NAME) - 1))
 #define CHECK_TOKEN(TOKEN_NAME, STATE) \
-    if (!strncmp(p, TOKEN_NAME, sizeof(TOKEN_NAME) - 1)) {\
+    if (CMP_TOKEN(TOKEN_NAME)) {\
         if (!is_identifier_ch(*(p + sizeof(TOKEN_NAME) - 1))) {\
             p += sizeof(TOKEN_NAME) - 2;\
             _state = STATE;\
@@ -149,15 +152,6 @@ struct CharTreeNode
         }
     }
 
-//    void insert(const std::string &key)
-//    {
-//        CharTreeNode *node = this;
-//        for (std::string::const_iterator it = key.begin();
-//             it < key.end(); ++it) {
-//            node = node->insert(*it);
-//        }
-//    }
-
     void insertRev(const std::string &key)
     {
         CharTreeNode *node = this;
@@ -270,18 +264,13 @@ int SourceParser::dealWithOperatorOverloadingR(const char *p, int len, std::list
                 continue;
         }
         else {
-//            std::cout << "not found " << ch << std::endl;
             return 0; // not operator overloading
         }
-//        std::cout << "finite" << std::endl;
         // else - not overloading operator
         int offset = d + 1;
         offset += skipSpacesAndCommentsR(p - offset, len - offset);
         if (offset + sizeof(OPERATOR_TOKEN) >= len)
             return 0; // not operator overloading
-//        std::cout << '\''
-//                  << std::string(p - offset - sizeof(OPERATOR_TOKEN) + 2, sizeof(OPERATOR_TOKEN) - 1)
-//                  << '\'' << std::endl;
         if (!strncmp(OPERATOR_TOKEN, p - offset - sizeof(OPERATOR_TOKEN) + 2, sizeof(OPERATOR_TOKEN) - 1)) {
             // ... operator <op>(...)
             offset += sizeof(OPERATOR_TOKEN) - 1;
@@ -292,7 +281,6 @@ int SourceParser::dealWithOperatorOverloadingR(const char *p, int len, std::list
                         opStrNormalized.end());
             // insert method name (without spaces)
             nsname.push_back(opStrNormalized);
-//            std::cout << "pushed_name '" << opStrNormalized << '\'' <<  std::endl;
             return offset;
         }
     }
@@ -606,30 +594,25 @@ void SourceParser::parseFile(FileNode *node)
                 }
                 case ')':
                     if (!_funcName.isEmpty()) {
-                        // impl function/method
                         p = skipSpacesAndComments(p + 1);
-                        if (*p == '{') {
+                        if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
+                            // impl function/method
                             MY_PRINTEXT(function/method impl);
                             std::cout << _funcName.fullname() << std::endl;
 
                             node->record()._listImpl.push_back(_funcName);
                         }
+                        else if (*p == ';') {
+                            // global function decl
+                            MY_PRINTEXT(function decl);
+                            std::cout << _funcName.fullname() << std::endl;
+
+                            node->record()._listFuncDecl.push_back(_funcName);
+                        }
                         --p;
                         _funcName.clear();
                     }
                     break;
-                case ';':
-                {
-                    if (!_funcName.isEmpty()) {
-                        // decl func
-                        MY_PRINTEXT(func decl);
-                        std::cout << _funcName.fullname() << std::endl;
-
-                        node->record()._listFuncDecl.push_back(_funcName);
-                        _funcName.clear();
-                    }
-                    break;
-                }
                 default:
                     CHECK_TOKEN(USING_TOKEN, UsingState);
                     CHECK_TOKEN(NAMESPACE_TOKEN, NamespaceState);
@@ -774,7 +757,7 @@ void SourceParser::parseFile(FileNode *node)
         case UsingState:
         {
             p = skipSpacesAndComments(p);
-            if (!strncmp(p, NAMESPACE_TOKEN, sizeof(NAMESPACE_TOKEN) - 1)) {
+            if (CMP_TOKEN(NAMESPACE_TOKEN)) {
                 // using namespace ->ns
                 ScopedName ns;
                 p = parseName(p, ns);

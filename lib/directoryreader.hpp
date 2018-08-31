@@ -1,5 +1,5 @@
-#ifndef DIRECTORY_PARSER_HPP
-#define DIRECTORY_PARSER_HPP
+#ifndef DIRECTORY_READER_HPP
+#define DIRECTORY_READER_HPP
 
 #include "types/file_tree.hpp"
 
@@ -8,19 +8,19 @@
 #include <iostream>
 #include <vector>
 
-class DirectoryParser
+class DirectoryReader
 {
 public:
-    DirectoryParser();
+    DirectoryReader();
 
-    void parseDirectory(const char *directory_path);
-    void parseDirectory(const BoostPath &directory_path);
+    void readDirectory(const char *directory_path);
+    void readDirectory(const BoostPath &directory_path);
     
     FileTree &fileTree() { return _fileTree;}
     const FileTree &fileTree() const { return _fileTree;}
 
 private:
-    void parseDirectoryRecursively(const BoostPath &directory_path, const BoostPath &dir_base);
+    void readDirectoryRecursively(const BoostPath &directory_path, const BoostPath &dir_base);
     void removeEmptyDirectories();
 
     bool isSourceFile(const boost::filesystem::path &file_path) const;
@@ -32,4 +32,4 @@ private:
 };
 
 
-#endif // DIRECTORY_PARSER_HPP
+#endif // DIRECTORY_READER_HPP
