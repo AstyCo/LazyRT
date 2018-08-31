@@ -628,19 +628,19 @@ void SourceParser::parseFile(FileNode *node)
                         node->record()._listFuncDecl.push_back(_funcName);
                         _funcName.clear();
                     }
-                }
-                default:
                     break;
                 }
+                default:
+                    CHECK_TOKEN(USING_TOKEN, UsingState);
+                    CHECK_TOKEN(NAMESPACE_TOKEN, NamespaceState);
+                    CHECK_TOKEN(CLASS_TOKEN, ClassState);
+                    CHECK_TOKEN(STRUCT_TOKEN, StructState);
+                    CHECK_TOKEN(UNION_TOKEN, UnionState);
+                    CHECK_TOKEN(TYPEDEF_TOKEN, TypedefState);
+                    CHECK_TOKEN(TEMPLATE_TOKEN, TemplateState);
 
-                CHECK_TOKEN(USING_TOKEN, UsingState);
-                CHECK_TOKEN(NAMESPACE_TOKEN, NamespaceState);
-                CHECK_TOKEN(CLASS_TOKEN, ClassState);
-                CHECK_TOKEN(STRUCT_TOKEN, StructState);
-                CHECK_TOKEN(UNION_TOKEN, UnionState);
-                CHECK_TOKEN(TYPEDEF_TOKEN, TypedefState);
-                CHECK_TOKEN(TEMPLATE_TOKEN, TemplateState);
-
+                    break;
+                }
             }
             ++p;
             break;
