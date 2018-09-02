@@ -26,21 +26,21 @@ MurmurHashType HashedString::hash() const
 }
 
 SplittedPath::SplittedPath(const std::__cxx11::string &path)
-    : _string(path), _isCalculatedSplittedPath(false)
+    : _string(path)
 {
 
 }
 
 const std::list<HashedFileName> &SplittedPath::splittedPath() const
 {
-    if (!_isCalculatedSplittedPath)
+    if (!isCalculatedSplittedPath())
         calculateSplittedPath();
     return _splittedPath;
 }
 
 void SplittedPath::calculateSplittedPath() const
 {
-    MY_ASSERT(!_isCalculatedSplittedPath);
+    MY_ASSERT(!isCalculatedSplittedPath());
     static const char sep = osSeparator();
 
     size_t pos = 0, sepPos;
@@ -53,8 +53,6 @@ void SplittedPath::calculateSplittedPath() const
     }
 
     _splittedPath.push_back(_string.substr(pos));
-
-    _isCalculatedSplittedPath = true;
 }
 
 SplittedPath SplittedPath::operator+(const SplittedPath &extra_path) const

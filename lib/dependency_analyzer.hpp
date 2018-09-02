@@ -9,10 +9,11 @@ struct HashedStringNode
 {
     typedef std::map<HashedString::HashType, HashedStringNode *> MapLeafs;
 
-    HashedString string;
+    HashedString str;
     MapLeafs childs;
 
-
+//    void insert(const Sc)
+//    HashedStringNode *find(const ScopedName &listHS) const;
 };
 
 class DependencyAnalyzer

@@ -207,6 +207,7 @@ inline void vector_emplace_back(std::vector<T> *vector, V &&data) {
    private:
     T* ptr_;
   };
+  Class A value;
 
   template <class T> bool operator==(const unique_ptr<T>& x,
                                      const unique_ptr<T>& y) {

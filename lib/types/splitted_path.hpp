@@ -48,14 +48,13 @@ public:
     SplittedPath operator+(const SplittedPath &extra_path) const;
 
     const HashedFileName &filename() const { return splittedPath().back(); }
-
-//    ListFileNames::iterator find(const SplittedPath &root) const;
 private:
+    bool isCalculatedSplittedPath() const { return !_splittedPath.empty();}
+
     std::string _string;
 
     typedef std::list<HashedFileName> ListFileNames;
 
-    mutable bool _isCalculatedSplittedPath;
     mutable ListFileNames _splittedPath;
 };
 

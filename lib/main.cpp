@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define TEST_FNAME "file_tree_dump.bin"
+
 void pushFiles(flatbuffers::FlatBufferBuilder &builder,
                std::vector<flatbuffers::Offset<UTestRunner::FileRecord> > &records, const FileNode *node)
 {
@@ -35,14 +37,13 @@ void pushFiles(flatbuffers::FlatBufferBuilder &builder,
     }
 }
 
-#define TEST_FNAME "file_tree_dump.bin"
 
 
 int main(int /*argc*/, const char */*argv*/[])
 {
     DirectoryReader dirReader;
     Profiler prf;
-    std::string srcDirName("C:\\experiments\\LazyUT\\test_files");
+    std::string srcDirName("D:\\Study\\LazyUT\\test_files");
     dirReader.readDirectory(srcDirName);
     prf.step("parsed directory " + srcDirName);
 
