@@ -26,7 +26,7 @@ std::pair<char *, long> readFile(const char *fname, const char *mode)
     FILE* file = fopen(fname, mode);
     if (!file) {
         errors() << "file" << std::string(fname) << "can not be opened";
-        return std::pair<char *, long>(NULL, 0);
+        return std::pair<char *, long>(nullptr, 0);
     }
     long long fsize = file_size(fname);
     char *data = new char[fsize + 1];
@@ -77,8 +77,8 @@ long long file_size(const char *fname)
 {
 #ifdef WIN32
     HANDLE hFile = CreateFile(fname, GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL, NULL);
+        FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, nullptr);
     if (hFile==INVALID_HANDLE_VALUE)
         return -1; // error condition, could call GetLastError to find out more
 
@@ -102,7 +102,7 @@ std::string makeIndents(int indent, int extra_spaces)
     for (int i = 0; i < indent; ++i)
         strIndents.push_back('\t');
     for (int i = 0; i < extra_spaces; ++i)
-        strIndents.push_back(' ');
+        strIndents.push_back('-');
 
     return strIndents;
 }

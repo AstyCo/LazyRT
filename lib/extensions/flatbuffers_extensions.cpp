@@ -2,7 +2,7 @@
 
 FileTree *restoreFileTree(const char *fname)
 {
-    FileTree *tree = NULL;
+    FileTree *tree = nullptr;
 
     char *file_tree_dump = readBinaryFile(fname).first;
     if (file_tree_dump) {

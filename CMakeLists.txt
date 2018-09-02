@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 ## PROJECT
 ## name and version
 ##
-project(lazyut VERSION 0.1.0 LANGUAGES CXX)
+project(lazyut VERSION 0.1.1 LANGUAGES CXX)
 
 ##
 ## INCLUDE

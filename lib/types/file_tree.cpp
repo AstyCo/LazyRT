@@ -53,7 +53,7 @@ std::__cxx11::string FileRecord::hashHex() const
 FileNode::FileNode(const SplittedPath &path, FileRecord::Type type)
     : _record(path, type)
 {
-    _parent = NULL;
+    _parent = nullptr;
 }
 
 FileNode::~FileNode()
@@ -67,7 +67,7 @@ FileNode::~FileNode()
 
 void FileNode::addChild(FileNode *child)
 {
-    MY_ASSERT(child->parent() == NULL);
+    MY_ASSERT(child->parent() == nullptr);
 
     child->setParent(this);
     _childs.push_back(child);
@@ -90,7 +90,7 @@ FileNode *FileNode::findOrNewChild(const HashedFileName &hfname, FileRecord::Typ
 
 void FileNode::removeChild(FileNode *child)
 {
-    child->setParent(NULL);
+    child->setParent(nullptr);
     _childs.remove(child);
 }
 
@@ -107,12 +107,11 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-//    for (auto &incl : _record._listIncludes)
-//        std::cout << strIndents << "\tinclude: " << incl.filename << std::endl;
-    printIncludes(indent);
-    /// TODO
+//    printIncludes(indent);
     printImpls(indent);
     printDecls(indent);
+    printFuncImpls(indent);
+    printClassImpls(indent);
     for (auto &dep : _record._listDependents)
         std::cout << strIndents << "\tdependents: " << dep << std::endl;
 
@@ -125,7 +124,7 @@ void FileNode::print(int indent) const
 
 void FileNode::printIncludes(int indent) const
 {
-    std::string strIndents = makeIndents(indent, 1);
+    std::string strIndents = makeIndents(indent, 2);
 
     for (auto file : _listIncludes) {
         std::cout << strIndents << "f_incl:" << file->record()._path.joint() << std::endl;
@@ -135,7 +134,7 @@ void FileNode::printIncludes(int indent) const
 
 void FileNode::printDecls(int indent) const
 {
-    std::string strIndents = makeIndents(indent, 1);
+    std::string strIndents = makeIndents(indent, 2);
 
     for (auto &decl : _record._listClassDecl)
         std::cout << strIndents << string("class decl: ") << decl.joint() << std::endl;
@@ -145,10 +144,26 @@ void FileNode::printDecls(int indent) const
 
 void FileNode::printImpls(int indent) const
 {
-    std::string strIndents = makeIndents(indent, 1);
+    std::string strIndents = makeIndents(indent, 2);
 
     for (auto &impl : _record._listImpl)
         std::cout << strIndents << string("impl: ") << impl.joint() << std::endl;
+}
+
+void FileNode::printFuncImpls(int indent) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    for (auto &impl : _record._setFuncImpl)
+        std::cout << strIndents << string("impl func: ") << impl.joint() << std::endl;
+}
+
+void FileNode::printClassImpls(int indent) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    for (auto &impl : _record._setClassImpl)
+        std::cout << strIndents << string("impl class: ") << impl.joint() << std::endl;
 }
 
 bool FileNode::hasRegularFiles() const
@@ -191,12 +206,12 @@ FileNode *FileNode::search(const SplittedPath &path)
     for (auto &fname : path.splitted()) {
         if ((current_dir = current_dir->findChild(fname)))
             continue;
-        return NULL;
+        return nullptr;
     }
     // found file
-    VERBAL_2(std::cout << "found in '" << current_dir->record()._path.string()
+    VERBAL_2(std::cout << "found in '" << current_dir->record()._path.joint()
            << "' include file "
-           << path.string() << std::endl);
+           << path.joint() << std::endl);
     return current_dir;
 }
 
@@ -206,11 +221,11 @@ FileNode *FileNode::findChild(const HashedFileName &hfname) const
         if (child->record()._path.last() == hfname)
             return child;
     }
-    return NULL;
+    return nullptr;
 }
 
 FileTree::FileTree()
-    : _state(Clean), _rootDirectoryNode(NULL), _srcParser(*this)
+    : _state(Clean), _rootDirectoryNode(nullptr), _srcParser(*this)
 {
 
 }
@@ -222,7 +237,7 @@ void FileTree::clean()
 
     _state = Clean;
     _rootPath = SplittedPath();
-    setRootDirectoryNode(NULL);
+    setRootDirectoryNode(nullptr);
 }
 
 void FileTree::removeEmptyDirectories()
@@ -408,7 +423,7 @@ FileNode *FileTree::searchInCurrentDir(const SplittedPath &path, FileNode *dir) 
 {
     MY_ASSERT(dir && dir->isDirectory());
     if (!dir)
-        return NULL;
+        return nullptr;
     return dir->search(path);
 }
 
@@ -419,7 +434,7 @@ FileNode *FileTree::searchInIncludePaths(const SplittedPath &path) const
             return includeFile;
     }
     // not found
-    return NULL;
+    return nullptr;
 }
 
 std::__cxx11::string IncludeDirective::toPrint() const

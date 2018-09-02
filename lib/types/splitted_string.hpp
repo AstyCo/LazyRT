@@ -27,6 +27,17 @@ public:
         init();
     }
 
+    void prepend(const THashedString &s)
+    {
+        if (_isJointValid)
+            clearJoint();
+
+        if (!_isSplittedValid)
+            _isSplittedValid = true;
+
+        _splitted.push_front(s);
+    }
+
     void append(const THashedString &s)
     {
         if (_isJointValid)
@@ -70,6 +81,10 @@ public:
     SplittedString operator+(const SplittedString &extra_path) const
     {
         return SplittedString<THashedString>(_joint + _separator + extra_path.joint());
+    }
+    bool operator<(const SplittedString<THashedString> &other) const
+    {
+        return joint() < other.joint();
     }
 
     void setSeparator(const std::string &sep)
@@ -197,16 +212,7 @@ public:
     static const MurmurHashType _hashDotDot;
 };
 
-class ScopedName: public SplittedString<HashedString>
-{
-public:
-    ScopedName(const std::string &joint_ = std::string())
-        : SplittedString<HashedString>(joint_)
-    {
-        setSeparator("::");
-    }
-};
-
+typedef SplittedString<HashedString> ScopedName;
 typedef SplittedString<HashedFileName> SplittedPath;
 
 #endif // SPLITTED_STRING_HPP

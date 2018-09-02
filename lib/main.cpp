@@ -1,9 +1,12 @@
 
-#include "directoryreader.hpp"
-#include "flatbuffers/flatbuffers.h"
-#include "flatbuffers_schemes/file_tree_generated.h"
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
+
+#include "directoryreader.hpp"
+#include "dependency_analyzer.hpp"
+
+#include "flatbuffers/flatbuffers.h"
+#include "flatbuffers_schemes/file_tree_generated.h"
 
 #include <iostream>
 
@@ -58,6 +61,10 @@ int main(int /*argc*/, const char */*argv*/[])
 
     FileTree &tree = dirReader.fileTree();
     tree.parseFiles();
+
+    DependencyAnalyzer dep;
+    dep.setRoot(tree._rootDirectoryNode);
+    dep.print();
     tree.print();
 
 //    if (FileTree *restoredTree = restoreFileTree(TEST_FNAME)) {
@@ -86,7 +93,7 @@ int main(int /*argc*/, const char */*argv*/[])
 
         builder.Finish(fbs_file_tree);
         uint8_t *data = builder.GetBufferPointer();
-        MY_ASSERT(data != NULL);
+        MY_ASSERT(data != nullptr);
         writeBinaryFile(TEST_FNAME, data, builder.GetSize());
     }
     prf.step("stored binary " + srcDirName);

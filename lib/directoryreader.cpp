@@ -39,7 +39,7 @@ void DirectoryReader::readDirectory(const BoostPath &directory_path)
 {
     _fileTree.clean();
     _fileTree._rootPath = directory_path.string();
-    _currenDirectory = NULL;
+    _currenDirectory = nullptr;
 
     readDirectoryRecursively(directory_path, directory_path);
     _fileTree._state = FileTree::Filled;
@@ -67,7 +67,7 @@ void DirectoryReader::readDirectoryRecursively(const BoostPath &directory_path, 
         }
         else if (is_directory(directory_path)) {
             FileNode *directoryNode = new FileNode(rel_path.string(), FileRecord::Directory);
-            if (_currenDirectory == NULL)
+            if (_currenDirectory == nullptr)
                 _fileTree.setRootDirectoryNode(directoryNode);
             else
                 _currenDirectory->addChild(directoryNode);

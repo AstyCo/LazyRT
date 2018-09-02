@@ -20,7 +20,7 @@
 #define CMP_TOKEN(TOKEN_NAME) (!strncmp(p, TOKEN_NAME, sizeof(TOKEN_NAME) - 1))
 #define CHECK_TOKEN(TOKEN_NAME, STATE) \
     if (CMP_TOKEN(TOKEN_NAME)) {\
-        if (!is_identifier_ch(*(p + sizeof(TOKEN_NAME) - 1))) {\
+        if (!is_identifier_ch(*(p-1)) && !is_identifier_ch(*(p + sizeof(TOKEN_NAME) - 1))) {\
             p += sizeof(TOKEN_NAME) - 2;\
             _state = STATE;\
         }\
@@ -49,12 +49,12 @@ const char *SourceParser::skipSpacesAndComments(const char *line) const
     MY_ASSERT(line);
     bool commentState = false;
     for ( ; *line; ++line) {
-        if (*line == '\n') {
-            VERBAL_2(std::cout << _line << " ++_line '"
-                   << std::string(line, M_MIN(20, strlen(line)))
-                   << '\'' << std::endl;)
-            ++_line;
-        }
+        VERBAL_2(
+                if (*line == '\n') {
+                    std::cout << _line++ << " ++_line '"
+                    << std::string(line, M_MIN(20, strlen(line)))
+                    << '\'' << std::endl;
+                })
         if (commentState) {
             if (!strncmp(line, "*/", 2)) {
                 commentState = false;
@@ -169,7 +169,7 @@ struct CharTreeNode
 //            std::cout << "found " << ch << std::endl;
             return it->second;
         }
-        return NULL;
+        return nullptr;
     }
 
     CharTreeNode *insert(char ch)
@@ -214,6 +214,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
     std::list<std::string> nsname;
     d += dealWithOperatorOverloadingR(p - d, len - d, nsname);
     bool operatorOverloading = !nsname.empty();
+    bool namespaceState = false;
     for (;;) {
         if (!operatorOverloading) {
             d += skipTemplateR(p - d, len - d);
@@ -231,16 +232,21 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
         if (!strncmp(p - d - 1, "::", 2)) {
             d += 2;
             d += skipSpacesAndCommentsR(p - d, len - d);
+            if (!namespaceState)
+                namespaceState = true;
         }
         else {
-            if (d < len) {
+            if (!namespaceState && d < len) {
                 const char ch = *(p - d);
+//                if (ch == '}' || ch == ';') {
+//                    std::cout << std::string(p-d-20, 20) << std::endl;
+//                    MY_PRINTEXT(ASSERT HERE);
+//                }
                 if (!(is_identifier_ch(ch)
-                      || ch == '>'
-                      || ch =='&'
-                      || ch =='*'
-                      || ch == '}'
-                      || ch == ';')) {
+                      || ch == '>'    // template
+                      || ch =='&'     // reference
+                      || ch =='*'     // pointer
+                      )) {
                     nsname.clear();
                 }
             }
@@ -315,12 +321,11 @@ const char *SourceParser::readUntil(const char *p, const char *substr) const
     for ( ; *p; ++p) {
         if (!strncmp(p, substr, substrLength))
             return p + substrLength;
-        if (*p == '\n') {
-            VERBAL_2(std::cout << _line << " ++_line '"
-                   << std::string(p, M_MIN(20, strlen(p)))
-                   << '\'' << std::endl;)
-            ++_line;
-        }
+        VERBAL_2(if (*p == '\n') {
+                     std::cout << _line++ << " ++_line '"
+                     << std::string(p, M_MIN(20, strlen(p)))
+                     << '\'' << std::endl;
+                 })
     }
     return p;
 }
@@ -337,12 +342,11 @@ const char *SourceParser::readUntilM(const char *p, const std::list<std::__cxx11
                 return p + ss.size();
             }
         }
-        if (*p == '\n') {
-            VERBAL_2(std::cout << _line << " ++_line '"
-                   << std::string(p, M_MIN(20, strlen(p)))
-                   << '\'' << std::endl;)
-            ++_line;
-        }
+        VERBAL_2(if (*p == '\n') {
+                     std::cout << _line++ << " ++_line '"
+                     << std::string(p, M_MIN(20, strlen(p)))
+                     << '\'' << std::endl;
+                 })
     }
     return p;
 }
@@ -400,7 +404,7 @@ std::string SourceParser::stateToString(SourceParser::SpecialState state)
 SourceParser::SourceParser(const FileTree &ftree)
     : _fileTree(ftree)
 {
-
+    _currentNamespace.setSeparator("::");
 }
 
 const char *SourceParser::skipTemplateAndSpaces(const char *p) const
@@ -466,11 +470,18 @@ int SourceParser::skipTemplateR(const char *line, int len) const
 
 const char *SourceParser::skipLine(const char *p) const
 {
-    VERBAL_2(std::cout << _line << " ++_line '"
+    VERBAL_2(std::cout << _line++ << " ++_line '"
            << std::string(p, M_MIN(20, strlen(p)))
            << '\'' << std::endl;)
-    ++_line;
+
     for ( ; *p; ++p) {
+        VERBAL_2(
+            if (*(p - 1) == '\\' && *p == '\n') {
+                std::cout << _line++ << " ++_line '"
+                << std::string(p, M_MIN(20, strlen(p)))
+                << '\'' << std::endl;
+            })
+
         if (*p == '\n' && *(p - 1) != '\\')
             return p + 1;
     }
@@ -491,7 +502,7 @@ void SourceParser::parseFile(FileNode *node)
     if (!node->isRegularFile())
         return;
 //    charTreeRevOverloadTokens.print();
-    VERBAL_2(std::cout << "parseFile " << node->record()._path.string() << std::endl;)
+    VERBAL_2(std::cout << "parseFile " << node->record()._path.joint() << std::endl;)
 
     std::string fname = (_fileTree._rootPath + node->record()._path).joint();
     auto data_pair = readFile(fname.c_str(), "r");
@@ -516,11 +527,11 @@ void SourceParser::parseFile(FileNode *node)
     for (const char *p = data; p - data < file_size;)
     {
         MY_ASSERTF(0 != *p);
-        VERBAL_1(std::cout << "ch '" << *p << "' state " << stateToString(_state) << std::endl;)
-        if (*p == '\n') {
-            VERBAL_2(std::cout << _line << " ++_line '" << std::string(p, M_MIN(20, strlen(p))) << '\'' << std::endl;)
-            ++_line;
-        }
+        VERBAL_1(std::cout << "ch '" << *p << "' state " << stateToString(_state) << std::endl;);
+        VERBAL_2(if (*p == '\n') {
+                     std::cout << _line++ << " ++_line '" <<
+                     std::string(p, M_MIN(20, strlen(p))) << '\'' << std::endl;
+                 })
         switch (_state)
         {
         case NoSpecialState:
@@ -595,18 +606,22 @@ void SourceParser::parseFile(FileNode *node)
                         p = skipSpacesAndComments(p + 1);
                         if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
                             // impl function/method
-                            MY_PRINTEXT(function/method impl);
-                            std::cout << _funcName.joint() << std::endl;
+                            VERBAL_0(MY_PRINTEXT(function/method impl);
+                            std::cout << _funcName.joint() << std::endl;)
 
                             node->record()._listImpl.push_back(_funcName);
                         }
                         else if (*p == ';') {
                             // global function decl
-                            MY_PRINTEXT(function decl);
-                            std::cout << _funcName.joint() << std::endl;
+                            VERBAL_0(MY_PRINTEXT(function decl);
+                            std::cout << _funcName.joint() << std::endl;)
 
                             node->record()._listFuncDecl.push_back(_funcName);
                         }
+                        VERBAL_0(else {
+                            MY_PRINTEXT(nothing);
+                            std::cout << _funcName.joint() << '\'' << *p << '\'' << std::endl;
+                        })
                         --p;
                         _funcName.clear();
                     }
@@ -666,15 +681,14 @@ void SourceParser::parseFile(FileNode *node)
             }
             ++p;
             const char *end_of_filename = (char*) memchr(p, pairChar, strlen(p));
-            MY_ASSERT(end_of_filename)
-            for (const char *s = p; s < end_of_filename; ++s) {
+            MY_ASSERT(end_of_filename);
+            VERBAL_2(for (const char *s = p; s < end_of_filename; ++s) {
                 if (*s == '\n') {
-                    VERBAL_2(std::cout << _line << " ++_line '"
-                           << std::string(p, M_MIN(20, strlen(p)))
-                           << '\'' << std::endl;)
-                    ++_line;
+                    std::cout << _line++ << " ++_line '"
+                              << std::string(p, M_MIN(20, strlen(p)))
+                              << '\'' << std::endl;
                 }
-            }
+            })
 
             dir.filename = std::string(p, end_of_filename - p);
 
@@ -760,7 +774,7 @@ void SourceParser::parseFile(FileNode *node)
                 ScopedName ns;
                 p = parseName(p, ns);
                 if (!ns.isEmpty()) {
-                    VERBAL_0(std::cout << "using namespace " << ns.fullname() << std::endl;)
+                    VERBAL_0(std::cout << "using namespace " << ns.joint() << std::endl;)
                     _listUsingNamespace.push_back(ns);
                 }
             }
@@ -776,12 +790,11 @@ void SourceParser::parseFile(FileNode *node)
         case Quotes:
         {
             for ( ; *p; ++p) {
-                if (*p == '\n') {
-                    VERBAL_2(std::cout << _line << " ++_line '"
-                           << std::string(p, M_MIN(20, strlen(p)))
-                           << '\'' << std::endl;)
-                    ++_line;
-                }
+                VERBAL_2(if (*p == '\n') {
+                             std::cout << _line++ << " ++_line '"
+                             << std::string(p, M_MIN(20, strlen(p)))
+                             << '\'' << std::endl;
+                         })
                 if (*p == '\\')
                     ++p; // skip next
                 else if (*p == '\"') {

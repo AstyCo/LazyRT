@@ -9,6 +9,7 @@
 
 #include <string>
 #include <list>
+#include <set>
 
 using std::string;
 using std::list;
@@ -60,6 +61,9 @@ public:
     list<ScopedName> _listClassDecl;
     list<ScopedName> _listFuncDecl;
 
+    std::set<ScopedName> _setClassImpl;
+    std::set<ScopedName> _setFuncImpl;
+
     list<ScopedName> _listImpl;
 public:
     MD5::HashArray _hashArray;
@@ -109,6 +113,9 @@ public:
     void printIncludes(int indent = 0) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
+    void printFuncImpls(int indent = 0) const;
+    void printClassImpls(int indent = 0) const;
+
     ///
 private:
     FileNode *_parent;
