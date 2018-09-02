@@ -1,7 +1,7 @@
 #ifndef SOURCE_PARSER_HPP
 #define SOURCE_PARSER_HPP
 
-#include "types/scoped_name.hpp"
+#include "types/splitted_string.hpp"
 
 class FileNode;
 class FileTree;

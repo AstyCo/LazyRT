@@ -140,9 +140,7 @@ struct CharTreeNode
 
     void print(int indent = 1)
     {
-        std::string strIndents;
-        for (int i = 0; i < indent; ++i)
-            strIndents.push_back('\t');
+        std::string strIndents = makeIndents(indent);
 
         if (1 == indent)
             std::cout << "CharTreeNode_ROOT" << std::endl;
@@ -250,7 +248,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
         }
     }
     for (auto &n : nsname)
-        name.pushScopeOrName(n);
+        name.append(n);
     return d;
 }
 
@@ -368,7 +366,7 @@ const char *SourceParser::parseName(const char *p, ScopedName &name) const
             break;
     }
     for (auto &n : nsname) {
-        name.pushScopeOrName(n);
+        name.append(n);
     }
     return p;
 }
@@ -495,7 +493,7 @@ void SourceParser::parseFile(FileNode *node)
 //    charTreeRevOverloadTokens.print();
     VERBAL_2(std::cout << "parseFile " << node->record()._path.string() << std::endl;)
 
-    std::string fname = (_fileTree._rootPath + node->record()._path).string();
+    std::string fname = (_fileTree._rootPath + node->record()._path).joint();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
     if(!data) {
@@ -598,14 +596,14 @@ void SourceParser::parseFile(FileNode *node)
                         if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
                             // impl function/method
                             MY_PRINTEXT(function/method impl);
-                            std::cout << _funcName.fullname() << std::endl;
+                            std::cout << _funcName.joint() << std::endl;
 
                             node->record()._listImpl.push_back(_funcName);
                         }
                         else if (*p == ';') {
                             // global function decl
                             MY_PRINTEXT(function decl);
-                            std::cout << _funcName.fullname() << std::endl;
+                            std::cout << _funcName.joint() << std::endl;
 
                             node->record()._listFuncDecl.push_back(_funcName);
                         }

@@ -101,11 +101,9 @@ void FileNode::setParent(FileNode *parent)
 
 void FileNode::print(int indent) const
 {
-    std::string strIndents;
-    for (int i = 0; i < indent; ++i)
-        strIndents.push_back('\t');
+    std::string strIndents = makeIndents(indent);
 
-    std::cout << strIndents << _record._path.string();
+    std::cout << strIndents << _record._path.joint();
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
@@ -127,36 +125,30 @@ void FileNode::print(int indent) const
 
 void FileNode::printIncludes(int indent) const
 {
-    std::string strIndents;
-    for (int i = 0; i < indent; ++i)
-        strIndents.push_back('\t');
+    std::string strIndents = makeIndents(indent, 1);
 
     for (auto file : _listIncludes) {
-        std::cout << strIndents << "f_incl:" << file->record()._path.string() << std::endl;
+        std::cout << strIndents << "f_incl:" << file->record()._path.joint() << std::endl;
         file->printIncludes(indent + 1);
     }
 }
 
 void FileNode::printDecls(int indent) const
 {
-    std::string strIndents;
-    for (int i = 0; i < indent; ++i)
-        strIndents.push_back('\t');
+    std::string strIndents = makeIndents(indent, 1);
 
     for (auto &decl : _record._listClassDecl)
-        std::cout << strIndents << string("class decl: ") << decl.fullname() << std::endl;
+        std::cout << strIndents << string("class decl: ") << decl.joint() << std::endl;
     for (auto &decl : _record._listFuncDecl)
-        std::cout << strIndents << string("function decl: ") << decl.fullname() << std::endl;
+        std::cout << strIndents << string("function decl: ") << decl.joint() << std::endl;
 }
 
 void FileNode::printImpls(int indent) const
 {
-    std::string strIndents;
-    for (int i = 0; i < indent; ++i)
-        strIndents.push_back('\t');
+    std::string strIndents = makeIndents(indent, 1);
 
     for (auto &impl : _record._listImpl)
-        std::cout << strIndents << string("impl: ") << impl.fullname() << std::endl;
+        std::cout << strIndents << string("impl: ") << impl.joint() << std::endl;
 }
 
 bool FileNode::hasRegularFiles() const
@@ -196,7 +188,7 @@ void FileNode::installDependencies()
 FileNode *FileNode::search(const SplittedPath &path)
 {
     FileNode *current_dir = this;
-    for (auto &fname : path.splittedPath()) {
+    for (auto &fname : path.splitted()) {
         if ((current_dir = current_dir->findChild(fname)))
             continue;
         return NULL;
@@ -211,7 +203,7 @@ FileNode *FileNode::search(const SplittedPath &path)
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
 {
     for (auto child : _childs) {
-        if (child->record()._path.filename() == hfname)
+        if (child->record()._path.last() == hfname)
             return child;
     }
     return NULL;
@@ -279,7 +271,7 @@ void FileTree::print() const
 
 FileNode *FileTree::addFile(const SplittedPath &path)
 {
-    const std::list<HashedFileName> &splittedPath = path.splittedPath();
+    const std::list<HashedFileName> &splittedPath = path.splitted();
     if (!_rootDirectoryNode)
         setRootDirectoryNode(new FileNode(string("."), FileRecord::Directory));
 
@@ -352,13 +344,13 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
               && compareHashArrays(node->record()._hashArray,
                                    restored_node->record()._hashArray))) {
             // md5 is different
-            std::cout << node->record()._path.string() << " md5 is different" << std::endl;
+            std::cout << node->record()._path.joint() << " md5 is different" << std::endl;
             _srcParser.parseFile(node);
         }
     }
     for (auto child : thisChilds) {
         if (FileNode *restored_child =
-                restored_node->findChild(child->record()._path.filename())) {
+                restored_node->findChild(child->record()._path.last())) {
             parseModifiedFilesRecursive(child, restored_child);
         }
         else {

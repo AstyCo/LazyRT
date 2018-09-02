@@ -95,3 +95,14 @@ long long file_size(const char *fname)
 
 #endif
 }
+
+std::string makeIndents(int indent, int extra_spaces)
+{
+    std::string strIndents;
+    for (int i = 0; i < indent; ++i)
+        strIndents.push_back('\t');
+    for (int i = 0; i < extra_spaces; ++i)
+        strIndents.push_back(' ');
+
+    return strIndents;
+}

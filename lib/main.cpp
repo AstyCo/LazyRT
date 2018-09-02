@@ -23,7 +23,7 @@ void pushFiles(flatbuffers::FlatBufferBuilder &builder,
         auto frecord = node->record();
         auto fbs_frecord = UTestRunner::CreateFileRecord(
                     builder,
-                    builder.CreateString(frecord._path.string()),
+                    builder.CreateString(frecord._path.joint()),
                     builder.CreateVector(frecord._hashArray, 16));
         records.push_back(fbs_frecord);
     }
@@ -81,7 +81,7 @@ int main(int /*argc*/, const char */*argv*/[])
 
 
         auto fbs_file_tree = UTestRunner::CreateFileTree(builder,
-                                                         builder.CreateString(tree._rootPath.string()),
+                                                         builder.CreateString(tree._rootPath.joint()),
                                                          builder.CreateVector(fileRecords));
 
         builder.Finish(fbs_file_tree);

@@ -2,8 +2,7 @@
 #define FILE_TREE_HPP
 
 #include "extensions/md5.hpp"
-#include "types/scoped_name.hpp"
-#include "types/splitted_path.hpp"
+#include "types/splitted_string.hpp"
 #include "parsers/sourceparser.hpp"
 
 #include <boost/filesystem.hpp>

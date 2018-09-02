@@ -27,8 +27,7 @@ set(HEADERS
     extensions/md5.hpp
     extensions/flatbuffers_extensions.hpp
     types/file_tree.hpp
-    types/splitted_path.hpp
-    types/scoped_name.hpp
+    types/splitted_string.hpp
     parsers/sourceparser.hpp
     dependency_analyzer.hpp
     directoryreader.hpp
@@ -58,8 +57,7 @@ set(SRCS
     extensions/md5.cpp
     extensions/flatbuffers_extensions.cpp
     types/file_tree.cpp
-    types/splitted_path.cpp
-    types/scoped_name.cpp)
+    types/splitted_string.cpp)
 
 ##
 ## TARGET

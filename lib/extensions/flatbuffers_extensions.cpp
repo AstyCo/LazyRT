@@ -18,7 +18,7 @@ FileTree *restoreFileTree(const char *fname)
             // TODO
         }
 
-        std::cout << "\nFile tree '" << tree->_rootPath.string()
+        std::cout << "\nFile tree '" << tree->_rootPath.joint()
                   << "' is read:" << std::endl;
         delete file_tree_dump;
     }
