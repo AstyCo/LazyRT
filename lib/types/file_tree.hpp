@@ -65,6 +65,7 @@ public:
     std::set<ScopedName> _setFuncImpl;
 
     list<ScopedName> _listImpl;
+    list<ScopedName> _listUsingNamespace;
 public:
     MD5::HashArray _hashArray;
     bool _isHashValid;
@@ -110,7 +111,7 @@ public:
 public:
     ///---Debug
     void print(int indent = 0) const;
-    void printIncludes(int indent = 0) const;
+    void printIncludes(int indent = 0, int extra = 2) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
     void printFuncImpls(int indent = 0) const;
@@ -184,4 +185,3 @@ private:
 };
 
 #endif // FILE_TREE_HPP
-

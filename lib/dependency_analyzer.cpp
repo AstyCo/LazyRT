@@ -116,19 +116,27 @@ void DependencyAnalyzer::analyzeImpl(const ScopedName &impl, FileNode *fnode)
     if (associatedDecl = _rootFuncDecls.findSplitted(impl)) {
         // global function implementation
         addFunctionImpl(impl, fnode, associatedDecl);
+        return;
     }
-    else {
-        // check for method implementation
-        // according to using namespaces
-        if (associatedDecl = findClassForMethod(impl, fnode, &_rootClassDecls)) {
-            // no namespace
+    if (associatedDecl = findClassForMethod(impl, fnode, &_rootClassDecls)) {
+        // no namespace
+        addClassImpl(impl, fnode, associatedDecl);
+        return;
+    }
+    // check for method implementation
+    // according to using namespaces
+    for (auto &ns: fnode->record()._listUsingNamespace) {
+        if (associatedDecl = findClassForMethod(impl, fnode, _rootClassDecls.findSplitted(ns))) {
             addClassImpl(impl, fnode, associatedDecl);
+            return;
         }
     }
 }
 
 HashedStringNode *DependencyAnalyzer::findClassForMethod(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode)
 {
+    if (nullptr == hsnode)
+        return nullptr;
     int size = impl.splitted().size();
     int i = 0;
     for (const auto &s: impl.splitted()) {

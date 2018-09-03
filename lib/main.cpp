@@ -61,10 +61,11 @@ int main(int /*argc*/, const char */*argv*/[])
 
     FileTree &tree = dirReader.fileTree();
     tree.parseFiles();
+    tree.installIncludeNodes();
 
     DependencyAnalyzer dep;
     dep.setRoot(tree._rootDirectoryNode);
-    dep.print();
+//    dep.print();
     tree.print();
 
 //    if (FileTree *restoredTree = restoreFileTree(TEST_FNAME)) {

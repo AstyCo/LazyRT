@@ -20,7 +20,9 @@ if (!(x)) {\
 
 #define VERBAL_0(x)
 #define VERBAL_1(x)
-#define VERBAL_2(x)
+
+
+#define COUNT_LINES(x) x
 
 
 void Asserter(const char *file, int line);

@@ -12,7 +12,8 @@
 FileRecord::FileRecord(const SplittedPath &path, Type type)
     : _path(path), _type(type), _isHashValid(false)
 {
-
+    static const char osSep = osSeparator();
+    _path.setSeparator(std::string(&osSep, 1));
 }
 
 void FileRecord::calculateHash(const SplittedPath &dir_base)
@@ -107,9 +108,9 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-//    printIncludes(indent);
-    printImpls(indent);
-    printDecls(indent);
+    printIncludes(indent);
+//    printImpls(indent);
+//    printDecls(indent);
     printFuncImpls(indent);
     printClassImpls(indent);
     for (auto &dep : _record._listDependents)
@@ -122,13 +123,13 @@ void FileNode::print(int indent) const
     }
 }
 
-void FileNode::printIncludes(int indent) const
+void FileNode::printIncludes(int indent, int extra) const
 {
-    std::string strIndents = makeIndents(indent, 2);
+    std::string strIndents = makeIndents(indent, extra);
 
     for (auto file : _listIncludes) {
-        std::cout << strIndents << "f_incl:" << file->record()._path.joint() << std::endl;
-        file->printIncludes(indent + 1);
+        std::cout << strIndents << "include: " << file->record()._path.joint() << std::endl;
+        file->printIncludes(indent, extra + 2);
     }
 }
 
@@ -204,14 +205,15 @@ FileNode *FileNode::search(const SplittedPath &path)
 {
     FileNode *current_dir = this;
     for (auto &fname : path.splitted()) {
+
         if ((current_dir = current_dir->findChild(fname)))
             continue;
         return nullptr;
     }
     // found file
-    VERBAL_2(std::cout << "found in '" << current_dir->record()._path.joint()
+    std::cout << "found in '" << current_dir->record()._path.joint()
            << "' include file "
-           << path.joint() << std::endl);
+           << path.joint() << std::endl;
     return current_dir;
 }
 

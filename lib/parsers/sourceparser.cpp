@@ -5,6 +5,8 @@
 #include <set>
 #include <map>
 
+#define INCLUDE_TOKEN "include"
+
 #define CLASS_TOKEN "class"
 #define STRUCT_TOKEN "struct"
 #define UNION_TOKEN "union"
@@ -49,11 +51,12 @@ const char *SourceParser::skipSpacesAndComments(const char *line) const
     MY_ASSERT(line);
     bool commentState = false;
     for ( ; *line; ++line) {
-        VERBAL_2(
+        COUNT_LINES(
                 if (*line == '\n') {
-                    std::cout << _line++ << " ++_line '"
+                    VERBAL_1(std::cout << _line << " ++_line '"
                     << std::string(line, M_MIN(20, strlen(line)))
-                    << '\'' << std::endl;
+                    << '\'' << std::endl;)
+                    ++_line;
                 })
         if (commentState) {
             if (!strncmp(line, "*/", 2)) {
@@ -321,10 +324,11 @@ const char *SourceParser::readUntil(const char *p, const char *substr) const
     for ( ; *p; ++p) {
         if (!strncmp(p, substr, substrLength))
             return p + substrLength;
-        VERBAL_2(if (*p == '\n') {
-                     std::cout << _line++ << " ++_line '"
+        COUNT_LINES(if (*p == '\n') {
+                     VERBAL_1(std::cout << _line << " ++_line '"
                      << std::string(p, M_MIN(20, strlen(p)))
-                     << '\'' << std::endl;
+                     << '\'' << std::endl;)
+                     ++_line;
                  })
     }
     return p;
@@ -342,10 +346,11 @@ const char *SourceParser::readUntilM(const char *p, const std::list<std::__cxx11
                 return p + ss.size();
             }
         }
-        VERBAL_2(if (*p == '\n') {
-                     std::cout << _line++ << " ++_line '"
+        COUNT_LINES(if (*p == '\n') {
+                     VERBAL_1(std::cout << _line << " ++_line '"
                      << std::string(p, M_MIN(20, strlen(p)))
-                     << '\'' << std::endl;
+                     << '\'' << std::endl;)
+                     ++_line;
                  })
     }
     return p;
@@ -361,7 +366,6 @@ const char *SourceParser::parseName(const char *p, ScopedName &name) const
         p = parseWord(p, wl);
         if (wl == 0)
             break;
-        VERBAL_2(std::cout << "wl " << wl << " word " << std::string(p - wl, wl) << std::endl;)
         nsname.push_back(std::string(p - wl, wl));
         p = skipSpacesAndComments(p);
         if (!strncmp(p, "::", 2))
@@ -470,16 +474,18 @@ int SourceParser::skipTemplateR(const char *line, int len) const
 
 const char *SourceParser::skipLine(const char *p) const
 {
-    VERBAL_2(std::cout << _line++ << " ++_line '"
-           << std::string(p, M_MIN(20, strlen(p)))
-           << '\'' << std::endl;)
-
+    COUNT_LINES(
+                VERBAL_1(std::cout << _line << " ++_line '"
+                         << std::string(p, M_MIN(20, strlen(p)))
+                         << '\'' << std::endl;)
+                ++_line);
     for ( ; *p; ++p) {
-        VERBAL_2(
+        COUNT_LINES(
             if (*(p - 1) == '\\' && *p == '\n') {
-                std::cout << _line++ << " ++_line '"
+                VERBAL_1(std::cout << _line << " ++_line '"
                 << std::string(p, M_MIN(20, strlen(p)))
-                << '\'' << std::endl;
+                << '\'' << std::endl;)
+                ++_line;
             })
 
         if (*p == '\n' && *(p - 1) != '\\')
@@ -501,9 +507,6 @@ void SourceParser::parseFile(FileNode *node)
 {
     if (!node->isRegularFile())
         return;
-//    charTreeRevOverloadTokens.print();
-    VERBAL_2(std::cout << "parseFile " << node->record()._path.joint() << std::endl;)
-
     std::string fname = (_fileTree._rootPath + node->record()._path).joint();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
@@ -528,9 +531,10 @@ void SourceParser::parseFile(FileNode *node)
     {
         MY_ASSERTF(0 != *p);
         VERBAL_1(std::cout << "ch '" << *p << "' state " << stateToString(_state) << std::endl;);
-        VERBAL_2(if (*p == '\n') {
-                     std::cout << _line++ << " ++_line '" <<
-                     std::string(p, M_MIN(20, strlen(p))) << '\'' << std::endl;
+        COUNT_LINES(if (*p == '\n') {
+                     VERBAL_1(std::cout << _line << " ++_line '" <<
+                     std::string(p, M_MIN(20, strlen(p))) << '\'' << std::endl;)
+                     ++_line;
                  })
         switch (_state)
         {
@@ -651,18 +655,17 @@ void SourceParser::parseFile(FileNode *node)
         {
             // check if include directive
             p = skipSpacesAndComments(p);
-            static const char *str_include = "include";
-            static const int str_include_len = strlen("include");
-            if (!strncmp(p, str_include, str_include_len)) {
+            if (CMP_TOKEN(INCLUDE_TOKEN)) {
                 _state = IncludeState;
-                p = skipSpacesAndComments(p + str_include_len);
+                p = skipSpacesAndComments(p + sizeof(INCLUDE_TOKEN));
             }
             else {
                 _state = NotIncludeMacroState;
             }
             break;
         }
-        case IncludeState: {
+        case IncludeState:
+        {
             // parse filename
             const char ch = *p;
             char pairChar;
@@ -682,11 +685,12 @@ void SourceParser::parseFile(FileNode *node)
             ++p;
             const char *end_of_filename = (char*) memchr(p, pairChar, strlen(p));
             MY_ASSERT(end_of_filename);
-            VERBAL_2(for (const char *s = p; s < end_of_filename; ++s) {
+            COUNT_LINES(for (const char *s = p; s < end_of_filename; ++s) {
                 if (*s == '\n') {
-                    std::cout << _line++ << " ++_line '"
+                    VERBAL_1(std::cout << _line << " ++_line '"
                               << std::string(p, M_MIN(20, strlen(p)))
-                              << '\'' << std::endl;
+                              << '\'' << std::endl;)
+                    ++_line;
                 }
             })
 
@@ -696,7 +700,7 @@ void SourceParser::parseFile(FileNode *node)
 
             if (includedFile)
                 node->record()._listIncludes.push_back(dir);
-            VERBAL_2(else std::cout << "not found " << dir.filename << std::endl;)
+
             _state = NoSpecialState;
             p = skipLine(end_of_filename);
             break;
@@ -772,10 +776,11 @@ void SourceParser::parseFile(FileNode *node)
             if (CMP_TOKEN(NAMESPACE_TOKEN)) {
                 // using namespace ->ns
                 ScopedName ns;
+                ns.setSeparator("::");
                 p = parseName(p, ns);
                 if (!ns.isEmpty()) {
                     VERBAL_0(std::cout << "using namespace " << ns.joint() << std::endl;)
-                    _listUsingNamespace.push_back(ns);
+                    node->record()._listUsingNamespace.push_back(ns);
                 }
             }
             _state = NoSpecialState;
@@ -790,10 +795,11 @@ void SourceParser::parseFile(FileNode *node)
         case Quotes:
         {
             for ( ; *p; ++p) {
-                VERBAL_2(if (*p == '\n') {
-                             std::cout << _line++ << " ++_line '"
+                COUNT_LINES(if (*p == '\n') {
+                             VERBAL_1(std::cout << _line << " ++_line '"
                              << std::string(p, M_MIN(20, strlen(p)))
-                             << '\'' << std::endl;
+                             << '\'' << std::endl;)
+                             ++_line;
                          })
                 if (*p == '\\')
                     ++p; // skip next
