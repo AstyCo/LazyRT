@@ -93,7 +93,6 @@ void DirectoryReader::readDirectoryRecursively(const BoostPath &directory_path, 
 
 void DirectoryReader::removeEmptyDirectories()
 {
-    MY_ASSERT(_fileTree._rootDirectoryNode);
     _fileTree.removeEmptyDirectories();
 }
 

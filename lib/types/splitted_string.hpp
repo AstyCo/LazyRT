@@ -212,7 +212,7 @@ public:
     static const MurmurHashType _hashDotDot;
 };
 
-typedef SplittedString<HashedString> ScopedName;
+typedef SplittedString<HashedFileName> ScopedName;
 typedef SplittedString<HashedFileName> SplittedPath;
 
 #endif // SPLITTED_STRING_HPP

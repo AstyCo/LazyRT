@@ -56,15 +56,15 @@ public:
     Type _type;
 
     list<IncludeDirective> _listIncludes;
-    list<string> _listDependents;
+    list<ScopedName> _listImplements;
 
     list<ScopedName> _listClassDecl;
     list<ScopedName> _listFuncDecl;
 
-    std::set<ScopedName> _setClassImpl;
     std::set<ScopedName> _setFuncImpl;
+    std::set<ScopedName> _setClassImpl;
+    std::set<ScopedName> _setImplementFiles;
 
-    list<ScopedName> _listImpl;
     list<ScopedName> _listUsingNamespace;
 public:
     MD5::HashArray _hashArray;
@@ -76,8 +76,12 @@ class FileNode
 {
 public:
     typedef std::list<FileNode*> ListFileNode;
+    typedef std::set<FileNode*> SetFileNode;
     typedef ListFileNode::iterator FileNodeIterator;
     typedef ListFileNode::const_iterator FileNodeConstIterator;
+
+    typedef void (FileNode::*VoidProcedure)(void);
+    typedef void (FileNode::*CFileTreeProcedure)(const FileTree &);
 public:
 
     explicit FileNode(const SplittedPath &path, FileRecord::Type type);
@@ -97,6 +101,9 @@ public:
     list<FileNode*> &childs() { return _childs;}
     const list<FileNode*> &childs() const { return _childs;}
 
+    const SplittedPath &path() const { return _record._path;}
+    const std::string &name() const { return path().joint();}
+
     bool hasRegularFiles() const;
     bool isRegularFile() const { return _record.isRegularFile();}
     bool isDirectory() const { return _record.isDirectory();}
@@ -104,29 +111,52 @@ public:
     void destroy();
 
     void installIncludes(const FileTree &fileTree);
+    void installImplements(const FileTree &fileTree);
+
     void installDependencies();
+    void installDependentBy();
 
     FileNode *search(const SplittedPath &path);
+
+    void addInclude(FileNode *includedNode);
+    void addImplements(FileNode *implementedNode);
+
+//    void addDependency(FileNode &file);
+    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
+                              const ListFileNode FileNode::*impls, bool FileNode::*called);
 
 public:
     ///---Debug
     void print(int indent = 0) const;
     void printIncludes(int indent = 0, int extra = 2) const;
+    void printImplementNodes(int indent, int extra = 2) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
     void printFuncImpls(int indent = 0) const;
     void printClassImpls(int indent = 0) const;
-
+    void printDependencies(int indent = 0) const;
+    void printDependentBy(int indent = 0) const;
     ///
 private:
+    void installDepsPrivate(SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
+                            const ListFileNode FileNode::*impls, bool FileNode::*called);
+
     FileNode *_parent;
     ListFileNode _childs;
     FileRecord _record;
 
+public:
     ListFileNode _listIncludes;
-    ListFileNode _listImplements;
+    ListFileNode _listIncludedBy;
 
-    ListFileNode _listDependencies;
+    ListFileNode _listImplements;
+    ListFileNode _listImplementedBy;
+
+    SetFileNode _setDependencies;
+    SetFileNode _setDependentBy;
+private:
+    bool _installDependenciesCalled;
+    bool _installDependentByCalled;
 };
 
 class FileTree
@@ -149,6 +179,11 @@ public:
     void calculateFileHashes();
     void parseFiles();
     void installIncludeNodes();
+    void installImplementNodes();
+
+    void installDependencies();
+    void installDependentBy();
+
     void parseModifiedFiles(const FileTree *restored_file_tree);
 
     ///---Debug
@@ -173,12 +208,21 @@ public:
     void parseFilesRecursive(FileNode *node);
 
     void installIncludeNodesRecursive(FileNode &node);
-    void installDependenciesRecursive(FileNode &node);
+    void installImplementNodesRecursive(FileNode &node);
+
+    template <typename TFunc>
+    void recursiveCall(FileNode &node, TFunc f)
+    {
+        (node.*f)();
+        for (auto &child : node.childs())
+            recursiveCall(*child, f);
+    }
 
     FileNode *searchIncludedFile(const IncludeDirective &id, FileNode *node) const;
 
     FileNode *searchInCurrentDir(const SplittedPath &path, FileNode *current_dir) const;
     FileNode *searchInIncludePaths(const SplittedPath &path) const;
+    FileNode *searchInRoot(const SplittedPath &path) const;
 
 private:
     SourceParser _srcParser;

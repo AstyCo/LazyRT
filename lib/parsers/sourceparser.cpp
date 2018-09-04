@@ -507,7 +507,7 @@ void SourceParser::parseFile(FileNode *node)
 {
     if (!node->isRegularFile())
         return;
-    std::string fname = (_fileTree._rootPath + node->record()._path).joint();
+    std::string fname = (_fileTree._rootPath + node->path()).joint();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
     if(!data) {
@@ -613,7 +613,7 @@ void SourceParser::parseFile(FileNode *node)
                             VERBAL_0(MY_PRINTEXT(function/method impl);
                             std::cout << _funcName.joint() << std::endl;)
 
-                            node->record()._listImpl.push_back(_funcName);
+                            node->record()._listImplements.push_back(_funcName);
                         }
                         else if (*p == ';') {
                             // global function decl

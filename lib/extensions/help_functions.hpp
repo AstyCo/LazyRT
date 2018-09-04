@@ -9,12 +9,12 @@
 #include <vector>
 
 #define MY_PRINTEXT(x) \
-    std::cout << #x << " EXT_FILE : " << _currentFile->record()._path.joint() << " LINE: " << _line << std::endl
+    std::cout << #x << " EXT_FILE : " << _currentFile->name() << " LINE: " << _line << std::endl
 #define MY_ASSERT(x) if (!(x)) Asserter(__FILE__, __LINE__);
 #define MY_ASSERTF(x) \
 if (!(x)) {\
     std::cerr << "ASSERT at FILE:" << __FILE__ << " LINE:"<< __LINE__ << std::endl; \
-    std::cerr << "EXT_FILE : " << _currentFile->record()._path.joint() << " LINE: " << _line << std::endl; \
+    std::cerr << "EXT_FILE : " << _currentFile->name() << " LINE: " << _line << std::endl; \
     exit(1); \
 }
 

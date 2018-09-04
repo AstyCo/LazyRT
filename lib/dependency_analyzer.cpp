@@ -72,7 +72,7 @@ void HashedStringNode::print(int indent)
 
     std::cout << strIndents << hs << std::endl;
     for (const auto &fn: data)
-        std::cout << strIndents << "-- " << fn->record()._path.joint() << std::endl;
+        std::cout << strIndents << "-- " << fn->name() << std::endl;
 
     for (const auto &x: childs)
         x.second->print(indent + 1);
@@ -153,15 +153,19 @@ HashedStringNode *DependencyAnalyzer::findClassForMethod(const ScopedName &impl,
 void DependencyAnalyzer::addFunctionImpl(const ScopedName &impl, FileNode *implNode, HashedStringNode *hsnode)
 {
     auto &listNodes = hsnode->data;
-    for (auto &node: listNodes)
-        implNode->record()._setFuncImpl.insert(node->record()._path.joint());
+    for (auto &node: listNodes) {
+        implNode->record()._setImplementFiles.insert(node->path());
+        implNode->record()._setFuncImpl.insert(node->path());
+    }
 }
 
 void DependencyAnalyzer::addClassImpl(const ScopedName &impl, FileNode *implNode, HashedStringNode *hsnode)
 {
     auto &listNodes = hsnode->data;
-    for (auto &node: listNodes)
-        implNode->record()._setClassImpl.insert(node->record()._path.joint());
+    for (auto &node: listNodes) {
+        implNode->record()._setImplementFiles.insert(node->path());
+        implNode->record()._setClassImpl.insert(node->path());
+    }
 }
 
 void DependencyAnalyzer::readDecls(FileNode *fnode)
@@ -183,7 +187,7 @@ void DependencyAnalyzer::analyzeImpls(FileNode *fnode)
 //    auto &listClassImpls = fnode->record()._listClassImpl;
 //    auto &listFuncImpls = fnode->record()._listFuncImpl;
 
-    auto &listImpls = fnode->record()._listImpl;
+    auto &listImpls = fnode->record()._listImplements;
 
     for (const auto &impl: listImpls)
         analyzeImpl(impl, fnode);

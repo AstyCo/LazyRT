@@ -52,9 +52,9 @@ std::__cxx11::string FileRecord::hashHex() const
 }
 
 FileNode::FileNode(const SplittedPath &path, FileRecord::Type type)
-    : _record(path, type)
+    : _record(path, type), _parent(nullptr), _installDependenciesCalled(false)
 {
-    _parent = nullptr;
+
 }
 
 FileNode::~FileNode()
@@ -108,13 +108,14 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-    printIncludes(indent);
+//    printDependencies(indent);
+    printDependentBy(indent);
+//    printIncludes(indent);
+//    printImplementNodes(indent);
 //    printImpls(indent);
 //    printDecls(indent);
-    printFuncImpls(indent);
-    printClassImpls(indent);
-    for (auto &dep : _record._listDependents)
-        std::cout << strIndents << "\tdependents: " << dep << std::endl;
+//    printFuncImpls(indent);
+//    printClassImpls(indent);
 
     list<FileNode*>::const_iterator it = _childs.begin();
     while (it != _childs.end()) {
@@ -128,8 +129,18 @@ void FileNode::printIncludes(int indent, int extra) const
     std::string strIndents = makeIndents(indent, extra);
 
     for (auto file : _listIncludes) {
-        std::cout << strIndents << "include: " << file->record()._path.joint() << std::endl;
+        std::cout << strIndents << "include: " << file->name() << std::endl;
         file->printIncludes(indent, extra + 2);
+    }
+}
+
+void FileNode::printImplementNodes(int indent, int extra) const
+{
+    std::string strIndents = makeIndents(indent, extra);
+
+    for (auto file : _listImplementedBy) {
+        std::cout << strIndents << "implemented by: " << file->name() << std::endl;
+        file->printImplementNodes(indent, extra + 2);
     }
 }
 
@@ -147,7 +158,7 @@ void FileNode::printImpls(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &impl : _record._listImpl)
+    for (auto &impl : _record._listImplements)
         std::cout << strIndents << string("impl: ") << impl.joint() << std::endl;
 }
 
@@ -165,6 +176,41 @@ void FileNode::printClassImpls(int indent) const
 
     for (auto &impl : _record._setClassImpl)
         std::cout << strIndents << string("impl class: ") << impl.joint() << std::endl;
+}
+
+void FileNode::printDependencies(int indent) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    for (auto &file : _setDependencies) {
+        if (file == this)
+            continue; // don't print the file itself
+        std::cout << strIndents << string("dependecy: ") << file->name() << std::endl;
+    }
+}
+
+void FileNode::printDependentBy(int indent) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    for (auto &file : _setDependentBy) {
+        if (file == this)
+            continue; // don't print the file itself
+        std::cout << strIndents << string("dependent by: ") << file->name() << std::endl;
+    }
+}
+
+void FileNode::installDepsPrivate(FileNode::SetFileNode FileNode::*deps, const FileNode::ListFileNode FileNode::*incls, const FileNode::ListFileNode FileNode::*impls, bool FileNode::*called)
+{
+    this->*called = true;
+
+    // File allways depends on himself
+    (this->*deps).insert(this);
+
+    for (auto node_ptr: (this->*incls))
+        addDependencyPrivate(*node_ptr, deps, incls, impls, called);
+    for (auto node_ptr: (this->*impls))
+        addDependencyPrivate(*node_ptr, deps, incls, impls, called);
 }
 
 bool FileNode::hasRegularFiles() const
@@ -191,36 +237,90 @@ void FileNode::installIncludes(const FileTree &fileTree)
 {
     for (auto &include_directive : _record._listIncludes) {
        if (FileNode *includedFile = fileTree.searchIncludedFile(include_directive, this))
-           _listIncludes.push_back(includedFile);
+           addInclude(includedFile);
+    }
+}
+
+void FileNode::installImplements(const FileTree &fileTree)
+{
+    for (auto &file_path : _record._setImplementFiles) {
+
+       if (FileNode *implementedFile = fileTree.searchInRoot(file_path))
+           addImplements(implementedFile);
     }
 }
 
 void FileNode::installDependencies()
 {
-//    for (auto inc)
-    /// TODO
+    installDepsPrivate(&FileNode::_setDependencies,
+                       &FileNode::_listIncludes,
+                       &FileNode::_listImplementedBy,
+                       &FileNode::_installDependenciesCalled);
+}
+
+void FileNode::installDependentBy()
+{
+    installDepsPrivate(&FileNode::_setDependentBy,
+                       &FileNode::_listIncludedBy,
+                       &FileNode::_listImplements,
+                       &FileNode::_installDependentByCalled);
 }
 
 FileNode *FileNode::search(const SplittedPath &path)
 {
     FileNode *current_dir = this;
     for (auto &fname : path.splitted()) {
-
         if ((current_dir = current_dir->findChild(fname)))
             continue;
         return nullptr;
     }
-    // found file
-    std::cout << "found in '" << current_dir->record()._path.joint()
-           << "' include file "
-           << path.joint() << std::endl;
     return current_dir;
+}
+
+void FileNode::addInclude(FileNode *includedNode)
+{
+    if (!includedNode) {
+        MY_ASSERT(false);
+        return;
+    }
+    _listIncludes.push_back(includedNode);
+    includedNode->_listIncludedBy.push_back(this);
+}
+
+void FileNode::addImplements(FileNode *implementedNode)
+{
+    if (!implementedNode) {
+        MY_ASSERT(false);
+        return;
+    }
+    _listImplements.push_back(implementedNode);
+    implementedNode->_listImplementedBy.push_back(this);
+}
+
+//void FileNode::addDependency(FileNode &file)
+//{
+//    // install dependencies of dependency first
+//    if (!file._installDependenciesCalled)
+//        file.installDependencies();
+
+//    const auto &otherFileDependencies = file._setDependencies;
+//    _setDependencies.insert(otherFileDependencies.begin(), otherFileDependencies.end());
+//}
+
+void FileNode::addDependencyPrivate(FileNode &file, FileNode::SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls, const ListFileNode FileNode::*impls, bool FileNode::*called)
+{
+    // install dependencies of dependency first
+    if (!(file.*called))
+        file.installDepsPrivate(deps, incls, impls, called);
+
+    const auto &otherFileDependencies = file.*deps;
+    (this->*deps).insert(otherFileDependencies.begin(), otherFileDependencies.end());
 }
 
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
 {
     for (auto child : _childs) {
-        if (child->record()._path.last() == hfname)
+        if (child->path().last() == hfname)
             return child;
     }
     return nullptr;
@@ -267,6 +367,24 @@ void FileTree::installIncludeNodes()
 {
     MY_ASSERT(_rootDirectoryNode);
     installIncludeNodesRecursive(*_rootDirectoryNode);
+}
+
+void FileTree::installImplementNodes()
+{
+    MY_ASSERT(_rootDirectoryNode);
+    installImplementNodesRecursive(*_rootDirectoryNode);
+}
+
+void FileTree::installDependencies()
+{
+    MY_ASSERT(_rootDirectoryNode);
+    recursiveCall(*_rootDirectoryNode, &FileNode::installDependencies);
+}
+
+void FileTree::installDependentBy()
+{
+    MY_ASSERT(_rootDirectoryNode);
+    recursiveCall(*_rootDirectoryNode, &FileNode::installDependentBy);
 }
 
 void FileTree::parseModifiedFiles(const FileTree *restored_file_tree)
@@ -361,13 +479,13 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
               && compareHashArrays(node->record()._hashArray,
                                    restored_node->record()._hashArray))) {
             // md5 is different
-            std::cout << node->record()._path.joint() << " md5 is different" << std::endl;
+            std::cout << node->name() << " md5 is different" << std::endl;
             _srcParser.parseFile(node);
         }
     }
     for (auto child : thisChilds) {
         if (FileNode *restored_child =
-                restored_node->findChild(child->record()._path.last())) {
+                restored_node->findChild(child->path().last())) {
             parseModifiedFilesRecursive(child, restored_child);
         }
         else {
@@ -396,11 +514,11 @@ void FileTree::installIncludeNodesRecursive(FileNode &node)
         installIncludeNodesRecursive(*child);
 }
 
-void FileTree::installDependenciesRecursive(FileNode &node)
+void FileTree::installImplementNodesRecursive(FileNode &node)
 {
-    node.installDependencies();
+    node.installImplements(*this);
     for (auto &child : node.childs())
-        installDependenciesRecursive(*child);
+        installImplementNodesRecursive(*child);
 }
 
 FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *node) const
@@ -437,6 +555,11 @@ FileNode *FileTree::searchInIncludePaths(const SplittedPath &path) const
     }
     // not found
     return nullptr;
+}
+
+FileNode *FileTree::searchInRoot(const SplittedPath &path) const
+{
+    return searchInCurrentDir(path, _rootDirectoryNode);
 }
 
 std::__cxx11::string IncludeDirective::toPrint() const

@@ -40,13 +40,19 @@ void pushFiles(flatbuffers::FlatBufferBuilder &builder,
     }
 }
 
+static void testDeps(FileNode *fnode)
+{
+    for (auto &file: fnode->_setDependencies) {
+        MY_ASSERT(file->_setDependentBy.find(fnode) != file->_setDependentBy.end());
+    }
+}
 
 
 int main(int /*argc*/, const char */*argv*/[])
 {
     DirectoryReader dirReader;
     Profiler prf;
-    std::string srcDirName("D:\\Study\\LazyUT\\test_files");
+    std::string srcDirName("..\\..\\LazyUT\\test_files");
     dirReader.readDirectory(srcDirName);
     prf.step("parsed directory " + srcDirName);
 
@@ -66,6 +72,13 @@ int main(int /*argc*/, const char */*argv*/[])
     DependencyAnalyzer dep;
     dep.setRoot(tree._rootDirectoryNode);
 //    dep.print();
+
+    tree.installImplementNodes();
+    tree.installDependencies();
+    tree.installDependentBy();
+
+    testDeps(tree._rootDirectoryNode);
+
     tree.print();
 
 //    if (FileTree *restoredTree = restoreFileTree(TEST_FNAME)) {
