@@ -1,12 +1,15 @@
 // stores everything
 
-namespace UTestRunner;
+namespace LazyUT;
 
 table FileRecord {
 	path:string;
 	md5:[ubyte];
 	includes:[string];
-	dependsOn:[string];
+	implements:[string];
+	class_decls:[string];
+	function_decls:[string];
+	using_namespaces:[string];
 }
 
 table FileTree {

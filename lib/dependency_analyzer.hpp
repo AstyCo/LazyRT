@@ -53,7 +53,6 @@ private:
     void addFunctionImpl(const ScopedName &impl, FileNode *implNode, HashedStringNode *hsnode);
     void addClassImpl(const ScopedName &impl, FileNode *implNode, HashedStringNode *hsnode);
 
-
     void readDecls(FileNode *fnode);
     void analyzeImpls(FileNode *fnode);
 

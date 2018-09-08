@@ -1,5 +1,13 @@
 #include "types/file_tree.hpp"
 #include "extensions/help_functions.hpp"
+#include "extensions/flatbuffers_extensions.hpp"
+
+#include "directoryreader.hpp"
+#include "dependency_analyzer.hpp"
+
+#include "flatbuffers_schemes/file_tree_generated.h"
+
+#include <flatbuffers/flatbuffers.h>
 
 #include <sstream>
 #include <iostream>
@@ -10,10 +18,9 @@
 #include <fcntl.h>
 
 FileRecord::FileRecord(const SplittedPath &path, Type type)
-    : _path(path), _type(type), _isHashValid(false)
+    : _path(path), _type(type), _isModified(false), _isHashValid(false)
 {
-    static const char osSep = osSeparator();
-    _path.setSeparator(std::string(&osSep, 1));
+    _path.setOsSeparator();
 }
 
 void FileRecord::calculateHash(const SplittedPath &dir_base)
@@ -49,6 +56,17 @@ std::__cxx11::string FileRecord::hashHex() const
     buf[32]=0;
 
     return std::string(buf);
+}
+
+void FileRecord::swapParsedData(FileRecord &record)
+{
+    _listIncludes.swap(record._listIncludes);
+    _listImplements.swap(record._listImplements);
+
+    _listClassDecl.swap(record._listClassDecl);
+    _listFuncDecl.swap(record._listFuncDecl);
+
+    _listUsingNamespace.swap(record._listUsingNamespace);
 }
 
 FileNode::FileNode(const SplittedPath &path, FileRecord::Type type)
@@ -108,8 +126,8 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-//    printDependencies(indent);
-    printDependentBy(indent);
+    printDependencies(indent);
+//    printDependentBy(indent);
 //    printIncludes(indent);
 //    printImplementNodes(indent);
 //    printImpls(indent);
@@ -297,6 +315,15 @@ void FileNode::addImplements(FileNode *implementedNode)
     implementedNode->_listImplementedBy.push_back(this);
 }
 
+void FileNode::swapParsedData(FileNode *file)
+{
+    if (!file) {
+        MY_ASSERT(false);
+        return;
+    }
+    _record.swapParsedData(file->_record);
+}
+
 //void FileNode::addDependency(FileNode &file)
 //{
 //    // install dependencies of dependency first
@@ -387,11 +414,10 @@ void FileTree::installDependentBy()
     recursiveCall(*_rootDirectoryNode, &FileNode::installDependentBy);
 }
 
-void FileTree::parseModifiedFiles(const FileTree *restored_file_tree)
+void FileTree::parseModifiedFiles(const FileTree &restored_file_tree)
 {
     MY_ASSERT(_state == CachesCalculated);
-    std::cout << std::endl << "parseModifiedFiles:" << std::endl;
-    parseModifiedFilesRecursive(_rootDirectoryNode, restored_file_tree->_rootDirectoryNode);
+    parseModifiedFilesRecursive(_rootDirectoryNode, restored_file_tree._rootDirectoryNode);
 }
 
 void FileTree::print() const
@@ -475,10 +501,14 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
 {
     auto thisChilds = node->childs();
     if (node->isRegularFile()) {
-        if (!(restored_node->isRegularFile()
-              && compareHashArrays(node->record()._hashArray,
-                                   restored_node->record()._hashArray))) {
-            // md5 is different
+        if (restored_node->isRegularFile() &&
+                compareHashArrays(node->record()._hashArray,
+                                  restored_node->record()._hashArray)) {
+            // md5 hash sums match
+            node->swapParsedData(restored_node);
+        }
+        else {
+            // md5 hash sums don't match
             std::cout << node->name() << " md5 is different" << std::endl;
             _srcParser.parseFile(node);
         }
@@ -489,6 +519,7 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
             parseModifiedFilesRecursive(child, restored_child);
         }
         else {
+            std::cout << "this "<< node->name() << " child " << child->path().last() << " not found" << std::endl;
             parseFilesRecursive(child);
         }
     }
@@ -569,4 +600,98 @@ std::__cxx11::string IncludeDirective::toPrint() const
     case Brackets: return '<' + filename + '>';
     }
     return std::string();
+}
+
+void FileTreeFunc::readDirectory(FileTree &tree, const std::__cxx11::string &dirPath)
+{
+    DirectoryReader dirReader;
+    dirReader.readDirectory(tree, dirPath);
+}
+
+void FileTreeFunc::parsePhase(FileTree &tree, const std::__cxx11::string &dumpFileName)
+{
+    FileTree restoredTree;
+    FileTreeFunc::deserialize(restoredTree, dumpFileName);
+    if (restoredTree._state == FileTree::Restored) {
+        tree.parseModifiedFiles(restoredTree);
+    }
+    else {
+        tree.parseFiles();
+    }
+}
+
+static void testDeps(FileNode *fnode)
+{
+    for (auto &file: fnode->_setDependencies) {
+        MY_ASSERT(file->_setDependentBy.find(fnode) != file->_setDependentBy.end());
+    }
+}
+
+void FileTreeFunc::analyzePhase(FileTree &tree)
+{
+    DependencyAnalyzer dep;
+    dep.setRoot(tree._rootDirectoryNode);
+
+    tree.installImplementNodes();
+    tree.installIncludeNodes();
+
+    tree.installDependencies();
+
+    DEBUG(
+        tree.installDependentBy();
+        testDeps(tree._rootDirectoryNode)
+    );
+}
+
+static bool isAffected(const FileNode *file)
+{
+    for (auto &dep: file->_setDependencies) {
+        if (dep->isModified()) {
+//            std::cout << dep->name() << " is modified" << std::endl;
+            return true;
+        }
+    }
+    return false;
+}
+
+static void printAffectedR(const FileNode *file)
+{
+    if (file == nullptr)
+        return;
+
+    if (isAffected(file)) {
+        std::string strIndents = makeIndents(0, 2);
+        std::cout << strIndents << file->name() << std::endl;
+    }
+    for (auto child: file->childs())
+        printAffectedR(child);
+}
+
+void FileTreeFunc::printAffected(const FileTree &tree)
+{
+    std::cout << "FileTreeFunc::printAffected " << tree._rootPath.joint() << std::endl;
+
+    printAffectedR(tree._rootDirectoryNode);
+}
+
+static void writeAffectedR(const FileNode *file, FILE *fp)
+{
+    if (file == nullptr)
+        return;
+
+    if (isAffected(file)) {
+        fprintf(fp, "%s\n", file->name().c_str());
+    }
+    for (auto child: file->childs())
+        writeAffectedR(child, fp);
+}
+
+void FileTreeFunc::writeAffected(const FileTree &tree, const std::__cxx11::string &filename)
+{
+    /* open the file for writing*/
+    if (FILE * fp = fopen (filename.c_str(),"w")) {
+        writeAffectedR(tree._rootDirectoryNode, fp);
+        /* close the file*/
+        fclose (fp);
+    }
 }

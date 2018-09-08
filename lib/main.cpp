@@ -17,100 +17,61 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TEST_FNAME "file_tree_dump.bin"
+#define SRCS_DIR "..\\..\\LazyUT\\src_files"
+#define TESTS_DIR "..\\..\\LazyUT\\test_files"
 
-void pushFiles(flatbuffers::FlatBufferBuilder &builder,
-               std::vector<flatbuffers::Offset<UTestRunner::FileRecord> > &records, const FileNode *node)
+#define SRCS_FILE_TREE_NAME "srcs_file_tree.bin"
+#define TESTS_FILE_TREE_NAME "tests_file_tree.bin"
+
+#define SRCS_AFFECTED_FILE_NAME "srcs_affected.txt"
+#define TESTS_AFFECTED_FILE_NAME "tests_affected.txt"
+
+#define TOTAL_AFFECTED_FILE_NAME "total_affected.txt"
+
+#define PROFILE(x) x; prf.step(#x);
+#define START_PROFILE PROFILE(Profiler prf;)
+
+static void concatFiles(const char *fin1, const char *fin2, const char *fout)
 {
-    if (node->isRegularFile()) {
-        auto frecord = node->record();
-        auto fbs_frecord = UTestRunner::CreateFileRecord(
-                    builder,
-                    builder.CreateString(frecord._path.joint()),
-                    builder.CreateVector(frecord._hashArray, 16));
-        records.push_back(fbs_frecord);
-    }
+    std::ifstream if_a(fin1, std::ios_base::binary);
+    std::ifstream if_b(fin2, std::ios_base::binary);
+    std::ofstream of_c(fout, std::ios_base::binary);
 
-    const FileNode::ListFileNode &childs = node->childs();
-    FileNode::FileNodeConstIterator it(childs.cbegin());
-    while (it != childs.cend()) {
-        pushFiles(builder, records, *it);
-
-        ++it;
-    }
+    of_c << if_a.rdbuf() << if_b.rdbuf();
 }
-
-static void testDeps(FileNode *fnode)
-{
-    for (auto &file: fnode->_setDependencies) {
-        MY_ASSERT(file->_setDependentBy.find(fnode) != file->_setDependentBy.end());
-    }
-}
-
 
 int main(int /*argc*/, const char */*argv*/[])
 {
-    DirectoryReader dirReader;
-    Profiler prf;
-    std::string srcDirName("..\\..\\LazyUT\\test_files");
-    dirReader.readDirectory(srcDirName);
-    prf.step("parsed directory " + srcDirName);
+    START_PROFILE
 
-//    DirectoryParser testsParser;
-//    std::string testDirName("C:\\experiments\\test");
-//    FileTree &testTree = testsParser.fileTree();
-//    testTree._includePaths.push_back(parser.fileTree()._rootDirectoryNode);
-//    testsParser.parseDirectory(testDirName);
-//    testTree.parseFiles();
-//    testTree.installIncludeNodes();
-//    testTree.print();
+    FileTree srcsTree;
+    FileTree testTree;
 
-    FileTree &tree = dirReader.fileTree();
-    tree.parseFiles();
-    tree.installIncludeNodes();
+    PROFILE(FileTreeFunc::readDirectory(srcsTree, SRCS_DIR);)
+    PROFILE(FileTreeFunc::readDirectory(testTree, TESTS_DIR);)
 
-    DependencyAnalyzer dep;
-    dep.setRoot(tree._rootDirectoryNode);
-//    dep.print();
+    testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
 
-    tree.installImplementNodes();
-    tree.installDependencies();
-    tree.installDependentBy();
+    PROFILE(FileTreeFunc::parsePhase(srcsTree, SRCS_FILE_TREE_NAME);)
+    PROFILE(FileTreeFunc::parsePhase(testTree, TESTS_FILE_TREE_NAME);)
+    PROFILE(FileTreeFunc::analyzePhase(srcsTree);)
+    PROFILE(FileTreeFunc::analyzePhase(testTree);)
 
-    testDeps(tree._rootDirectoryNode);
+    FileTreeFunc::printAffected(srcsTree);
+    FileTreeFunc::printAffected(testTree);
 
-    tree.print();
+    PROFILE(FileTreeFunc::writeAffected(srcsTree, SRCS_AFFECTED_FILE_NAME);)
+    PROFILE(FileTreeFunc::writeAffected(testTree, TESTS_AFFECTED_FILE_NAME);)
 
-//    if (FileTree *restoredTree = restoreFileTree(TEST_FNAME)) {
-//        restoredTree->print();
-//        tree.parseModifiedFiles(restoredTree);
+    DEBUG(
+        // make total_affected_files.txt
+        concatFiles(SRCS_AFFECTED_FILE_NAME,
+                    TESTS_AFFECTED_FILE_NAME,
+                    TOTAL_AFFECTED_FILE_NAME);
+    )
 
-//        delete restoredTree;
-//    }
-//    else {
-//        tree.parseFiles();
-//        tree.print();
-//    }
-    prf.step("parsed (modified) files " + srcDirName);
-
-    {
-        // store to binary file
-        flatbuffers::FlatBufferBuilder builder(1024);
-
-        std::vector<flatbuffers::Offset<UTestRunner::FileRecord> > fileRecords;
-        pushFiles(builder, fileRecords, tree._rootDirectoryNode);
-
-
-        auto fbs_file_tree = UTestRunner::CreateFileTree(builder,
-                                                         builder.CreateString(tree._rootPath.joint()),
-                                                         builder.CreateVector(fileRecords));
-
-        builder.Finish(fbs_file_tree);
-        uint8_t *data = builder.GetBufferPointer();
-        MY_ASSERT(data != nullptr);
-        writeBinaryFile(TEST_FNAME, data, builder.GetSize());
-    }
-    prf.step("stored binary " + srcDirName);
+    PROFILE(FileTreeFunc::serialize(srcsTree, SRCS_FILE_TREE_NAME); )
+    PROFILE(FileTreeFunc::serialize(testTree, TESTS_FILE_TREE_NAME);)
 
     return 0;
 }

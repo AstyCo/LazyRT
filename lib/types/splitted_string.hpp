@@ -93,6 +93,12 @@ public:
         _separatorSize = _separator.size();
     }
 
+    void setOsSeparator()
+    {
+        static const char osSep = osSeparator();
+        setSeparator(std::string(&osSep, 1));
+    }
+
     void clear()
     {
         clearJoint();

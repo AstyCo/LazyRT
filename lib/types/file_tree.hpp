@@ -23,6 +23,10 @@ struct IncludeDirective
         Quotes,
         Brackets
     };
+
+    IncludeDirective(const std::string &fname = std::string())
+        : type(Quotes), filename(fname) {}
+
     SeqCharType type;
     std::string filename;
 
@@ -55,17 +59,24 @@ public:
     SplittedPath _path;
     Type _type;
 
+    void swapParsedData(FileRecord &record);
+
+    // Parse stage
+    bool _isModified;
+
     list<IncludeDirective> _listIncludes;
+
     list<ScopedName> _listImplements;
 
     list<ScopedName> _listClassDecl;
     list<ScopedName> _listFuncDecl;
 
+    list<ScopedName> _listUsingNamespace;
+
+    // Analyze stage
     std::set<ScopedName> _setFuncImpl;
     std::set<ScopedName> _setClassImpl;
     std::set<ScopedName> _setImplementFiles;
-
-    list<ScopedName> _listUsingNamespace;
 public:
     MD5::HashArray _hashArray;
     bool _isHashValid;
@@ -121,9 +132,10 @@ public:
     void addInclude(FileNode *includedNode);
     void addImplements(FileNode *implementedNode);
 
-//    void addDependency(FileNode &file);
-    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
-                              const ListFileNode FileNode::*impls, bool FileNode::*called);
+    void swapParsedData(FileNode *file);
+
+    void setModified() { _record._isModified = true;}
+    bool isModified() const { return _record._isModified;}
 
 public:
     ///---Debug
@@ -138,6 +150,8 @@ public:
     void printDependentBy(int indent = 0) const;
     ///
 private:
+    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
+                              const ListFileNode FileNode::*impls, bool FileNode::*called);
     void installDepsPrivate(SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
                             const ListFileNode FileNode::*impls, bool FileNode::*called);
 
@@ -184,7 +198,7 @@ public:
     void installDependencies();
     void installDependentBy();
 
-    void parseModifiedFiles(const FileTree *restored_file_tree);
+    void parseModifiedFiles(const FileTree &restored_file_tree);
 
     ///---Debug
     void print() const;
@@ -227,5 +241,30 @@ public:
 private:
     SourceParser _srcParser;
 };
+typedef std::shared_ptr<FileTree> FileTreePtr;
+
+namespace FileTreeFunc {
+
+//  Reads directory and initializes tree structure of FileTree instance
+void readDirectory(FileTree &tree, const std::string &dirPath);
+
+//  Reads dump file, and checks for modified source/header files.
+// Then it parses modified files, or just restores information
+// from dump for non-modified files.
+void parsePhase(FileTree &tree, const std::string &dumpFileName);
+
+//  Installs all the dependencies against FileNode's according
+// to the data, gathered on parsing phase.
+void analyzePhase(FileTree &tree);
+
+//  Prints list of files, affected by modifications to stdout.
+void printAffected(const FileTree &tree);
+
+//  Prints list of files, affected by modifications to specific file.
+void writeAffected(const FileTree &tree, const std::string &filename);
+
+
+} // namespace FileTreeFunc
+
 
 #endif // FILE_TREE_HPP

@@ -30,26 +30,25 @@ DirectoryReader::DirectoryReader()
 {
 }
 
-void DirectoryReader::readDirectory(const char *directory_path)
+void DirectoryReader::readDirectory(FileTree &fileTree, const char *directory_path)
 {
-    readDirectory(BoostPath(directory_path));
+    readDirectory(fileTree, BoostPath(directory_path));
 }
 
-void DirectoryReader::readDirectory(const BoostPath &directory_path)
+void DirectoryReader::readDirectory(FileTree &fileTree, const BoostPath &directory_path)
 {
-    _fileTree.clean();
-    _fileTree._rootPath = directory_path.string();
+    fileTree.clean();
+    fileTree._rootPath = directory_path.string();
     _currenDirectory = nullptr;
 
-    readDirectoryRecursively(directory_path, directory_path);
-    _fileTree._state = FileTree::Filled;
+    readDirectoryRecursively(fileTree, directory_path, directory_path);
+    fileTree._state = FileTree::Filled;
 
-    removeEmptyDirectories();
-    _fileTree.calculateFileHashes();
-
+    removeEmptyDirectories(fileTree);
+    fileTree.calculateFileHashes();
 }
 
-void DirectoryReader::readDirectoryRecursively(const BoostPath &directory_path, const BoostPath &dir_base)
+void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const BoostPath &dir_base)
 {
     try {
         if (!exists(directory_path)) {
@@ -68,7 +67,7 @@ void DirectoryReader::readDirectoryRecursively(const BoostPath &directory_path, 
         else if (is_directory(directory_path)) {
             FileNode *directoryNode = new FileNode(rel_path.string(), FileRecord::Directory);
             if (_currenDirectory == nullptr)
-                _fileTree.setRootDirectoryNode(directoryNode);
+                fileTree.setRootDirectoryNode(directoryNode);
             else
                 _currenDirectory->addChild(directoryNode);
 
@@ -76,7 +75,7 @@ void DirectoryReader::readDirectoryRecursively(const BoostPath &directory_path, 
             directory_iterator end;
             while (it != end) {
                 _currenDirectory = directoryNode;
-                readDirectoryRecursively(*it, dir_base);
+                readDirectoryRecursively(fileTree, *it, dir_base);
                 ++it;
             }
         }
@@ -91,9 +90,9 @@ void DirectoryReader::readDirectoryRecursively(const BoostPath &directory_path, 
     }
 }
 
-void DirectoryReader::removeEmptyDirectories()
+void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)
 {
-    _fileTree.removeEmptyDirectories();
+    fileTree.removeEmptyDirectories();
 }
 
 bool DirectoryReader::isSourceFile(const path &file_path) const
