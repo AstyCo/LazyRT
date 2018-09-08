@@ -21,11 +21,11 @@
 #include <memory>
 #include <stack>
 
-#include "flatbuffers/base.h"
-#include "flatbuffers/flatbuffers.h"
-#include "flatbuffers/flexbuffers.h"
-#include "flatbuffers/hash.h"
-#include "flatbuffers/reflection.h"
+#include "external/flatbuffers/base.h"
+#include "external/flatbuffers/flatbuffers.h"
+#include "external/flatbuffers/flexbuffers.h"
+#include "external/flatbuffers/hash.h"
+#include "external/flatbuffers/reflection.h"
 
 #if !defined(FLATBUFFERS_CPP98_STL)
 #  include <functional>

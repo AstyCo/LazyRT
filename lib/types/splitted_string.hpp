@@ -40,11 +40,10 @@ public:
 
     void append(const THashedString &s)
     {
+        if (!_isSplittedValid)
+            split();
         if (_isJointValid)
             clearJoint();
-
-        if (!_isSplittedValid)
-            _isSplittedValid = true;
 
         _splitted.push_back(s);
     }

@@ -1,12 +1,8 @@
-
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
+#include "types/file_tree.hpp"
 
-#include "directoryreader.hpp"
-#include "dependency_analyzer.hpp"
-
-#include "flatbuffers/flatbuffers.h"
-#include "flatbuffers_schemes/file_tree_generated.h"
+#include "external/CLI11/CLI11.hpp"
 
 #include <iostream>
 
@@ -28,10 +24,15 @@
 
 #define TOTAL_AFFECTED_FILE_NAME "total_affected.txt"
 
-#define PROFILE(x) x; prf.step(#x);
-#define START_PROFILE PROFILE(Profiler prf;)
+#define PROFILE(x) x; prf.step(#x)
+#define START_PROFILE Profiler prf
 
-static void concatFiles(const char *fin1, const char *fin2, const char *fout)
+enum LazyUTErrors
+{
+    WRONG_CMD_LINE_OPTIONS = 1
+};
+
+static void concatFiles(const std::string &fin1, const std::string &fin2, const std::string &fout)
 {
     std::ifstream if_a(fin1, std::ios_base::binary);
     std::ifstream if_b(fin2, std::ios_base::binary);
@@ -40,38 +41,65 @@ static void concatFiles(const char *fin1, const char *fin2, const char *fout)
     of_c << if_a.rdbuf() << if_b.rdbuf();
 }
 
-int main(int /*argc*/, const char */*argv*/[])
+int main(int argc, char *argv[])
 {
-    START_PROFILE
+    CLI::App app{"LazyUT detects tests, affected by the changes in the code.\n"};
+
+    std::string srcDirectory;
+    std::string testDirectory;
+    std::string outDirectory;
+
+    app.add_option("-s,--srcdir", srcDirectory, "Directory with library source files")->required();
+    app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
+    app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
+
+    CLI11_PARSE(app, argc, argv);
+
+    START_PROFILE;
+
+    SplittedPath srcsDumpSP = outDirectory;
+    srcsDumpSP.append(std::string(SRCS_FILE_TREE_NAME));
+
+    SplittedPath testsDumpSP = outDirectory;
+    testsDumpSP.append(std::string(TESTS_FILE_TREE_NAME));
+
+    SplittedPath srcsAffectedSP = outDirectory;
+    srcsAffectedSP.append(std::string(SRCS_AFFECTED_FILE_NAME));
+
+    SplittedPath testsAffectedSP = outDirectory;
+    testsAffectedSP.append(std::string(TESTS_AFFECTED_FILE_NAME));
+
+    SplittedPath totalAffectedSP = outDirectory;
+    totalAffectedSP.append(std::string(TOTAL_AFFECTED_FILE_NAME));
 
     FileTree srcsTree;
     FileTree testTree;
 
-    PROFILE(FileTreeFunc::readDirectory(srcsTree, SRCS_DIR);)
-    PROFILE(FileTreeFunc::readDirectory(testTree, TESTS_DIR);)
+    PROFILE(FileTreeFunc::readDirectory(srcsTree, srcDirectory));
+    PROFILE(FileTreeFunc::readDirectory(testTree, testDirectory));
 
     testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
 
-    PROFILE(FileTreeFunc::parsePhase(srcsTree, SRCS_FILE_TREE_NAME);)
-    PROFILE(FileTreeFunc::parsePhase(testTree, TESTS_FILE_TREE_NAME);)
-    PROFILE(FileTreeFunc::analyzePhase(srcsTree);)
-    PROFILE(FileTreeFunc::analyzePhase(testTree);)
+    PROFILE(FileTreeFunc::parsePhase(srcsTree, srcsDumpSP.joint()));
+    PROFILE(FileTreeFunc::parsePhase(testTree, testsDumpSP.joint()));
+    PROFILE(FileTreeFunc::analyzePhase(srcsTree));
+    PROFILE(FileTreeFunc::analyzePhase(testTree));
 
     FileTreeFunc::printAffected(srcsTree);
     FileTreeFunc::printAffected(testTree);
 
-    PROFILE(FileTreeFunc::writeAffected(srcsTree, SRCS_AFFECTED_FILE_NAME);)
-    PROFILE(FileTreeFunc::writeAffected(testTree, TESTS_AFFECTED_FILE_NAME);)
+    PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
+    PROFILE(FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint()));
 
     DEBUG(
         // make total_affected_files.txt
-        concatFiles(SRCS_AFFECTED_FILE_NAME,
-                    TESTS_AFFECTED_FILE_NAME,
-                    TOTAL_AFFECTED_FILE_NAME);
-    )
+        concatFiles(srcsAffectedSP.joint(),
+                    testsAffectedSP.joint(),
+                    totalAffectedSP.joint());
+    );
 
-    PROFILE(FileTreeFunc::serialize(srcsTree, SRCS_FILE_TREE_NAME); )
-    PROFILE(FileTreeFunc::serialize(testTree, TESTS_FILE_TREE_NAME);)
+    PROFILE(FileTreeFunc::serialize(srcsTree, srcsDumpSP.joint()));
+    PROFILE(FileTreeFunc::serialize(testTree, testsDumpSP.joint()));
 
     return 0;
 }

@@ -4,7 +4,7 @@
 #ifndef FLATBUFFERS_GENERATED_FILETREE_LAZYUT_H_
 #define FLATBUFFERS_GENERATED_FILETREE_LAZYUT_H_
 
-#include "flatbuffers/flatbuffers.h"
+#include "external/flatbuffers/flatbuffers.h"
 
 namespace LazyUT {
 

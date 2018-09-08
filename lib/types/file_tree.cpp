@@ -7,7 +7,7 @@
 
 #include "flatbuffers_schemes/file_tree_generated.h"
 
-#include <flatbuffers/flatbuffers.h>
+#include <external/flatbuffers/flatbuffers.h>
 
 #include <sstream>
 #include <iostream>

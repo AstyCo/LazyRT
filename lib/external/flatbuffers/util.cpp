@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "flatbuffers/util.h"
+#include "external/flatbuffers/util.h"
 
 namespace flatbuffers {
 

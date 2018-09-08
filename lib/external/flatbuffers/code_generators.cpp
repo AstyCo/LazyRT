@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-#include "flatbuffers/code_generators.h"
+#include "external/flatbuffers/code_generators.h"
 #include <assert.h>
-#include "flatbuffers/base.h"
-#include "flatbuffers/util.h"
+#include "external/flatbuffers/base.h"
+#include "external/flatbuffers/util.h"
 
 #if defined(_MSC_VER)
 #  pragma warning(push)

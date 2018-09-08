@@ -7,21 +7,28 @@ set(FLATBUFFERS_GENERATED_HEADERS
     )
 set(FLATBUFFERS_HEADERS
     ${FLATBUFFERS_GENERATED_HEADERS}
-    flatbuffers/code_generators.h
-    flatbuffers/base.h
-    flatbuffers/flatbuffers.h
-    flatbuffers/hash.h
-    flatbuffers/idl.h
-    flatbuffers/util.h
-    flatbuffers/reflection.h
-    flatbuffers/reflection_generated.h
-    flatbuffers/stl_emulation.h
-    flatbuffers/flexbuffers.h
-    flatbuffers/registry.h
-    flatbuffers/minireflect.h
+    external/flatbuffers/code_generators.h
+    external/flatbuffers/base.h
+    external/flatbuffers/flatbuffers.h
+    external/flatbuffers/hash.h
+    external/flatbuffers/idl.h
+    external/flatbuffers/util.h
+    external/flatbuffers/reflection.h
+    external/flatbuffers/reflection_generated.h
+    external/flatbuffers/stl_emulation.h
+    external/flatbuffers/flexbuffers.h
+    external/flatbuffers/registry.h
+    external/flatbuffers/minireflect.h
     )
+
+set(CLI11_HEADERS
+    external/CLI11/CLI11.hpp
+    )
+
+
 set(HEADERS
     ${FLATBUFFERS_HEADERS}
+    ${CLI11_HEADERS}
     extensions/error_reporter.hpp
     extensions/help_functions.hpp
     extensions/md5.hpp
@@ -38,11 +45,11 @@ set(HEADERS
 ## project .cpp files
 ##
 set(FLATBUFFERS_SRCS
-    flatbuffers/code_generators.cpp
-    flatbuffers/idl_parser.cpp
-    flatbuffers/idl_gen_text.cpp
-    flatbuffers/reflection.cpp
-    flatbuffers/util.cpp
+    external/flatbuffers/code_generators.cpp
+    external/flatbuffers/idl_parser.cpp
+    external/flatbuffers/idl_gen_text.cpp
+    external/flatbuffers/reflection.cpp
+    external/flatbuffers/util.cpp
     )
 set(SRCS
     ${FLATBUFFERS_SRCS}
