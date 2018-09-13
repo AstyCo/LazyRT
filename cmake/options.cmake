@@ -22,4 +22,4 @@ set(LAZYUT_CMAKE_PROJECT_TARGETS_FILE   "${LAZYUT_CMAKE_CONFIG_DIR}/${PROJECT_NA
 ##
 ## OPTIONS
 ##
-option(BUILD_TESTS          "Build tests"                                                   ON)
+option(BUILD_TESTS          "Build tests"                                                   OFF)

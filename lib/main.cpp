@@ -4,6 +4,8 @@
 
 #include "external/CLI11/CLI11.hpp"
 
+#include <boost/filesystem.hpp>
+
 #include <iostream>
 
 #include <sys/types.h>
@@ -12,9 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define SRCS_DIR "..\\..\\LazyUT\\src_files"
-#define TESTS_DIR "..\\..\\LazyUT\\test_files"
 
 #define SRCS_FILE_TREE_NAME "srcs_file_tree.bin"
 #define TESTS_FILE_TREE_NAME "tests_file_tree.bin"
@@ -57,19 +56,22 @@ int main(int argc, char *argv[])
 
     START_PROFILE;
 
-    SplittedPath srcsDumpSP = outDirectory;
+    SplittedPath outDirectorySP = outDirectory;
+    outDirectorySP.setOsSeparator();
+
+    SplittedPath srcsDumpSP = outDirectorySP;
     srcsDumpSP.append(std::string(SRCS_FILE_TREE_NAME));
 
-    SplittedPath testsDumpSP = outDirectory;
+    SplittedPath testsDumpSP = outDirectorySP;
     testsDumpSP.append(std::string(TESTS_FILE_TREE_NAME));
 
-    SplittedPath srcsAffectedSP = outDirectory;
+    SplittedPath srcsAffectedSP = outDirectorySP;
     srcsAffectedSP.append(std::string(SRCS_AFFECTED_FILE_NAME));
 
-    SplittedPath testsAffectedSP = outDirectory;
+    SplittedPath testsAffectedSP = outDirectorySP;
     testsAffectedSP.append(std::string(TESTS_AFFECTED_FILE_NAME));
 
-    SplittedPath totalAffectedSP = outDirectory;
+    SplittedPath totalAffectedSP = outDirectorySP;
     totalAffectedSP.append(std::string(TOTAL_AFFECTED_FILE_NAME));
 
     FileTree srcsTree;
@@ -88,6 +90,7 @@ int main(int argc, char *argv[])
     FileTreeFunc::printAffected(srcsTree);
     FileTreeFunc::printAffected(testTree);
 
+    boost::filesystem::create_directories(outDirectorySP.joint());
     PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
     PROFILE(FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint()));
 
