@@ -90,6 +90,9 @@ public:
     {
         _separator = sep;
         _separatorSize = _separator.size();
+        if (_isJointValid && !_isSplittedValid)
+            split();
+        clearJoint();
     }
 
     void setOsSeparator()

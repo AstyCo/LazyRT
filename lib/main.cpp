@@ -1,6 +1,7 @@
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
 #include "types/file_tree.hpp"
+#include "directoryreader.hpp"
 
 #include "external/CLI11/CLI11.hpp"
 
@@ -24,7 +25,7 @@
 #define TOTAL_AFFECTED_FILE_NAME "total_affected.txt"
 
 #define PROFILE(x) x; prf.step(#x)
-#define START_PROFILE Profiler prf
+#define START_PROFILE Profiler prf(verbal);
 
 enum LazyUTErrors
 {
@@ -47,23 +48,52 @@ int main(int argc, char *argv[])
     std::string srcDirectory;
     std::string testDirectory;
     std::string outDirectory;
+    std::string inDirectory;
 
+    std::string exts;
+    std::string ignore_substrings;
+
+    bool verbal = false;
+
+    // required arguments
     app.add_option("-s,--srcdir", srcDirectory, "Directory with library source files")->required();
     app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
+    // optional arguments
+    app.add_option("-i,--indir", inDirectory, "Input directory");
+    app.add_option("-e,--extensions", exts, "Source files extensions, separated by comma (,)");
+    app.add_option("--ignore", ignore_substrings, "Substrings of the ignored paths, separated by comma (,)");
+    app.add_flag("-v,--verbal", verbal, "Verbal mode");
+    //
 
     CLI11_PARSE(app, argc, argv);
+
+    if (!exts.empty())
+        DirectoryReader::_sourceFileExtensions = split(exts, ",");
+    if (!ignore_substrings.empty())
+        DirectoryReader::_ignore_substrings = split(ignore_substrings, ",");
 
     START_PROFILE;
 
     SplittedPath outDirectorySP = outDirectory;
     outDirectorySP.setOsSeparator();
 
-    SplittedPath srcsDumpSP = outDirectorySP;
-    srcsDumpSP.append(std::string(SRCS_FILE_TREE_NAME));
+    SplittedPath inDirectorySP = inDirectory;
+    inDirectorySP.setOsSeparator();
+    if (inDirectory.empty())
+        inDirectorySP = outDirectorySP;
 
-    SplittedPath testsDumpSP = outDirectorySP;
-    testsDumpSP.append(std::string(TESTS_FILE_TREE_NAME));
+    SplittedPath srcsDumpInSP = inDirectorySP;
+    srcsDumpInSP.append(std::string(SRCS_FILE_TREE_NAME));
+
+    SplittedPath testsDumpInSP = inDirectorySP;
+    testsDumpInSP.append(std::string(TESTS_FILE_TREE_NAME));
+
+    SplittedPath srcsDumpOutSP = outDirectorySP;
+    srcsDumpOutSP.append(std::string(SRCS_FILE_TREE_NAME));
+
+    SplittedPath testsDumpOutSP = outDirectorySP;
+    testsDumpOutSP.append(std::string(TESTS_FILE_TREE_NAME));
 
     SplittedPath srcsAffectedSP = outDirectorySP;
     srcsAffectedSP.append(std::string(SRCS_AFFECTED_FILE_NAME));
@@ -82,13 +112,15 @@ int main(int argc, char *argv[])
 
     testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
 
-    PROFILE(FileTreeFunc::parsePhase(srcsTree, srcsDumpSP.joint()));
-    PROFILE(FileTreeFunc::parsePhase(testTree, testsDumpSP.joint()));
+    PROFILE(FileTreeFunc::parsePhase(srcsTree, srcsDumpInSP.joint()));
+    PROFILE(FileTreeFunc::parsePhase(testTree, testsDumpInSP.joint()));
     PROFILE(FileTreeFunc::analyzePhase(srcsTree));
     PROFILE(FileTreeFunc::analyzePhase(testTree));
 
-    FileTreeFunc::printAffected(srcsTree);
-    FileTreeFunc::printAffected(testTree);
+    if (verbal) {
+        FileTreeFunc::printAffected(srcsTree);
+        FileTreeFunc::printAffected(testTree);
+    }
 
     boost::filesystem::create_directories(outDirectorySP.joint());
     PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
@@ -101,8 +133,8 @@ int main(int argc, char *argv[])
                     totalAffectedSP.joint());
     );
 
-    PROFILE(FileTreeFunc::serialize(srcsTree, srcsDumpSP.joint()));
-    PROFILE(FileTreeFunc::serialize(testTree, testsDumpSP.joint()));
+    PROFILE(FileTreeFunc::serialize(srcsTree, srcsDumpOutSP.joint()));
+    PROFILE(FileTreeFunc::serialize(testTree, testsDumpOutSP.joint()));
 
     return 0;
 }

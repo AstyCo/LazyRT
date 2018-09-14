@@ -44,7 +44,8 @@ std::vector<char> strToVChar(const std::__cxx11::string &str)
     return result;
 }
 
-Profiler::Profiler()
+Profiler::Profiler(bool verbal)
+    : _verbal(verbal)
 {
     start();
 }
@@ -60,8 +61,8 @@ void Profiler::step(const std::string &eventName)
     if (!_started || eventName.empty())
         return;
     double newTime = getCpuTime();
-
-    std::cout << eventName << " CPU time: " << newTime - _startTime << std::endl;
+    if (_verbal)
+        std::cout << eventName << " CPU time: " << newTime - _startTime << std::endl;
 
     _startTime = newTime;
 }
@@ -105,4 +106,21 @@ std::string makeIndents(int indent, int extra_spaces)
         strIndents.push_back('-');
 
     return strIndents;
+}
+
+std::vector<std::__cxx11::string> split(const std::__cxx11::string &str, const std::__cxx11::string &delim)
+{
+    std::vector<std::string> tokens;
+    size_t prev = 0, pos = 0;
+    do {
+        pos = str.find(delim, prev);
+        if (pos == std::string::npos)
+            pos = str.length();
+        std::string token = str.substr(prev, pos-prev);
+        if (!token.empty())
+            tokens.push_back(token);
+        prev = pos + delim.length();
+    }
+    while (pos < str.length() && prev < str.length());
+    return tokens;
 }

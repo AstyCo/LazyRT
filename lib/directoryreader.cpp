@@ -24,7 +24,8 @@ std::vector<std::string> initSourceFileExtensions()
     return exts;
 }
 
-const std::vector<std::string> DirectoryReader::_sourceFileExtensions = initSourceFileExtensions();
+std::vector<std::string> DirectoryReader::_sourceFileExtensions = initSourceFileExtensions();
+std::vector<std::string> DirectoryReader::_ignore_substrings = std::vector<std::string>();
 
 DirectoryReader::DirectoryReader()
 {
@@ -51,6 +52,8 @@ void DirectoryReader::readDirectory(FileTree &fileTree, const BoostPath &directo
 void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const BoostPath &dir_base)
 {
     try {
+        if (isIgnored(directory_path.string()))
+            return;
         if (!exists(directory_path)) {
             errors() << directory_path.string() << "does not exist\n";
             return;
@@ -102,6 +105,17 @@ bool DirectoryReader::isSourceFile(const path &file_path) const
                      _sourceFileExtensions.end(),
                      boost::filesystem::extension(file_path).c_str())
             != _sourceFileExtensions.end();
+}
+
+bool DirectoryReader::isIgnored(const std::__cxx11::string &path) const
+{
+    // check if path is ignored
+    for (auto &ignore_substring: _ignore_substrings) {
+        if (path.find(ignore_substring) != std::string::npos)
+            return true;
+    }
+    // not found
+    return false;
 }
 
 

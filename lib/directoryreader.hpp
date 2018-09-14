@@ -16,13 +16,14 @@ public:
     void readDirectory(FileTree &fileTree, const char *directory_path);
     void readDirectory(FileTree &fileTree, const BoostPath &directory_path);
     
+    static std::vector<std::string> _sourceFileExtensions;
+    static std::vector<std::string> _ignore_substrings;
 private:
     void readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const BoostPath &dir_base);
     void removeEmptyDirectories(FileTree &fileTree);
 
     bool isSourceFile(const boost::filesystem::path &file_path) const;
-
-    static const std::vector<std::string> _sourceFileExtensions;
+    bool isIgnored(const std::string &path) const;
 private:
     FileNode *_currenDirectory;
 };

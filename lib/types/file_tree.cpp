@@ -386,7 +386,6 @@ void FileTree::calculateFileHashes()
 void FileTree::parseFiles()
 {
     MY_ASSERT(_state == CachesCalculated);
-    std::cout << std::endl << "parse all files:" << std::endl;
     parseFilesRecursive(_rootDirectoryNode);
 }
 
@@ -680,7 +679,9 @@ static void writeAffectedR(const FileNode *file, FILE *fp)
         return;
 
     if (isAffected(file)) {
-        fprintf(fp, "%s\n", file->name().c_str());
+        SplittedPath tmp = file->path();
+        tmp.setSeparator("/");
+        fprintf(fp, "%s\n", tmp.joint().c_str());
     }
     for (auto child: file->childs())
         writeAffectedR(child, fp);

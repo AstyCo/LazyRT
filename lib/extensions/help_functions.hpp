@@ -59,10 +59,11 @@ void writeBinaryFile(const char *fname, T *data, size_t length)
 
 class Profiler
 {
+    bool _verbal;
     bool _started;
     double _startTime;
 public:
-    Profiler();
+    Profiler(bool verbal = true);
     void start();
     void step(const std::string &eventName);
     void finish(const std::string &eventName);
@@ -82,5 +83,7 @@ inline char osSeparator()
 long long file_size(const char *fname);
 
 std::string makeIndents(int indent, int extra_spaces = 0);
+
+std::vector<std::string> split(const std::string& str, const std::string& delim);
 
 #endif // LAZYRT_HELP_FUNCTIONS_HPP
