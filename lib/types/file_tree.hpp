@@ -66,10 +66,12 @@ public:
 
     list<IncludeDirective> _listIncludes;
 
-    list<ScopedName> _listImplements;
+    std::set<ScopedName> _setImplements;
 
-    list<ScopedName> _listClassDecl;
-    list<ScopedName> _listFuncDecl;
+    std::set<ScopedName> _setClassDecl;
+    std::set<ScopedName> _setFuncDecl;
+
+    std::set<ScopedName> _setInheritances;
 
     list<ScopedName> _listUsingNamespace;
 
@@ -148,6 +150,7 @@ public:
     void printClassImpls(int indent = 0) const;
     void printDependencies(int indent = 0) const;
     void printDependentBy(int indent = 0) const;
+    void printInherits(int indent = 0) const;
     ///
 private:
     void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,

@@ -61,10 +61,10 @@ std::__cxx11::string FileRecord::hashHex() const
 void FileRecord::swapParsedData(FileRecord &record)
 {
     _listIncludes.swap(record._listIncludes);
-    _listImplements.swap(record._listImplements);
+    _setImplements.swap(record._setImplements);
 
-    _listClassDecl.swap(record._listClassDecl);
-    _listFuncDecl.swap(record._listFuncDecl);
+    _setClassDecl.swap(record._setClassDecl);
+    _setFuncDecl.swap(record._setFuncDecl);
 
     _listUsingNamespace.swap(record._listUsingNamespace);
 }
@@ -126,14 +126,15 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
+//    printInherits(indent);
     printDependencies(indent);
 //    printDependentBy(indent);
 //    printIncludes(indent);
-//    printImplementNodes(indent);
-//    printImpls(indent);
-//    printDecls(indent);
+    printImplementNodes(indent);
+    printImpls(indent);
+    printDecls(indent);
 //    printFuncImpls(indent);
-//    printClassImpls(indent);
+    printClassImpls(indent);
 
     list<FileNode*>::const_iterator it = _childs.begin();
     while (it != _childs.end()) {
@@ -166,9 +167,9 @@ void FileNode::printDecls(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &decl : _record._listClassDecl)
+    for (auto &decl : _record._setClassDecl)
         std::cout << strIndents << string("class decl: ") << decl.joint() << std::endl;
-    for (auto &decl : _record._listFuncDecl)
+    for (auto &decl : _record._setFuncDecl)
         std::cout << strIndents << string("function decl: ") << decl.joint() << std::endl;
 }
 
@@ -176,7 +177,7 @@ void FileNode::printImpls(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &impl : _record._listImplements)
+    for (auto &impl : _record._setImplements)
         std::cout << strIndents << string("impl: ") << impl.joint() << std::endl;
 }
 
@@ -216,6 +217,14 @@ void FileNode::printDependentBy(int indent) const
             continue; // don't print the file itself
         std::cout << strIndents << string("dependent by: ") << file->name() << std::endl;
     }
+}
+
+void FileNode::printInherits(int indent) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    for (auto &inh : _record._setInheritances)
+        std::cout << strIndents << string("inherits: ") << inh.joint() << std::endl;
 }
 
 void FileNode::installDepsPrivate(FileNode::SetFileNode FileNode::*deps, const FileNode::ListFileNode FileNode::*incls, const FileNode::ListFileNode FileNode::*impls, bool FileNode::*called)

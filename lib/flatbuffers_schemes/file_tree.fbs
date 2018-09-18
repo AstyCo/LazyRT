@@ -7,6 +7,7 @@ table FileRecord {
 	md5:[ubyte];
 	includes:[string];
 	implements:[string];
+	inheritances:[string];
 	class_decls:[string];
 	function_decls:[string];
 	using_namespaces:[string];

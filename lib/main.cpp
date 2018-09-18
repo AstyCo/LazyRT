@@ -73,6 +73,9 @@ int main(int argc, char *argv[])
     if (!ignore_substrings.empty())
         DirectoryReader::_ignore_substrings = split(ignore_substrings, ",");
 
+    std::cout << "ignore str " << ignore_substrings << std::endl;
+    for (auto &i: DirectoryReader::_ignore_substrings)
+        std::cout << "ignore " << i << std::endl;
     START_PROFILE;
 
     SplittedPath outDirectorySP = outDirectory;
@@ -110,12 +113,17 @@ int main(int argc, char *argv[])
     PROFILE(FileTreeFunc::readDirectory(srcsTree, srcDirectory));
     PROFILE(FileTreeFunc::readDirectory(testTree, testDirectory));
 
+
     testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
 
     PROFILE(FileTreeFunc::parsePhase(srcsTree, srcsDumpInSP.joint()));
     PROFILE(FileTreeFunc::parsePhase(testTree, testsDumpInSP.joint()));
+
+
     PROFILE(FileTreeFunc::analyzePhase(srcsTree));
     PROFILE(FileTreeFunc::analyzePhase(testTree));
+
+    testTree.print();
 
     if (verbal) {
         FileTreeFunc::printAffected(srcsTree);

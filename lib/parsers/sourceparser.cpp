@@ -569,7 +569,8 @@ void SourceParser::parseFile(FileNode *node)
                         listClassDeclAt.pop_back();
                         p = skipSpacesAndComments(p + 1);
                         if (*p == ';') {
-                            node->record()._listClassDecl.push_back(_classNameDecl);
+                            std::cout << "CLASS DECL " << _classNameDecl.joint() << ',' << _classNameDecl.splitted().size() << std::endl;
+                            node->record()._setClassDecl.insert(_classNameDecl);
                         }
                         --p;
                         _classNameDecl.clear();
@@ -615,14 +616,14 @@ void SourceParser::parseFile(FileNode *node)
                             VERBAL_0(MY_PRINTEXT(function/method impl);
                             std::cout << _funcName.joint() << std::endl;)
 
-                            node->record()._listImplements.push_back(_funcName);
+                            node->record()._setImplements.insert(_funcName);
                         }
                         else if (*p == ';') {
                             // global function decl
                             VERBAL_0(MY_PRINTEXT(function decl);
                             std::cout << _funcName.joint() << std::endl;)
 
-                            node->record()._listFuncDecl.push_back(_funcName);
+                            node->record()._setFuncDecl.insert(_funcName);
                         }
                         VERBAL_0(else {
                             MY_PRINTEXT(nothing);
@@ -718,10 +719,12 @@ void SourceParser::parseFile(FileNode *node)
         case ClassState:   // struct ... and class ...
         {
             ScopedName className = _currentNamespace;
+            std::cout << "class name sz " << className.splitted().size() << std::endl;
             p = parseName(p, className);
 
             static std::list<std::string> chl = initChl();
             std::list<std::string>::const_iterator it;
+            const char *pInh = p;
             p = readUntilM(p, chl, it);
 
             if (it == chl.end()) {
@@ -731,11 +734,44 @@ void SourceParser::parseFile(FileNode *node)
                 const char ch = *it->c_str();
                 switch (ch) {
                 case '{':
+                {
                     // decl
                     _classNameDecl = className;
                     listClassDeclAt.push_back(lcbrackets);
+                    // parse inheritance
+                    const char *pBaseClass = NULL;
+                    int baseClassNameLength;
+                    for (bool semicolon = false; pInh <= p; ) {
+                        if (*pInh == ':') {
+                            semicolon = true;
+                            ++pInh;
+                        }
+                        if (!semicolon) {
+                            ++pInh;
+                            continue;
+                        }
+                        pInh = skipSpacesAndComments(pInh);
+//                        std::cout << "pInh " << std::string(pInh, 20) << std::endl;
+                        if (*pInh == ',' || *pInh == '{') {
+                            // add inherits
+                            MY_ASSERTF(pBaseClass != NULL);
+                            std::string baseClassNameStr(pBaseClass, baseClassNameLength);
+                            ScopedName baseClassName = baseClassNameStr;
+                            baseClassName.setSeparator(std::string("::"));
+
+                            node->record()._setInheritances.insert(baseClassName);
+                            node->record()._setImplements.insert(baseClassName);
+                            ++pInh;
+                        }
+                        else {
+                            pBaseClass = pInh;
+                            pInh = parseWord(pInh, baseClassNameLength);
+                        }
+                    }
+
                     --p; // lcbracket++
                     break;
+                }
                 case ';':
                     // ref
                     // do nothing

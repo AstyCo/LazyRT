@@ -18,9 +18,10 @@ struct FileRecord FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MD5 = 6,
     VT_INCLUDES = 8,
     VT_IMPLEMENTS = 10,
-    VT_CLASS_DECLS = 12,
-    VT_FUNCTION_DECLS = 14,
-    VT_USING_NAMESPACES = 16
+    VT_INHERITANCES = 12,
+    VT_CLASS_DECLS = 14,
+    VT_FUNCTION_DECLS = 16,
+    VT_USING_NAMESPACES = 18
   };
   const flatbuffers::String *path() const {
     return GetPointer<const flatbuffers::String *>(VT_PATH);
@@ -33,6 +34,9 @@ struct FileRecord FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *implements() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_IMPLEMENTS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *inheritances() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INHERITANCES);
   }
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *class_decls() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CLASS_DECLS);
@@ -55,6 +59,9 @@ struct FileRecord FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyOffset(verifier, VT_IMPLEMENTS) &&
            verifier.Verify(implements()) &&
            verifier.VerifyVectorOfStrings(implements()) &&
+           VerifyOffset(verifier, VT_INHERITANCES) &&
+           verifier.Verify(inheritances()) &&
+           verifier.VerifyVectorOfStrings(inheritances()) &&
            VerifyOffset(verifier, VT_CLASS_DECLS) &&
            verifier.Verify(class_decls()) &&
            verifier.VerifyVectorOfStrings(class_decls()) &&
@@ -83,6 +90,9 @@ struct FileRecordBuilder {
   void add_implements(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> implements) {
     fbb_.AddOffset(FileRecord::VT_IMPLEMENTS, implements);
   }
+  void add_inheritances(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> inheritances) {
+    fbb_.AddOffset(FileRecord::VT_INHERITANCES, inheritances);
+  }
   void add_class_decls(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> class_decls) {
     fbb_.AddOffset(FileRecord::VT_CLASS_DECLS, class_decls);
   }
@@ -110,6 +120,7 @@ inline flatbuffers::Offset<FileRecord> CreateFileRecord(
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> md5 = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> includes = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> implements = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> inheritances = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> class_decls = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> function_decls = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> using_namespaces = 0) {
@@ -117,6 +128,7 @@ inline flatbuffers::Offset<FileRecord> CreateFileRecord(
   builder_.add_using_namespaces(using_namespaces);
   builder_.add_function_decls(function_decls);
   builder_.add_class_decls(class_decls);
+  builder_.add_inheritances(inheritances);
   builder_.add_implements(implements);
   builder_.add_includes(includes);
   builder_.add_md5(md5);
@@ -130,6 +142,7 @@ inline flatbuffers::Offset<FileRecord> CreateFileRecordDirect(
     const std::vector<uint8_t> *md5 = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *includes = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *implements = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *inheritances = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *class_decls = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *function_decls = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *using_namespaces = nullptr) {
@@ -139,6 +152,7 @@ inline flatbuffers::Offset<FileRecord> CreateFileRecordDirect(
       md5 ? _fbb.CreateVector<uint8_t>(*md5) : 0,
       includes ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*includes) : 0,
       implements ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*implements) : 0,
+      inheritances ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*inheritances) : 0,
       class_decls ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*class_decls) : 0,
       function_decls ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*function_decls) : 0,
       using_namespaces ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*using_namespaces) : 0);

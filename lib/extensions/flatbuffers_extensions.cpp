@@ -5,7 +5,7 @@ void FileTreeFunc::copyVector(const FT &flatVector, T &v)
 {
     std::transform(flatVector.begin(),
                    flatVector.end(),
-                   std::back_inserter(v),
+                   std::inserter(v, v.end()),
                    [](const flatbuffers::String* value) {
                         return value->str();
                    }
@@ -36,9 +36,10 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
 
             fileRecord.setHash(record->md5()->data()); // Hash
             copyVector(*record->includes(), fileRecord._listIncludes);
-            copyVector(*record->implements(), fileRecord._listImplements);
-            copyVector(*record->class_decls(), fileRecord._listClassDecl);
-            copyVector(*record->function_decls(), fileRecord._listFuncDecl);
+            copyVector(*record->implements(), fileRecord._setImplements);
+            copyVector(*record->inheritances(), fileRecord._setInheritances);
+            copyVector(*record->class_decls(), fileRecord._setClassDecl);
+            copyVector(*record->function_decls(), fileRecord._setFuncDecl);
             copyVector(*record->using_namespaces(), fileRecord._listUsingNamespace);
 
         }
@@ -62,17 +63,18 @@ static  flatbuffers::Offset<
     return builder.CreateVector(offsets);
 }
 
+template <typename TContainer>
 static  flatbuffers::Offset<
             flatbuffers::Vector<
                 flatbuffers::Offset<
                     flatbuffers::String>>>
     CreateVectorOfStrings(flatbuffers::FlatBufferBuilder &builder,
-                          const std::list<ScopedName> &l)
+                          const TContainer &container)
 {
-    std::vector<flatbuffers::Offset<flatbuffers::String>> offsets(l.size());
-    auto it = l.cbegin();
+    std::vector<flatbuffers::Offset<flatbuffers::String>> offsets(container.size());
+    auto it = container.cbegin();
     int i = 0;
-    for (auto &scopedName: l)
+    for (auto &scopedName: container)
         offsets[i++] = builder.CreateString(scopedName.joint());
     return builder.CreateVector(offsets);
 }
@@ -88,9 +90,10 @@ static void pushFiles(flatbuffers::FlatBufferBuilder &builder,
                     builder.CreateString(frecord._path.joint()),
                     builder.CreateVector(frecord._hashArray, 16),
                     CreateVectorOfStrings(builder, frecord._listIncludes),
-                    CreateVectorOfStrings(builder, frecord._listImplements),
-                    CreateVectorOfStrings(builder, frecord._listClassDecl),
-                    CreateVectorOfStrings(builder, frecord._listFuncDecl),
+                    CreateVectorOfStrings(builder, frecord._setImplements),
+                    CreateVectorOfStrings(builder, frecord._setInheritances),
+                    CreateVectorOfStrings(builder, frecord._setClassDecl),
+                    CreateVectorOfStrings(builder, frecord._setFuncDecl),
                     CreateVectorOfStrings(builder, frecord._listUsingNamespace)
                     );
         records.push_back(fbs_frecord);

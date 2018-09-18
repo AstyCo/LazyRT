@@ -45,6 +45,8 @@ public:
         if (_isJointValid)
             clearJoint();
 
+        if (_splitted.size() == 1 && _splitted.front().empty())
+            _splitted.clear();
         _splitted.push_back(s);
     }
 
@@ -184,6 +186,7 @@ private:
     mutable bool _isJointValid;
 
     mutable bool _isSplittedValid;
+    mutable bool _isEmpty;
 protected:
     mutable std::string _joint;
     mutable SplittedType _splitted;
