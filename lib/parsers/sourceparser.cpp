@@ -359,17 +359,17 @@ const char *SourceParser::readUntilM(const char *p, const std::list<std::__cxx11
 const char *SourceParser::parseName(const char *p, ScopedName &name) const
 {
     MY_ASSERT(p);
-    p = skipSpacesAndComments(p);
     std::list<std::string> nsname;
     for (;;) {
         int wl;
+        p = skipSpacesAndComments(p);
         p = parseWord(p, wl);
         if (wl == 0)
             break;
         nsname.push_back(std::string(p - wl, wl));
         p = skipSpacesAndComments(p);
         if (!strncmp(p, "::", 2))
-            ++p;
+            p += 2;
         else
             break;
     }
@@ -408,7 +408,7 @@ std::string SourceParser::stateToString(SourceParser::SpecialState state)
 SourceParser::SourceParser(const FileTree &ftree)
     : _fileTree(ftree)
 {
-    _currentNamespace.setSeparator("::");
+    _currentNamespace.setNamespaceSeparator();
 }
 
 const char *SourceParser::skipTemplateAndSpaces(const char *p) const
@@ -564,14 +564,12 @@ void SourceParser::parseFile(FileNode *node)
                 }
                 if (!listClassDeclAt.empty() &&
                         (lcbrackets == listClassDeclAt.back())) {
-                    MY_ASSERTF(!_classNameDecl.isEmpty());
-                    if (!_classNameDecl.isEmpty()) {
+                    MY_ASSERTF(!_classNameDecl.empty());
+                    if (!_classNameDecl.empty()) {
                         listClassDeclAt.pop_back();
                         p = skipSpacesAndComments(p + 1);
-                        if (*p == ';') {
-                            std::cout << "CLASS DECL " << _classNameDecl.joint() << ',' << _classNameDecl.splitted().size() << std::endl;
+                        if (*p == ';')
                             node->record()._setClassDecl.insert(_classNameDecl);
-                        }
                         --p;
                         _classNameDecl.clear();
                     }
@@ -609,7 +607,7 @@ void SourceParser::parseFile(FileNode *node)
                     break;
                 }
                 case ')':
-                    if (!_funcName.isEmpty()) {
+                    if (!_funcName.empty()) {
                         p = skipSpacesAndComments(p + 1);
                         if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
                             // impl function/method
@@ -719,7 +717,6 @@ void SourceParser::parseFile(FileNode *node)
         case ClassState:   // struct ... and class ...
         {
             ScopedName className = _currentNamespace;
-            std::cout << "class name sz " << className.splitted().size() << std::endl;
             p = parseName(p, className);
 
             static std::list<std::string> chl = initChl();
@@ -739,33 +736,36 @@ void SourceParser::parseFile(FileNode *node)
                     _classNameDecl = className;
                     listClassDeclAt.push_back(lcbrackets);
                     // parse inheritance
-                    const char *pBaseClass = NULL;
-                    int baseClassNameLength;
-                    for (bool semicolon = false; pInh <= p; ) {
-                        if (*pInh == ':') {
-                            semicolon = true;
+                    ScopedName baseClassName;
+                    baseClassName.setNamespaceSeparator();
+                    for (; pInh <= p; ++pInh)
+                    {
+                        if (*pInh == ':' &&
+                            *(pInh - 1) != ':' &&
+                            *(pInh + 1) != ':')
+                        {
                             ++pInh;
+                            break;
                         }
-                        if (!semicolon) {
-                            ++pInh;
-                            continue;
-                        }
+                    }
+                    for (; pInh <= p; )
+                    {
                         pInh = skipSpacesAndComments(pInh);
-//                        std::cout << "pInh " << std::string(pInh, 20) << std::endl;
                         if (*pInh == ',' || *pInh == '{') {
                             // add inherits
-                            MY_ASSERTF(pBaseClass != NULL);
-                            std::string baseClassNameStr(pBaseClass, baseClassNameLength);
-                            ScopedName baseClassName = baseClassNameStr;
-                            baseClassName.setSeparator(std::string("::"));
+                            auto &inheritances = node->record()._setInheritances;
 
-                            node->record()._setInheritances.insert(baseClassName);
-                            node->record()._setImplements.insert(baseClassName);
+                            // insert base class to inheritances
+                            inheritances.insert(baseClassName);
+                            // also insert namespace version
+                            if (!_currentNamespace.empty())
+                                inheritances.insert(_currentNamespace + baseClassName);
+
                             ++pInh;
                         }
                         else {
-                            pBaseClass = pInh;
-                            pInh = parseWord(pInh, baseClassNameLength);
+                            baseClassName.clear();
+                            pInh = parseName(pInh, baseClassName);
                         }
                     }
 
@@ -814,9 +814,9 @@ void SourceParser::parseFile(FileNode *node)
             if (CMP_TOKEN(NAMESPACE_TOKEN)) {
                 // using namespace ->ns
                 ScopedName ns;
-                ns.setSeparator("::");
+                ns.setNamespaceSeparator();
                 p = parseName(p, ns);
-                if (!ns.isEmpty()) {
+                if (!ns.empty()) {
                     VERBAL_0(std::cout << "using namespace " << ns.joint() << std::endl;)
                     node->record()._listUsingNamespace.push_back(ns);
                 }

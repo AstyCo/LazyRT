@@ -56,7 +56,7 @@ HashedStringNode *HashedStringNode::findSplitted(const HashedStringNode::TSplitt
 HashedStringNode::TSplittedString HashedStringNode::fullname() const
 {
     TSplittedString result;
-    result.setSeparator("::");
+    result.setNamespaceSeparator();
 
     const HashedStringNode *n = this;
     while (n) {
@@ -137,19 +137,19 @@ void DependencyAnalyzer::analyzeInheritance(const ScopedName &impl, FileNode *fn
 {
     HashedStringNode *associatedDecl;
 
-    if (associatedDecl = findClass(impl, fnode, &_rootClassDecls)) {
-        // no namespace
-        addClassImpl(impl, fnode, associatedDecl);
-        return;
-    }
-    // check for method implementation
-    // according to using namespaces
-    for (auto &ns: fnode->record()._listUsingNamespace) {
-        if (associatedDecl = findClass(impl, fnode, _rootClassDecls.findSplitted(ns))) {
-            addClassImpl(impl, fnode, associatedDecl);
-            return;
-        }
-    }
+//    if (associatedDecl = findClass(impl, fnode, &_rootClassDecls)) {
+//        // no namespace
+//        addClassImpl(impl, fnode, associatedDecl);
+//        return;
+//    }
+//    // check for method implementation
+//    // according to using namespaces
+//    for (auto &ns: fnode->record()._listUsingNamespace) {
+//        if (associatedDecl = findClass(impl, fnode, _rootClassDecls.findSplitted(ns))) {
+//            addClassImpl(impl, fnode, associatedDecl);
+//            return;
+//        }
+//    }
 }
 
 HashedStringNode *DependencyAnalyzer::findClassForMethod(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode)

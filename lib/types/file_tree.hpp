@@ -115,6 +115,7 @@ public:
     const list<FileNode*> &childs() const { return _childs;}
 
     const SplittedPath &path() const { return _record._path;}
+    const SplittedPath::HashedType &fname() const { return path().last();}
     const std::string &name() const { return path().joint();}
 
     bool hasRegularFiles() const;

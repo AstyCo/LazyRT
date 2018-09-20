@@ -12,11 +12,12 @@ template <typename THashedString>
 class SplittedString
 {
 public:
+    typedef THashedString HashedType;
     typedef std::list<THashedString> SplittedType;
 
 public:
-    SplittedString(const std::string &joint_ = std::string())
-        : _joint(joint_)
+    SplittedString(const std::string &joint_ = std::string(), const std::string &separator_ = std::string("/"))
+        : _joint(joint_), _separator(separator_)
     {
         init();
     }
@@ -42,15 +43,14 @@ public:
     {
         if (!_isSplittedValid)
             split();
-        if (_isJointValid)
-            clearJoint();
+        clearJoint();
 
         if (_splitted.size() == 1 && _splitted.front().empty())
             _splitted.clear();
         _splitted.push_back(s);
     }
 
-    bool isEmpty() const
+    bool empty() const
     {
         return !_isSplittedValid && !_isJointValid;
     }
@@ -81,7 +81,14 @@ public:
 
     SplittedString operator+(const SplittedString &extra_path) const
     {
-        return SplittedString<THashedString>(_joint + _separator + extra_path.joint());
+        std::string joint_concat;
+        if (joint().empty())
+            joint_concat = extra_path.joint();
+        else if (extra_path.joint().empty())
+            joint_concat = _joint;
+        else
+            joint_concat = _joint + _separator + extra_path._joint;
+        return SplittedString<THashedString>(joint_concat, _separator);
     }
     bool operator<(const SplittedString<THashedString> &other) const
     {
@@ -96,6 +103,8 @@ public:
             split();
         clearJoint();
     }
+
+    void setNamespaceSeparator() { setSeparator("::");}
 
     void setOsSeparator()
     {
@@ -133,8 +142,6 @@ private:
 
         if (!_splitted.empty())
             totalSize -= _separatorSize;
-        else
-            MY_ASSERT(false);
 
         _joint.reserve(totalSize);
         bool first = true;
@@ -160,7 +167,9 @@ private:
     void split() const
     {
         MY_ASSERT(!_isSplittedValid);
-
+        _isSplittedValid = true;
+        if (_joint.empty())
+            return;
         size_t pos = 0, sepPos;
         while ((sepPos = _joint.find(_separator, pos)) != (size_t)-1) {
             if (pos != sepPos)
@@ -168,24 +177,24 @@ private:
 
             pos = sepPos + _separatorSize;
         }
-
         _splitted.push_back(_joint.substr(pos));
-        _isSplittedValid = true;
     }
 
     void init()
     {
         if (_separator.empty()) {
             _separator = std::string("/");
-            _separatorSize = _separator.size();
         }
+        _separatorSize = _separator.size();
+
         _isJointValid = !_joint.empty();
         _isSplittedValid = !_splitted.empty();
     }
 
+public:
     mutable bool _isJointValid;
-
     mutable bool _isSplittedValid;
+
     mutable bool _isEmpty;
 protected:
     mutable std::string _joint;

@@ -28,6 +28,10 @@ void FileRecord::calculateHash(const SplittedPath &dir_base)
     auto data_pair = readBinaryFile((dir_base + _path).c_str());
     char *data = data_pair.first;
     if (!data) {
+        std::cout << dir_base.joint() << std::endl;
+        std::cout << _path.joint() << std::endl;
+        std::cout << (dir_base + _path).joint() << std::endl;
+
         MY_ASSERT(false);
         return;
     }
@@ -126,15 +130,15 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-//    printInherits(indent);
-    printDependencies(indent);
+    printInherits(indent);
+//    printDependencies(indent);
 //    printDependentBy(indent);
 //    printIncludes(indent);
-    printImplementNodes(indent);
-    printImpls(indent);
-    printDecls(indent);
+//    printImplementNodes(indent);
+//    printImpls(indent);
+//    printDecls(indent);
 //    printFuncImpls(indent);
-    printClassImpls(indent);
+//    printClassImpls(indent);
 
     list<FileNode*>::const_iterator it = _childs.begin();
     while (it != _childs.end()) {
@@ -356,7 +360,7 @@ void FileNode::addDependencyPrivate(FileNode &file, FileNode::SetFileNode FileNo
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
 {
     for (auto child : _childs) {
-        if (child->path().last() == hfname)
+        if (child->fname() == hfname)
             return child;
     }
     return nullptr;
@@ -523,11 +527,11 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
     }
     for (auto child : thisChilds) {
         if (FileNode *restored_child =
-                restored_node->findChild(child->path().last())) {
+                restored_node->findChild(child->fname())) {
             parseModifiedFilesRecursive(child, restored_child);
         }
         else {
-            std::cout << "this "<< node->name() << " child " << child->path().last() << " not found" << std::endl;
+            std::cout << "this "<< node->name() << " child " << child->fname() << " not found" << std::endl;
             parseFilesRecursive(child);
         }
     }
