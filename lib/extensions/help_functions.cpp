@@ -25,7 +25,7 @@ std::pair<char *, long> readFile(const char *fname, const char *mode)
 {
     FILE* file = fopen(fname, mode);
     if (!file) {
-        VERBAL_0(errors() << "file" << std::string(fname) << "can not be opened";)
+        errors() << "file" << std::string(fname) << "can not be opened";
         return std::pair<char *, long>(nullptr, 0);
     }
     long long fsize = file_size(fname);

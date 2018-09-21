@@ -42,6 +42,7 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
             copyVector(*record->function_decls(), fileRecord._setFuncDecl);
             copyVector(*record->using_namespaces(), fileRecord._listUsingNamespace);
 
+            /// TODO install separators
         }
 
         delete file_tree_dump;

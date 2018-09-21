@@ -18,7 +18,8 @@
 #include <fcntl.h>
 
 FileRecord::FileRecord(const SplittedPath &path, Type type)
-    : _path(path), _type(type), _isModified(false), _isHashValid(false)
+    : _path(path), _type(type), _isModified(false),
+      _isManuallyLabeled(false), _isHashValid(false)
 {
     _path.setOsSeparator();
 }
@@ -130,13 +131,12 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-    printInherits(indent);
-    printInheritsFiles(indent);
+//    printInherits(indent);
+//    printInheritsFiles(indent);
     printDependencies(indent);
-    printDependentBy(indent);
-//    printIncludes(indent);
-//    printImplementNodes(indent);
-//    printImpls(indent);
+//    printDependentBy(indent);
+    printImpls(indent);
+    printImplFiles(indent);
 //    printDecls(indent);
 //    printFuncImpls(indent);
 //    printClassImpls(indent);
@@ -147,26 +147,6 @@ void FileNode::print(int indent) const
         ++it;
     }
 }
-
-//void FileNode::printIncludes(int indent, int extra) const
-//{
-//    std::string strIndents = makeIndents(indent, extra);
-
-//    for (auto file : _listIncludes) {
-//        std::cout << strIndents << "include: " << file->name() << std::endl;
-//        file->printIncludes(indent, extra + 2);
-//    }
-//}
-
-//void FileNode::printImplementNodes(int indent, int extra) const
-//{
-//    std::string strIndents = makeIndents(indent, extra);
-
-//    for (auto file : _listImplementedBy) {
-//        std::cout << strIndents << "implemented by: " << file->name() << std::endl;
-//        file->printImplementNodes(indent, extra + 2);
-//    }
-//}
 
 void FileNode::printDecls(int indent) const
 {
@@ -184,6 +164,14 @@ void FileNode::printImpls(int indent) const
 
     for (auto &impl : _record._setImplements)
         std::cout << strIndents << string("impl: ") << impl.joint() << std::endl;
+}
+
+void FileNode::printImplFiles(int indent) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    for (auto &impl_file: _record._setImplementFiles)
+        std::cout << strIndents << string("impl_file: ") << impl_file.joint() << std::endl;
 }
 
 void FileNode::printFuncImpls(int indent) const
@@ -340,8 +328,9 @@ void FileNode::installExplicitDepBy(FileNode *implementedNode)
         MY_ASSERT(false);
         return;
     }
-    _setExplicitDependendentBy.insert(implementedNode);
-    implementedNode->_setExplicitDependencies.insert(this);
+    implementedNode->installExplicitDep(this);
+//    _setExplicitDependendentBy.insert(implementedNode);
+//    implementedNode->_setExplicitDependencies.insert(this);
 }
 
 void FileNode::swapParsedData(FileNode *file)
@@ -351,6 +340,12 @@ void FileNode::swapParsedData(FileNode *file)
         return;
     }
     _record.swapParsedData(file->_record);
+}
+
+void FileNode::setLabeledDependencies()
+{
+    std::for_each(_setDependencies.begin(),
+                  _setDependencies.end(), FileNodeFunc::setLabeled);
 }
 
 //void FileNode::addDependency(FileNode &file)
@@ -690,6 +685,8 @@ void FileTreeFunc::analyzePhase(FileTree &tree)
 
 static bool isAffected(const FileNode *file)
 {
+    if (file->isManuallyLabeled())
+        return true;
     for (auto &dep: file->_setDependencies) {
         if (dep->isModified()) {
 //            std::cout << dep->name() << " is modified" << std::endl;
@@ -741,4 +738,51 @@ void FileTreeFunc::writeAffected(const FileTree &tree, const std::__cxx11::strin
         /* close the file*/
         fclose (fp);
     }
+}
+
+static bool containsMain(FileNode *file)
+{
+    static std::string mainPrototype = "main";
+    const auto &impls = file->record()._setImplements;
+    for (const auto &impl: impls) {
+        if (impl.joint() == mainPrototype) {
+            std::cout << file->name() << " contains main() {}" << std::endl;
+            return true;
+        }
+    }
+    // doesn't contain
+    return false;
+}
+
+static void searchTestMainR(FileNode *file, std::vector<FileNode *> &vTestMainFiles)
+{
+    if (vTestMainFiles.size() > 2)
+        return;
+    if (file->isRegularFile()) {
+        if (containsMain(file))
+            vTestMainFiles.push_back(file);
+        return;
+    }
+    else {
+        // directory
+        for (auto childFile: file->childs())
+            searchTestMainR(childFile, vTestMainFiles);
+    }
+}
+
+static FileNode *searchTestMain(FileTree &testTree)
+{
+    std::vector<FileNode *> vTestMainFiles;
+    vTestMainFiles.reserve(2);
+    searchTestMainR(testTree._rootDirectoryNode, vTestMainFiles);
+    // return file only if main() implemented in exactly one file
+    if (vTestMainFiles.size() == 1)
+        return vTestMainFiles.front();
+    return nullptr;
+}
+
+void FileTreeFunc::labelMainAffected(FileTree &testTree)
+{
+    if (FileNode *testMainFile = searchTestMain(testTree))
+        testMainFile->setLabeledDependencies();
 }

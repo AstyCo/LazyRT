@@ -54,12 +54,14 @@ int main(int argc, char *argv[])
     std::string ignore_substrings;
 
     bool verbal = false;
+    bool keep_test_main = true;
 
     // required arguments
     app.add_option("-s,--srcdir", srcDirectory, "Directory with library source files")->required();
     app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
     // optional arguments
+    app.add_option("-m,--main", keep_test_main, "Allways keep test source file with main() implementation");
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-e,--extensions", exts, "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", ignore_substrings, "Substrings of the ignored paths, separated by comma (,)");
@@ -123,6 +125,11 @@ int main(int argc, char *argv[])
     PROFILE(FileTreeFunc::analyzePhase(srcsTree));
     PROFILE(FileTreeFunc::analyzePhase(testTree));
 
+    testTree.print();
+    PROFILE(
+    if (keep_test_main)
+        FileTreeFunc::labelMainAffected(testTree);
+    );
 //    testTree.print();
 
     if (verbal) {

@@ -227,8 +227,11 @@ void DependencyAnalyzer::analyze(FileNode *fnode)
     auto &impls = fnode->record()._setImplements;
     auto &inheritances = fnode->record()._setInheritances;
 
-    for (const auto &impl: impls)
+    for (const auto &impl: impls) {
+        if (impl.joint().find("TestFixture::") != std::string::npos)
+            std::cout << fnode->name() << ' ' << impl.joint() << std::endl;
         analyzeImpl(impl, fnode);
+    }
     for (const auto &inh: inheritances)
         analyzeInheritance(inh, fnode);
 

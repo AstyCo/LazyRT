@@ -63,6 +63,7 @@ public:
 
     // Parse stage
     bool _isModified;
+    bool _isManuallyLabeled;
 
     list<IncludeDirective> _listIncludes;
 
@@ -142,14 +143,16 @@ public:
 
     void setModified() { _record._isModified = true;}
     bool isModified() const { return _record._isModified;}
+    void setLabeled() { _record._isManuallyLabeled = true;}
+    void setLabeledDependencies();
+    bool isManuallyLabeled() const { return _record._isManuallyLabeled;}
 
 public:
     ///---Debug
     void print(int indent = 0) const;
-//    void printIncludes(int indent = 0, int extra = 2) const;
-//    void printImplementNodes(int indent, int extra = 2) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
+    void printImplFiles(int indent = 0) const;
     void printFuncImpls(int indent = 0) const;
     void printClassImpls(int indent = 0) const;
     void printDependencies(int indent = 0) const;
@@ -166,12 +169,6 @@ private:
     FileRecord _record;
 
 public:
-    ListFileNode _listIncludes;
-    ListFileNode _listIncludedBy;
-
-    ListFileNode _listImplements;
-    ListFileNode _listImplementedBy;
-
     SetFileNode _setExplicitDependencies;
     SetFileNode _setExplicitDependendentBy;
 
@@ -182,6 +179,12 @@ private:
     bool _installDependenciesCalled;
     bool _installDependentByCalled;
 };
+
+namespace FileNodeFunc {
+
+inline void setLabeled(FileNode *f) { MY_ASSERT(f); f->setLabeled();}
+
+} // namespace FileNodeFunc
 
 class FileTree
 {
@@ -268,6 +271,11 @@ void parsePhase(FileTree &tree, const std::string &dumpFileName);
 //  Installs all the dependencies against FileNode's according
 // to the data, gathered on parsing phase.
 void analyzePhase(FileTree &tree);
+
+//  Firstly searchs for single .cpp with main() implementation
+//  If such file founded, then installs affected flag on it, and
+// its dependencies
+void labelMainAffected(FileTree &testTree);
 
 //  Prints list of files, affected by modifications to stdout.
 void printAffected(const FileTree &tree);
