@@ -138,6 +138,15 @@ int main(int argc, char *argv[])
     }
 
     boost::filesystem::create_directories(outDirectorySP.joint());
+
+    SplittedPath srcModifiedSP = outDirectorySP;
+    srcModifiedSP.append(std::string("src_modified.txt"));
+    SplittedPath testModifiedSP = outDirectorySP;
+    testModifiedSP.append(std::string("test_modified.txt"));
+
+    PROFILE(FileTreeFunc::writeModified(srcsTree, srcModifiedSP.joint()));
+    PROFILE(FileTreeFunc::writeModified(testTree, testModifiedSP.joint()));
+
     PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
     PROFILE(FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint()));
 

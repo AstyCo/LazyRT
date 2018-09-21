@@ -280,6 +280,9 @@ void labelMainAffected(FileTree &testTree);
 //  Prints list of files, affected by modifications to stdout.
 void printAffected(const FileTree &tree);
 
+//  Prints list of modified files;
+void writeModified(const FileTree &tree, const std::__cxx11::string &filename);
+
 //  Prints list of files, affected by modifications to specific file.
 void writeAffected(const FileTree &tree, const std::string &filename);
 

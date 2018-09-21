@@ -723,7 +723,7 @@ static void writeAffectedR(const FileNode *file, FILE *fp)
 
     if (isAffected(file)) {
         SplittedPath tmp = file->path();
-        tmp.setSeparator("/");
+        tmp.setUnixSeparator();
         fprintf(fp, "%s\n", tmp.joint().c_str());
     }
     for (auto child: file->childs())
@@ -785,4 +785,28 @@ void FileTreeFunc::labelMainAffected(FileTree &testTree)
 {
     if (FileNode *testMainFile = searchTestMain(testTree))
         testMainFile->setLabeledDependencies();
+}
+
+static void writeModifiedR(const FileNode *file, FILE * fp)
+{
+    if (file == nullptr)
+        return;
+
+    if (file->isModified()) {
+        SplittedPath tmp = file->path();
+        tmp.setUnixSeparator();
+        fprintf(fp, "%s\n", tmp.joint().c_str());
+    }
+    for (auto child: file->childs())
+        writeModifiedR(child, fp);
+}
+
+void FileTreeFunc::writeModified(const FileTree &tree, const std::string &filename)
+{
+    /* open the file for writing*/
+    if (FILE * fp = fopen (filename.c_str(),"w")) {
+        writeModifiedR(tree._rootDirectoryNode, fp);
+        /* close the file*/
+        fclose (fp);
+    }
 }

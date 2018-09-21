@@ -104,13 +104,30 @@ public:
         clearJoint();
     }
 
-    void setNamespaceSeparator() { setSeparator("::");}
 
-    void setOsSeparator()
+    static const std::string &namespaceSep()
+    {
+        static std::string sep("::");
+        return sep;
+    }
+
+    static const std::string &osSep()
     {
         static const char osSep = osSeparator();
-        setSeparator(std::string(&osSep, 1));
+        static std::string sep(std::string(&osSep, 1));
+        return sep;
     }
+
+    static const std::string &unixSep()
+    {
+        static std::string sep("/");
+        return sep;
+    }
+
+
+    void setNamespaceSeparator() { setSeparator(namespaceSep());}
+    void setOsSeparator() { setSeparator(osSep());}
+    void setUnixSeparator() { setSeparator(unixSep());}
 
     void clear()
     {
