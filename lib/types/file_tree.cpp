@@ -131,8 +131,9 @@ void FileNode::print(int indent) const
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
     printInherits(indent);
-//    printDependencies(indent);
-//    printDependentBy(indent);
+    printInheritsFiles(indent);
+    printDependencies(indent);
+    printDependentBy(indent);
 //    printIncludes(indent);
 //    printImplementNodes(indent);
 //    printImpls(indent);
@@ -147,25 +148,25 @@ void FileNode::print(int indent) const
     }
 }
 
-void FileNode::printIncludes(int indent, int extra) const
-{
-    std::string strIndents = makeIndents(indent, extra);
+//void FileNode::printIncludes(int indent, int extra) const
+//{
+//    std::string strIndents = makeIndents(indent, extra);
 
-    for (auto file : _listIncludes) {
-        std::cout << strIndents << "include: " << file->name() << std::endl;
-        file->printIncludes(indent, extra + 2);
-    }
-}
+//    for (auto file : _listIncludes) {
+//        std::cout << strIndents << "include: " << file->name() << std::endl;
+//        file->printIncludes(indent, extra + 2);
+//    }
+//}
 
-void FileNode::printImplementNodes(int indent, int extra) const
-{
-    std::string strIndents = makeIndents(indent, extra);
+//void FileNode::printImplementNodes(int indent, int extra) const
+//{
+//    std::string strIndents = makeIndents(indent, extra);
 
-    for (auto file : _listImplementedBy) {
-        std::cout << strIndents << "implemented by: " << file->name() << std::endl;
-        file->printImplementNodes(indent, extra + 2);
-    }
-}
+//    for (auto file : _listImplementedBy) {
+//        std::cout << strIndents << "implemented by: " << file->name() << std::endl;
+//        file->printImplementNodes(indent, extra + 2);
+//    }
+//}
 
 void FileNode::printDecls(int indent) const
 {
@@ -189,7 +190,7 @@ void FileNode::printFuncImpls(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &impl : _record._setFuncImpl)
+    for (auto &impl : _record._setFuncImplFiles)
         std::cout << strIndents << string("impl func: ") << impl.joint() << std::endl;
 }
 
@@ -197,7 +198,7 @@ void FileNode::printClassImpls(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &impl : _record._setClassImpl)
+    for (auto &impl : _record._setClassImplFiles)
         std::cout << strIndents << string("impl class: ") << impl.joint() << std::endl;
 }
 
@@ -231,17 +232,26 @@ void FileNode::printInherits(int indent) const
         std::cout << strIndents << string("inherits: ") << inh.joint() << std::endl;
 }
 
-void FileNode::installDepsPrivate(FileNode::SetFileNode FileNode::*deps, const FileNode::ListFileNode FileNode::*incls, const FileNode::ListFileNode FileNode::*impls, bool FileNode::*called)
+void FileNode::printInheritsFiles(int indent) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    for (auto &inh : _record._setBaseClassFiles)
+        std::cout << strIndents << string("inh_file: ") << inh.joint() << std::endl;
+}
+
+void FileNode::installDepsPrivate(FileNode::SetFileNode FileNode::*deps, const FileNode::SetFileNode FileNode::*explicitDeps,
+                                  /*const FileNode::ListFileNode FileNode::*impls, */bool FileNode::*called)
 {
     this->*called = true;
 
     // File allways depends on himself
     (this->*deps).insert(this);
 
-    for (auto node_ptr: (this->*incls))
-        addDependencyPrivate(*node_ptr, deps, incls, impls, called);
-    for (auto node_ptr: (this->*impls))
-        addDependencyPrivate(*node_ptr, deps, incls, impls, called);
+    for (auto node_ptr: (this->*explicitDeps))
+        addDependencyPrivate(*node_ptr, deps, explicitDeps, called);
+//    for (auto node_ptr: (this->*impls))
+//        addDependencyPrivate(*node_ptr, deps, incls, impls, called);
 }
 
 bool FileNode::hasRegularFiles() const
@@ -268,7 +278,15 @@ void FileNode::installIncludes(const FileTree &fileTree)
 {
     for (auto &include_directive : _record._listIncludes) {
        if (FileNode *includedFile = fileTree.searchIncludedFile(include_directive, this))
-           addInclude(includedFile);
+           installExplicitDep(includedFile);
+    }
+}
+
+void FileNode::installInheritances(const FileTree &fileTree)
+{
+    for (auto &file_path : _record._setBaseClassFiles) {
+       if (FileNode *baseClassFile = fileTree.searchInRoot(file_path))
+           installExplicitDep(baseClassFile);
     }
 }
 
@@ -277,23 +295,21 @@ void FileNode::installImplements(const FileTree &fileTree)
     for (auto &file_path : _record._setImplementFiles) {
 
        if (FileNode *implementedFile = fileTree.searchInRoot(file_path))
-           addImplements(implementedFile);
+           installExplicitDepBy(implementedFile);
     }
 }
 
 void FileNode::installDependencies()
 {
     installDepsPrivate(&FileNode::_setDependencies,
-                       &FileNode::_listIncludes,
-                       &FileNode::_listImplementedBy,
+                       &FileNode::_setExplicitDependencies,
                        &FileNode::_installDependenciesCalled);
 }
 
 void FileNode::installDependentBy()
 {
     installDepsPrivate(&FileNode::_setDependentBy,
-                       &FileNode::_listIncludedBy,
-                       &FileNode::_listImplements,
+                       &FileNode::_setExplicitDependendentBy,
                        &FileNode::_installDependentByCalled);
 }
 
@@ -308,24 +324,24 @@ FileNode *FileNode::search(const SplittedPath &path)
     return current_dir;
 }
 
-void FileNode::addInclude(FileNode *includedNode)
+void FileNode::installExplicitDep(FileNode *includedNode)
 {
     if (!includedNode) {
         MY_ASSERT(false);
         return;
     }
-    _listIncludes.push_back(includedNode);
-    includedNode->_listIncludedBy.push_back(this);
+    _setExplicitDependencies.insert(includedNode);
+    includedNode->_setExplicitDependendentBy.insert(this);
 }
 
-void FileNode::addImplements(FileNode *implementedNode)
+void FileNode::installExplicitDepBy(FileNode *implementedNode)
 {
     if (!implementedNode) {
         MY_ASSERT(false);
         return;
     }
-    _listImplements.push_back(implementedNode);
-    implementedNode->_listImplementedBy.push_back(this);
+    _setExplicitDependendentBy.insert(implementedNode);
+    implementedNode->_setExplicitDependencies.insert(this);
 }
 
 void FileNode::swapParsedData(FileNode *file)
@@ -347,11 +363,14 @@ void FileNode::swapParsedData(FileNode *file)
 //    _setDependencies.insert(otherFileDependencies.begin(), otherFileDependencies.end());
 //}
 
-void FileNode::addDependencyPrivate(FileNode &file, FileNode::SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls, const ListFileNode FileNode::*impls, bool FileNode::*called)
+void FileNode::addDependencyPrivate(FileNode &file, FileNode::SetFileNode FileNode::*deps,
+//                                    const ListFileNode FileNode::*incls,
+                                    const SetFileNode FileNode::*explicitDeps,
+                                    bool FileNode::*called)
 {
     // install dependencies of dependency first
     if (!(file.*called))
-        file.installDepsPrivate(deps, incls, impls, called);
+        file.installDepsPrivate(deps, explicitDeps, called);
 
     const auto &otherFileDependencies = file.*deps;
     (this->*deps).insert(otherFileDependencies.begin(), otherFileDependencies.end());
@@ -406,6 +425,12 @@ void FileTree::installIncludeNodes()
 {
     MY_ASSERT(_rootDirectoryNode);
     installIncludeNodesRecursive(*_rootDirectoryNode);
+}
+
+void FileTree::installInheritanceNodes()
+{
+    MY_ASSERT(_rootDirectoryNode);
+    installInheritanceNodesRecursive(*_rootDirectoryNode);
 }
 
 void FileTree::installImplementNodes()
@@ -557,6 +582,13 @@ void FileTree::installIncludeNodesRecursive(FileNode &node)
         installIncludeNodesRecursive(*child);
 }
 
+void FileTree::installInheritanceNodesRecursive(FileNode &node)
+{
+    node.installInheritances(*this);
+    for (auto &child : node.childs())
+        installInheritanceNodesRecursive(*child);
+}
+
 void FileTree::installImplementNodesRecursive(FileNode &node)
 {
     node.installImplements(*this);
@@ -646,6 +678,7 @@ void FileTreeFunc::analyzePhase(FileTree &tree)
 
     tree.installImplementNodes();
     tree.installIncludeNodes();
+    tree.installInheritanceNodes();
 
     tree.installDependencies();
 

@@ -48,7 +48,7 @@ public:
     ///
 private:
     void analyzeImpl(const ScopedName &impl, FileNode *fnode);
-    void analyzeInheritance(const ScopedName &impl, FileNode *fnode);
+    void analyzeInheritance(const ScopedName &baseClass, FileNode *fnode);
 
     HashedStringNode *findClassForMethod(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode);
     HashedStringNode *findClass(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode);
@@ -64,9 +64,11 @@ private:
 
     void addFunctionImpl(FileNode *implNode, HashedStringNode *hsnode);
     void addClassImpl(FileNode *implNode, HashedStringNode *hsnode);
+    void addClassInheritance(FileNode *implNode, HashedStringNode *hsnode);
 
     void readDecls(FileNode *fnode);
-    void analyzeImpls(FileNode *fnode);
+
+    void analyze(FileNode *fnode);
 
     HashedStringNode _rootClassDecls;
     HashedStringNode _rootFuncDecls;

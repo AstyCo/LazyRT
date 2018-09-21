@@ -76,9 +76,11 @@ public:
     list<ScopedName> _listUsingNamespace;
 
     // Analyze stage
-    std::set<ScopedName> _setFuncImpl;
-    std::set<ScopedName> _setClassImpl;
+    std::set<ScopedName> _setFuncImplFiles;
+    std::set<ScopedName> _setClassImplFiles;
+    std::set<ScopedName> _setBaseClassFiles;
     std::set<ScopedName> _setImplementFiles;
+
 public:
     MD5::HashArray _hashArray;
     bool _isHashValid;
@@ -125,6 +127,7 @@ public:
     void destroy();
 
     void installIncludes(const FileTree &fileTree);
+    void installInheritances(const FileTree &fileTree);
     void installImplements(const FileTree &fileTree);
 
     void installDependencies();
@@ -132,8 +135,8 @@ public:
 
     FileNode *search(const SplittedPath &path);
 
-    void addInclude(FileNode *includedNode);
-    void addImplements(FileNode *implementedNode);
+    void installExplicitDep(FileNode *includedNode);
+    void installExplicitDepBy(FileNode *implementedNode);
 
     void swapParsedData(FileNode *file);
 
@@ -143,8 +146,8 @@ public:
 public:
     ///---Debug
     void print(int indent = 0) const;
-    void printIncludes(int indent = 0, int extra = 2) const;
-    void printImplementNodes(int indent, int extra = 2) const;
+//    void printIncludes(int indent = 0, int extra = 2) const;
+//    void printImplementNodes(int indent, int extra = 2) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
     void printFuncImpls(int indent = 0) const;
@@ -152,12 +155,11 @@ public:
     void printDependencies(int indent = 0) const;
     void printDependentBy(int indent = 0) const;
     void printInherits(int indent = 0) const;
+    void printInheritsFiles(int indent = 0) const;
     ///
 private:
-    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
-                              const ListFileNode FileNode::*impls, bool FileNode::*called);
-    void installDepsPrivate(SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
-                            const ListFileNode FileNode::*impls, bool FileNode::*called);
+    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const SetFileNode FileNode::*explicitDeps, bool FileNode::*called);
+    void installDepsPrivate(SetFileNode FileNode::*deps, const SetFileNode FileNode::*explicitDeps, bool FileNode::*called);
 
     FileNode *_parent;
     ListFileNode _childs;
@@ -169,6 +171,10 @@ public:
 
     ListFileNode _listImplements;
     ListFileNode _listImplementedBy;
+
+    SetFileNode _setExplicitDependencies;
+    SetFileNode _setExplicitDependendentBy;
+
 
     SetFileNode _setDependencies;
     SetFileNode _setDependentBy;
@@ -197,6 +203,7 @@ public:
     void calculateFileHashes();
     void parseFiles();
     void installIncludeNodes();
+    void installInheritanceNodes();
     void installImplementNodes();
 
     void installDependencies();
@@ -226,6 +233,7 @@ public:
     void parseFilesRecursive(FileNode *node);
 
     void installIncludeNodesRecursive(FileNode &node);
+    void installInheritanceNodesRecursive(FileNode &node);
     void installImplementNodesRecursive(FileNode &node);
 
     template <typename TFunc>
