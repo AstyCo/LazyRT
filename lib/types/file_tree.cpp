@@ -142,6 +142,17 @@ void FileNode::print(int indent) const
     }
 }
 
+void FileNode::printModified(int indent, bool modified) const
+{
+    std::string strIndents = makeIndents(indent, 2);
+
+    if (isModified() == modified)
+        std::cout<< strIndents << (modified ? " + " : " - " ) << name() << std::endl;
+
+    for (auto f: _childs)
+        printModified(indent + 1, modified);
+}
+
 void FileNode::printIncludes(int indent, int extra) const
 {
     std::string strIndents = makeIndents(indent, extra);
@@ -427,6 +438,13 @@ void FileTree::print() const
     else {
         _rootDirectoryNode->print();
     }
+}
+
+void FileTree::printModified() const
+{
+    MY_ASSERT(_rootDirectoryNode);
+    _rootDirectoryNode->printModified(0, true);
+    _rootDirectoryNode->printModified(0, false);
 }
 
 FileNode *FileTree::addFile(const SplittedPath &path)

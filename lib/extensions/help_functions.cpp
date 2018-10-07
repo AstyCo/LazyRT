@@ -7,7 +7,7 @@
 #include <windows.h> // file_size
 #include <fileapi.h> // file_size
 #else // POSIX
-
+#include <sys/stat.h>
 #endif
 
 void Asserter(const char *file, int line)
@@ -93,7 +93,13 @@ long long file_size(const char *fname)
     CloseHandle(hFile);
     return size.QuadPart;
 #else // POSIX
+    struct stat statbuf;
 
+    if (stat("file.dat", &statbuf) == -1) {
+        /* check the value of errno */
+        return 0;
+    }
+    return statbuf.st_size;
 #endif
 }
 

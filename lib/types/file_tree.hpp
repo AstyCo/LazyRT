@@ -140,6 +140,7 @@ public:
 public:
     ///---Debug
     void print(int indent = 0) const;
+    void printModified(int indent = 0, bool modified = true) const;
     void printIncludes(int indent = 0, int extra = 2) const;
     void printImplementNodes(int indent, int extra = 2) const;
     void printDecls(int indent = 0) const;
@@ -202,6 +203,7 @@ public:
 
     ///---Debug
     void print() const;
+    void printModified() const;
     ///
 
     FileNode *addFile(const SplittedPath &path);

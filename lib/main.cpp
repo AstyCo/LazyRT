@@ -121,6 +121,10 @@ int main(int argc, char *argv[])
         FileTreeFunc::printAffected(srcsTree);
         FileTreeFunc::printAffected(testTree);
     }
+    if (verbal) {
+        srcsTree.printModified();
+        testTree.printModified();
+    }
 
     boost::filesystem::create_directories(outDirectorySP.joint());
     PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
