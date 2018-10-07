@@ -638,7 +638,7 @@ void SourceParser::parseFile(FileNode *node)
                     CHECK_TOKEN(CLASS_TOKEN, ClassState);
                     CHECK_TOKEN(STRUCT_TOKEN, StructState);
                     CHECK_TOKEN(UNION_TOKEN, UnionState);
-                    CHECK_TOKEN(TYPEDEF_TOKEN, TypedefState);
+//                    CHECK_TOKEN(TYPEDEF_TOKEN, TypedefState); // no need to check for typedef
                     CHECK_TOKEN(TEMPLATE_TOKEN, TemplateState);
 
                     break;
@@ -790,7 +790,7 @@ void SourceParser::parseFile(FileNode *node)
         case TypedefState:
         {
             // just skip
-            p = readUntil(p, ";");
+//            p = readUntil(p, ";");
             _state = NoSpecialState;
             break;
         }
