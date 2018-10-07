@@ -161,8 +161,7 @@ private:
 
         size_t pos = 0, sepPos;
         while ((sepPos = _joint.find(_separator, pos)) != (size_t)-1) {
-            if (pos != sepPos)
-                _splitted.push_back(_joint.substr(pos, sepPos - pos));
+            _splitted.push_back(_joint.substr(pos, sepPos - pos));
 
             pos = sepPos + _separatorSize;
         }
