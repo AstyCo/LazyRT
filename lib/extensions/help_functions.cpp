@@ -95,8 +95,9 @@ long long file_size(const char *fname)
 #else // POSIX
     struct stat statbuf;
 
-    if (stat("file.dat", &statbuf) == -1) {
+    if (stat(fname, &statbuf) == -1) {
         /* check the value of errno */
+        MY_ASSERT(false);
         return 0;
     }
     return statbuf.st_size;

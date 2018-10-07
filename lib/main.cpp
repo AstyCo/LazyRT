@@ -120,10 +120,11 @@ int main(int argc, char *argv[])
     if (verbal) {
         FileTreeFunc::printAffected(srcsTree);
         FileTreeFunc::printAffected(testTree);
-    }
-    if (verbal) {
         srcsTree.printModified();
         testTree.printModified();
+
+        std::cout << "write lazyut files to "
+                  << outDirectorySP.joint() << std::endl;
     }
 
     boost::filesystem::create_directories(outDirectorySP.joint());

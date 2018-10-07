@@ -146,11 +146,13 @@ void FileNode::printModified(int indent, bool modified) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    if (isModified() == modified)
-        std::cout<< strIndents << (modified ? " + " : " - " ) << name() << std::endl;
+    if (isRegularFile() && (isModified() == modified)) {
+        std::cout << strIndents << (modified ? " + " : " - " )
+                  << name() << std::endl;
+    }
 
     for (auto f: _childs)
-        printModified(indent + 1, modified);
+        f->printModified(indent + 1, modified);
 }
 
 void FileNode::printIncludes(int indent, int extra) const
@@ -443,7 +445,9 @@ void FileTree::print() const
 void FileTree::printModified() const
 {
     MY_ASSERT(_rootDirectoryNode);
+    std::cout << "MODIFIED FILES" << _rootPath.joint() << std::endl;
     _rootDirectoryNode->printModified(0, true);
+    std::cout << "NON-MODIFIED FILES " << _rootPath.joint() << std::endl;
     _rootDirectoryNode->printModified(0, false);
 }
 
