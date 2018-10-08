@@ -8,9 +8,74 @@
 
 namespace LazyUT {
 
+struct ListSplitted;
+
 struct FileRecord;
 
 struct FileTree;
+
+struct ListSplitted FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_SEPARATOR = 4,
+    VT_SPLITTED_PATHS = 6
+  };
+  const flatbuffers::String *separator() const {
+    return GetPointer<const flatbuffers::String *>(VT_SEPARATOR);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *splitted_paths() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_SPLITTED_PATHS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_SEPARATOR) &&
+           verifier.Verify(separator()) &&
+           VerifyOffset(verifier, VT_SPLITTED_PATHS) &&
+           verifier.Verify(splitted_paths()) &&
+           verifier.VerifyVectorOfStrings(splitted_paths()) &&
+           verifier.EndTable();
+  }
+};
+
+struct ListSplittedBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_separator(flatbuffers::Offset<flatbuffers::String> separator) {
+    fbb_.AddOffset(ListSplitted::VT_SEPARATOR, separator);
+  }
+  void add_splitted_paths(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> splitted_paths) {
+    fbb_.AddOffset(ListSplitted::VT_SPLITTED_PATHS, splitted_paths);
+  }
+  explicit ListSplittedBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ListSplittedBuilder &operator=(const ListSplittedBuilder &);
+  flatbuffers::Offset<ListSplitted> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<ListSplitted>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<ListSplitted> CreateListSplitted(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> separator = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> splitted_paths = 0) {
+  ListSplittedBuilder builder_(_fbb);
+  builder_.add_splitted_paths(splitted_paths);
+  builder_.add_separator(separator);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<ListSplitted> CreateListSplittedDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *separator = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *splitted_paths = nullptr) {
+  return LazyUT::CreateListSplitted(
+      _fbb,
+      separator ? _fbb.CreateString(separator) : 0,
+      splitted_paths ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*splitted_paths) : 0);
+}
 
 struct FileRecord FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
@@ -18,9 +83,10 @@ struct FileRecord FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_MD5 = 6,
     VT_INCLUDES = 8,
     VT_IMPLEMENTS = 10,
-    VT_CLASS_DECLS = 12,
-    VT_FUNCTION_DECLS = 14,
-    VT_USING_NAMESPACES = 16
+    VT_INHERITANCES = 12,
+    VT_CLASS_DECLS = 14,
+    VT_FUNCTION_DECLS = 16,
+    VT_USING_NAMESPACES = 18
   };
   const flatbuffers::String *path() const {
     return GetPointer<const flatbuffers::String *>(VT_PATH);
@@ -31,17 +97,20 @@ struct FileRecord FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *includes() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_INCLUDES);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *implements() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_IMPLEMENTS);
+  const ListSplitted *implements() const {
+    return GetPointer<const ListSplitted *>(VT_IMPLEMENTS);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *class_decls() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_CLASS_DECLS);
+  const ListSplitted *inheritances() const {
+    return GetPointer<const ListSplitted *>(VT_INHERITANCES);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *function_decls() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_FUNCTION_DECLS);
+  const ListSplitted *class_decls() const {
+    return GetPointer<const ListSplitted *>(VT_CLASS_DECLS);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *using_namespaces() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_USING_NAMESPACES);
+  const ListSplitted *function_decls() const {
+    return GetPointer<const ListSplitted *>(VT_FUNCTION_DECLS);
+  }
+  const ListSplitted *using_namespaces() const {
+    return GetPointer<const ListSplitted *>(VT_USING_NAMESPACES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -53,17 +122,15 @@ struct FileRecord FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.Verify(includes()) &&
            verifier.VerifyVectorOfStrings(includes()) &&
            VerifyOffset(verifier, VT_IMPLEMENTS) &&
-           verifier.Verify(implements()) &&
-           verifier.VerifyVectorOfStrings(implements()) &&
+           verifier.VerifyTable(implements()) &&
+           VerifyOffset(verifier, VT_INHERITANCES) &&
+           verifier.VerifyTable(inheritances()) &&
            VerifyOffset(verifier, VT_CLASS_DECLS) &&
-           verifier.Verify(class_decls()) &&
-           verifier.VerifyVectorOfStrings(class_decls()) &&
+           verifier.VerifyTable(class_decls()) &&
            VerifyOffset(verifier, VT_FUNCTION_DECLS) &&
-           verifier.Verify(function_decls()) &&
-           verifier.VerifyVectorOfStrings(function_decls()) &&
+           verifier.VerifyTable(function_decls()) &&
            VerifyOffset(verifier, VT_USING_NAMESPACES) &&
-           verifier.Verify(using_namespaces()) &&
-           verifier.VerifyVectorOfStrings(using_namespaces()) &&
+           verifier.VerifyTable(using_namespaces()) &&
            verifier.EndTable();
   }
 };
@@ -80,16 +147,19 @@ struct FileRecordBuilder {
   void add_includes(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> includes) {
     fbb_.AddOffset(FileRecord::VT_INCLUDES, includes);
   }
-  void add_implements(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> implements) {
+  void add_implements(flatbuffers::Offset<ListSplitted> implements) {
     fbb_.AddOffset(FileRecord::VT_IMPLEMENTS, implements);
   }
-  void add_class_decls(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> class_decls) {
+  void add_inheritances(flatbuffers::Offset<ListSplitted> inheritances) {
+    fbb_.AddOffset(FileRecord::VT_INHERITANCES, inheritances);
+  }
+  void add_class_decls(flatbuffers::Offset<ListSplitted> class_decls) {
     fbb_.AddOffset(FileRecord::VT_CLASS_DECLS, class_decls);
   }
-  void add_function_decls(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> function_decls) {
+  void add_function_decls(flatbuffers::Offset<ListSplitted> function_decls) {
     fbb_.AddOffset(FileRecord::VT_FUNCTION_DECLS, function_decls);
   }
-  void add_using_namespaces(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> using_namespaces) {
+  void add_using_namespaces(flatbuffers::Offset<ListSplitted> using_namespaces) {
     fbb_.AddOffset(FileRecord::VT_USING_NAMESPACES, using_namespaces);
   }
   explicit FileRecordBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -109,14 +179,16 @@ inline flatbuffers::Offset<FileRecord> CreateFileRecord(
     flatbuffers::Offset<flatbuffers::String> path = 0,
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> md5 = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> includes = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> implements = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> class_decls = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> function_decls = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> using_namespaces = 0) {
+    flatbuffers::Offset<ListSplitted> implements = 0,
+    flatbuffers::Offset<ListSplitted> inheritances = 0,
+    flatbuffers::Offset<ListSplitted> class_decls = 0,
+    flatbuffers::Offset<ListSplitted> function_decls = 0,
+    flatbuffers::Offset<ListSplitted> using_namespaces = 0) {
   FileRecordBuilder builder_(_fbb);
   builder_.add_using_namespaces(using_namespaces);
   builder_.add_function_decls(function_decls);
   builder_.add_class_decls(class_decls);
+  builder_.add_inheritances(inheritances);
   builder_.add_implements(implements);
   builder_.add_includes(includes);
   builder_.add_md5(md5);
@@ -129,19 +201,21 @@ inline flatbuffers::Offset<FileRecord> CreateFileRecordDirect(
     const char *path = nullptr,
     const std::vector<uint8_t> *md5 = nullptr,
     const std::vector<flatbuffers::Offset<flatbuffers::String>> *includes = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *implements = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *class_decls = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *function_decls = nullptr,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *using_namespaces = nullptr) {
+    flatbuffers::Offset<ListSplitted> implements = 0,
+    flatbuffers::Offset<ListSplitted> inheritances = 0,
+    flatbuffers::Offset<ListSplitted> class_decls = 0,
+    flatbuffers::Offset<ListSplitted> function_decls = 0,
+    flatbuffers::Offset<ListSplitted> using_namespaces = 0) {
   return LazyUT::CreateFileRecord(
       _fbb,
       path ? _fbb.CreateString(path) : 0,
       md5 ? _fbb.CreateVector<uint8_t>(*md5) : 0,
       includes ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*includes) : 0,
-      implements ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*implements) : 0,
-      class_decls ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*class_decls) : 0,
-      function_decls ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*function_decls) : 0,
-      using_namespaces ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*using_namespaces) : 0);
+      implements,
+      inheritances,
+      class_decls,
+      function_decls,
+      using_namespaces);
 }
 
 struct FileTree FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

@@ -14,6 +14,9 @@ void serialize(const FileTree &tree, const std::string &fileName);
 template <typename FT, typename T>
 void copyVector(const FT& flatVector, T &v);
 
+template <typename TContainer>
+void copyListSplitted(const LazyUT::ListSplitted &fv, TContainer &v);
+
 } // namespace FileTreeFunc
 
 #endif // FLATBUFFERS_EXTENSIONS_HPP

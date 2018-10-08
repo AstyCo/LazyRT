@@ -5,7 +5,7 @@ void FileTreeFunc::copyVector(const FT &flatVector, T &v)
 {
     std::transform(flatVector.begin(),
                    flatVector.end(),
-                   std::back_inserter(v),
+                   std::inserter(v, v.end()),
                    [](const flatbuffers::String* value) {
                         return value->str();
                    }
@@ -13,11 +13,29 @@ void FileTreeFunc::copyVector(const FT &flatVector, T &v)
 }
 
 typedef flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String> > FB_VectorOfStrings;
-
 template void FileTreeFunc::copyVector<FB_VectorOfStrings,
                                        std::list<IncludeDirective> >(
     const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> &,
     std::list<IncludeDirective> &);
+
+template<typename TContainer>
+void FileTreeFunc::copyListSplitted(const LazyUT::ListSplitted &fv, TContainer &v)
+{
+    std::string sep = fv.separator()->str();
+    const auto &flatVector = *fv.splitted_paths();
+    std::transform(flatVector.begin(),
+                   flatVector.end(),
+                   std::inserter(v, v.end()),
+                   [&sep](const flatbuffers::String* value) {
+                        return ScopedName(value->str(), sep);
+                   }
+    );
+}
+
+typedef std::set<ScopedName> SetScopedName;
+template void FileTreeFunc::copyListSplitted<SetScopedName>(
+    const LazyUT::ListSplitted &fv, SetScopedName &v);
+
 
 void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
 {
@@ -36,11 +54,13 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
 
             fileRecord.setHash(record->md5()->data()); // Hash
             copyVector(*record->includes(), fileRecord._listIncludes);
-            copyVector(*record->implements(), fileRecord._listImplements);
-            copyVector(*record->class_decls(), fileRecord._listClassDecl);
-            copyVector(*record->function_decls(), fileRecord._listFuncDecl);
-            copyVector(*record->using_namespaces(), fileRecord._listUsingNamespace);
+            copyListSplitted(*record->implements(), fileRecord._setImplements);
+            copyListSplitted(*record->inheritances(), fileRecord._setInheritances);
+            copyListSplitted(*record->class_decls(), fileRecord._setClassDecl);
+            copyListSplitted(*record->function_decls(), fileRecord._setFuncDecl);
+            copyListSplitted(*record->using_namespaces(), fileRecord._listUsingNamespace);
 
+            /// TODO install separators
         }
 
         delete file_tree_dump;
@@ -62,17 +82,31 @@ static  flatbuffers::Offset<
     return builder.CreateVector(offsets);
 }
 
+template <typename TContainer>
+static  flatbuffers::Offset<LazyUT::ListSplitted>
+    CreateListSplittedH(flatbuffers::FlatBufferBuilder &builder,
+                        const TContainer &container,
+                        const std::string &separator)
+{
+    return LazyUT::CreateListSplitted(builder,
+                                      builder.CreateString(separator),
+                                      CreateVectorOfStrings(builder, container));
+}
+
+
+
+template <typename TContainer>
 static  flatbuffers::Offset<
             flatbuffers::Vector<
                 flatbuffers::Offset<
                     flatbuffers::String>>>
     CreateVectorOfStrings(flatbuffers::FlatBufferBuilder &builder,
-                          const std::list<ScopedName> &l)
+                          const TContainer &container)
 {
-    std::vector<flatbuffers::Offset<flatbuffers::String>> offsets(l.size());
-    auto it = l.cbegin();
+    std::vector<flatbuffers::Offset<flatbuffers::String>> offsets(container.size());
+    auto it = container.cbegin();
     int i = 0;
-    for (auto &scopedName: l)
+    for (auto &scopedName: container)
         offsets[i++] = builder.CreateString(scopedName.joint());
     return builder.CreateVector(offsets);
 }
@@ -88,10 +122,16 @@ static void pushFiles(flatbuffers::FlatBufferBuilder &builder,
                     builder.CreateString(frecord._path.joint()),
                     builder.CreateVector(frecord._hashArray, 16),
                     CreateVectorOfStrings(builder, frecord._listIncludes),
-                    CreateVectorOfStrings(builder, frecord._listImplements),
-                    CreateVectorOfStrings(builder, frecord._listClassDecl),
-                    CreateVectorOfStrings(builder, frecord._listFuncDecl),
-                    CreateVectorOfStrings(builder, frecord._listUsingNamespace)
+                    CreateListSplittedH(builder, frecord._setImplements,
+                                        SplittedPath::namespaceSep()),
+                    CreateListSplittedH(builder, frecord._setInheritances,
+                                        SplittedPath::namespaceSep()),
+                    CreateListSplittedH(builder, frecord._setClassDecl,
+                                        SplittedPath::namespaceSep()),
+                    CreateListSplittedH(builder, frecord._setFuncDecl,
+                                        SplittedPath::namespaceSep()),
+                    CreateListSplittedH(builder, frecord._listUsingNamespace,
+                                        SplittedPath::namespaceSep())
                     );
         records.push_back(fbs_frecord);
     }

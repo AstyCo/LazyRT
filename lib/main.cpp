@@ -54,12 +54,14 @@ int main(int argc, char *argv[])
     std::string ignore_substrings;
 
     bool verbal = false;
+    bool keep_test_main = true;
 
     // required arguments
     app.add_option("-s,--srcdir", srcDirectory, "Directory with library source files")->required();
     app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
     // optional arguments
+    app.add_option("-m,--main", keep_test_main, "Allways keep test source file with main() implementation");
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-e,--extensions", exts, "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", ignore_substrings, "Substrings of the ignored paths, separated by comma (,)");
@@ -73,6 +75,9 @@ int main(int argc, char *argv[])
     if (!ignore_substrings.empty())
         DirectoryReader::_ignore_substrings = split(ignore_substrings, ",");
 
+//    std::cout << "ignore str " << ignore_substrings << std::endl;
+//    for (auto &i: DirectoryReader::_ignore_substrings)
+//        std::cout << "ignore " << i << std::endl;
     START_PROFILE;
 
     SplittedPath outDirectorySP = outDirectory;
@@ -110,12 +115,22 @@ int main(int argc, char *argv[])
     PROFILE(FileTreeFunc::readDirectory(srcsTree, srcDirectory));
     PROFILE(FileTreeFunc::readDirectory(testTree, testDirectory));
 
+
     testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
 
     PROFILE(FileTreeFunc::parsePhase(srcsTree, srcsDumpInSP.joint()));
     PROFILE(FileTreeFunc::parsePhase(testTree, testsDumpInSP.joint()));
+
+
     PROFILE(FileTreeFunc::analyzePhase(srcsTree));
     PROFILE(FileTreeFunc::analyzePhase(testTree));
+
+    testTree.print();
+    PROFILE(
+    if (keep_test_main)
+        FileTreeFunc::labelMainAffected(testTree);
+    );
+//    testTree.print();
 
     if (verbal) {
         FileTreeFunc::printAffected(srcsTree);
@@ -128,6 +143,15 @@ int main(int argc, char *argv[])
     }
 
     boost::filesystem::create_directories(outDirectorySP.joint());
+
+    SplittedPath srcModifiedSP = outDirectorySP;
+    srcModifiedSP.append(std::string("src_modified.txt"));
+    SplittedPath testModifiedSP = outDirectorySP;
+    testModifiedSP.append(std::string("test_modified.txt"));
+
+    PROFILE(FileTreeFunc::writeModified(srcsTree, srcModifiedSP.joint()));
+    PROFILE(FileTreeFunc::writeModified(testTree, testModifiedSP.joint()));
+
     PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
     PROFILE(FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint()));
 

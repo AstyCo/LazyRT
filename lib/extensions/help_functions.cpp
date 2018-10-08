@@ -123,7 +123,7 @@ std::vector<std::__cxx11::string> split(const std::__cxx11::string &str, const s
         pos = str.find(delim, prev);
         if (pos == std::string::npos)
             pos = str.length();
-        std::string token = str.substr(prev, pos-prev);
+        std::string token = str.substr(prev, pos - prev);
         if (!token.empty())
             tokens.push_back(token);
         prev = pos + delim.length();

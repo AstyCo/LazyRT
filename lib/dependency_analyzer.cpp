@@ -37,16 +37,7 @@ HashedStringNode *HashedStringNode::findSplitted(const HashedStringNode::TSplitt
 {
     HashedStringNode *current_node = this;
     for (const auto &s: splittedString.splitted()) {
-//        if (current_node) {
-//            std::cout << current_node->hs << std::string(" search for ") << s << std::endl;
-//            std::cout << current_node->hs.hash() << ' ' << s.hash() << std::endl;
-//            for (const auto &x: current_node->childs) {
-//                std::cout << std::string("---") << x.first << ' ' << '('
-//                          << x.second->hs << ',' << x.second->hs.hash() << ')' << std::endl;
-//            }
-//        }
         current_node = current_node->find(s);
-//        std::cout << (current_node ? std::string("found") : std::string("not found")) << std::endl;
         if (current_node == nullptr)
             return nullptr;
     }
@@ -56,7 +47,7 @@ HashedStringNode *HashedStringNode::findSplitted(const HashedStringNode::TSplitt
 HashedStringNode::TSplittedString HashedStringNode::fullname() const
 {
     TSplittedString result;
-    result.setSeparator("::");
+    result.setNamespaceSeparator();
 
     const HashedStringNode *n = this;
     while (n) {
@@ -99,7 +90,7 @@ void DependencyAnalyzer::setRoot(FileNode *fnode)
         return;
 
     readDecls(fnode);
-    analyzeImpls(fnode);
+    analyze(fnode);
 }
 
 void DependencyAnalyzer::print()
@@ -115,19 +106,38 @@ void DependencyAnalyzer::analyzeImpl(const ScopedName &impl, FileNode *fnode)
 
     if (associatedDecl = _rootFuncDecls.findSplitted(impl)) {
         // global function implementation
-        addFunctionImpl(impl, fnode, associatedDecl);
+        addFunctionImpl(fnode, associatedDecl);
         return;
     }
     if (associatedDecl = findClassForMethod(impl, fnode, &_rootClassDecls)) {
         // no namespace
-        addClassImpl(impl, fnode, associatedDecl);
+        addClassImpl(fnode, associatedDecl);
         return;
     }
     // check for method implementation
     // according to using namespaces
     for (auto &ns: fnode->record()._listUsingNamespace) {
         if (associatedDecl = findClassForMethod(impl, fnode, _rootClassDecls.findSplitted(ns))) {
-            addClassImpl(impl, fnode, associatedDecl);
+            addClassImpl(fnode, associatedDecl);
+            return;
+        }
+    }
+}
+
+void DependencyAnalyzer::analyzeInheritance(const ScopedName &baseClass, FileNode *fnode)
+{
+    HashedStringNode *associatedDecl;
+
+    if (associatedDecl = findClass(baseClass, fnode, &_rootClassDecls)) {
+        // no namespace
+        addClassInheritance(fnode, associatedDecl);
+        return;
+    }
+    // check for method implementation
+    // according to using namespaces
+    for (auto &ns: fnode->record()._listUsingNamespace) {
+        if (associatedDecl = findClass(baseClass, fnode, _rootClassDecls.findSplitted(ns))) {
+            addClassInheritance(fnode, associatedDecl);
             return;
         }
     }
@@ -135,14 +145,37 @@ void DependencyAnalyzer::analyzeImpl(const ScopedName &impl, FileNode *fnode)
 
 HashedStringNode *DependencyAnalyzer::findClassForMethod(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode)
 {
+    findScopedPrivate(impl, fnode, hsnode, SearchMethod);
+}
+
+HashedStringNode *DependencyAnalyzer::findClass(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode)
+{
+    findScopedPrivate(impl, fnode, hsnode, SearchClass);
+}
+
+HashedStringNode *DependencyAnalyzer::findScopedPrivate(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode, DependencyAnalyzer::SearchType st)
+{
     if (nullptr == hsnode)
         return nullptr;
-    int size = impl.splitted().size();
+    const auto &splitted = impl.splitted();
+
     int i = 0;
-    for (const auto &s: impl.splitted()) {
-        if (++i == size) // last
-            break; // omit function/member name
-        hsnode = hsnode->find(s);
+    int size;
+    switch (st) {
+    case SearchClass:
+        size = splitted.size();
+        break;
+    case SearchMethod:
+        size = splitted.size() - 1;
+        break;
+    default:
+        MY_ASSERT(false);
+        return nullptr;
+    }
+
+    auto it = splitted.cbegin();
+    for (int i  = 0; i < size; ++i, ++it) {
+        hsnode = hsnode->find(*it);
         if (hsnode == nullptr)
             return nullptr;
     }
@@ -150,48 +183,58 @@ HashedStringNode *DependencyAnalyzer::findClassForMethod(const ScopedName &impl,
     return hsnode;
 }
 
-void DependencyAnalyzer::addFunctionImpl(const ScopedName &impl, FileNode *implNode, HashedStringNode *hsnode)
+void DependencyAnalyzer::addFunctionImpl(FileNode *implNode, HashedStringNode *hsnode)
 {
     auto &listNodes = hsnode->data;
     for (auto &node: listNodes) {
         implNode->record()._setImplementFiles.insert(node->path());
-        implNode->record()._setFuncImpl.insert(node->path());
+        implNode->record()._setFuncImplFiles.insert(node->path());
     }
 }
 
-void DependencyAnalyzer::addClassImpl(const ScopedName &impl, FileNode *implNode, HashedStringNode *hsnode)
+void DependencyAnalyzer::addClassImpl(FileNode *implNode, HashedStringNode *hsnode)
 {
     auto &listNodes = hsnode->data;
     for (auto &node: listNodes) {
         implNode->record()._setImplementFiles.insert(node->path());
-        implNode->record()._setClassImpl.insert(node->path());
+        implNode->record()._setClassImplFiles.insert(node->path());
     }
+}
+
+void DependencyAnalyzer::addClassInheritance(FileNode *implNode, HashedStringNode *hsnode)
+{
+    auto &listNodes = hsnode->data;
+    for (auto &node: listNodes)
+        implNode->record()._setBaseClassFiles.insert(node->path());
 }
 
 void DependencyAnalyzer::readDecls(FileNode *fnode)
 {
-    auto &listClassDecls = fnode->record()._listClassDecl;
-    auto &listFuncDecls = fnode->record()._listFuncDecl;
+    auto &classDecls = fnode->record()._setClassDecl;
+    auto &functionDecls = fnode->record()._setFuncDecl;
 
-    for (const auto &hs: listClassDecls)
+    for (const auto &hs: classDecls)
         _rootClassDecls.insert(hs, fnode);
-    for (const auto &hs: listFuncDecls)
+    for (const auto &hs: functionDecls)
         _rootFuncDecls.insert(hs, fnode);
 
     for (const auto &chnode: fnode->childs())
         readDecls(chnode);
 }
 
-void DependencyAnalyzer::analyzeImpls(FileNode *fnode)
+void DependencyAnalyzer::analyze(FileNode *fnode)
 {
-//    auto &listClassImpls = fnode->record()._listClassImpl;
-//    auto &listFuncImpls = fnode->record()._listFuncImpl;
+    auto &impls = fnode->record()._setImplements;
+    auto &inheritances = fnode->record()._setInheritances;
 
-    auto &listImpls = fnode->record()._listImplements;
-
-    for (const auto &impl: listImpls)
+    for (const auto &impl: impls) {
+        if (impl.joint().find("TestFixture::") != std::string::npos)
+            std::cout << fnode->name() << ' ' << impl.joint() << std::endl;
         analyzeImpl(impl, fnode);
+    }
+    for (const auto &inh: inheritances)
+        analyzeInheritance(inh, fnode);
 
     for (const auto &chnode: fnode->childs())
-        analyzeImpls(chnode);
+        analyze(chnode);
 }

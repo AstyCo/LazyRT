@@ -63,20 +63,25 @@ public:
 
     // Parse stage
     bool _isModified;
+    bool _isManuallyLabeled;
 
     list<IncludeDirective> _listIncludes;
 
-    list<ScopedName> _listImplements;
+    std::set<ScopedName> _setImplements;
 
-    list<ScopedName> _listClassDecl;
-    list<ScopedName> _listFuncDecl;
+    std::set<ScopedName> _setClassDecl;
+    std::set<ScopedName> _setFuncDecl;
+
+    std::set<ScopedName> _setInheritances;
 
     list<ScopedName> _listUsingNamespace;
 
     // Analyze stage
-    std::set<ScopedName> _setFuncImpl;
-    std::set<ScopedName> _setClassImpl;
+    std::set<ScopedName> _setFuncImplFiles;
+    std::set<ScopedName> _setClassImplFiles;
+    std::set<ScopedName> _setBaseClassFiles;
     std::set<ScopedName> _setImplementFiles;
+
 public:
     MD5::HashArray _hashArray;
     bool _isHashValid;
@@ -113,6 +118,7 @@ public:
     const list<FileNode*> &childs() const { return _childs;}
 
     const SplittedPath &path() const { return _record._path;}
+    const SplittedPath::HashedType &fname() const { return path().last();}
     const std::string &name() const { return path().joint();}
 
     bool hasRegularFiles() const;
@@ -122,6 +128,7 @@ public:
     void destroy();
 
     void installIncludes(const FileTree &fileTree);
+    void installInheritances(const FileTree &fileTree);
     void installImplements(const FileTree &fileTree);
 
     void installDependencies();
@@ -129,43 +136,43 @@ public:
 
     FileNode *search(const SplittedPath &path);
 
-    void addInclude(FileNode *includedNode);
-    void addImplements(FileNode *implementedNode);
+    void installExplicitDep(FileNode *includedNode);
+    void installExplicitDepBy(FileNode *implementedNode);
 
     void swapParsedData(FileNode *file);
 
     void setModified() { _record._isModified = true;}
     bool isModified() const { return _record._isModified;}
+    void setLabeled() { _record._isManuallyLabeled = true;}
+    void setLabeledDependencies();
+    bool isManuallyLabeled() const { return _record._isManuallyLabeled;}
 
 public:
     ///---Debug
     void print(int indent = 0) const;
     void printModified(int indent = 0, bool modified = true) const;
-    void printIncludes(int indent = 0, int extra = 2) const;
-    void printImplementNodes(int indent, int extra = 2) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
+    void printImplFiles(int indent = 0) const;
     void printFuncImpls(int indent = 0) const;
     void printClassImpls(int indent = 0) const;
     void printDependencies(int indent = 0) const;
     void printDependentBy(int indent = 0) const;
+    void printInherits(int indent = 0) const;
+    void printInheritsFiles(int indent = 0) const;
     ///
 private:
-    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
-                              const ListFileNode FileNode::*impls, bool FileNode::*called);
-    void installDepsPrivate(SetFileNode FileNode::*deps, const ListFileNode FileNode::*incls,
-                            const ListFileNode FileNode::*impls, bool FileNode::*called);
+    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const SetFileNode FileNode::*explicitDeps, bool FileNode::*called);
+    void installDepsPrivate(SetFileNode FileNode::*deps, const SetFileNode FileNode::*explicitDeps, bool FileNode::*called);
 
     FileNode *_parent;
     ListFileNode _childs;
     FileRecord _record;
 
 public:
-    ListFileNode _listIncludes;
-    ListFileNode _listIncludedBy;
+    SetFileNode _setExplicitDependencies;
+    SetFileNode _setExplicitDependendentBy;
 
-    ListFileNode _listImplements;
-    ListFileNode _listImplementedBy;
 
     SetFileNode _setDependencies;
     SetFileNode _setDependentBy;
@@ -173,6 +180,12 @@ private:
     bool _installDependenciesCalled;
     bool _installDependentByCalled;
 };
+
+namespace FileNodeFunc {
+
+inline void setLabeled(FileNode *f) { MY_ASSERT(f); f->setLabeled();}
+
+} // namespace FileNodeFunc
 
 class FileTree
 {
@@ -194,6 +207,7 @@ public:
     void calculateFileHashes();
     void parseFiles();
     void installIncludeNodes();
+    void installInheritanceNodes();
     void installImplementNodes();
 
     void installDependencies();
@@ -224,6 +238,7 @@ public:
     void parseFilesRecursive(FileNode *node);
 
     void installIncludeNodesRecursive(FileNode &node);
+    void installInheritanceNodesRecursive(FileNode &node);
     void installImplementNodesRecursive(FileNode &node);
 
     template <typename TFunc>
@@ -259,8 +274,16 @@ void parsePhase(FileTree &tree, const std::string &dumpFileName);
 // to the data, gathered on parsing phase.
 void analyzePhase(FileTree &tree);
 
+//  Firstly searchs for single .cpp with main() implementation
+//  If such file founded, then installs affected flag on it, and
+// its dependencies
+void labelMainAffected(FileTree &testTree);
+
 //  Prints list of files, affected by modifications to stdout.
 void printAffected(const FileTree &tree);
+
+//  Prints list of modified files;
+void writeModified(const FileTree &tree, const std::__cxx11::string &filename);
 
 //  Prints list of files, affected by modifications to specific file.
 void writeAffected(const FileTree &tree, const std::string &filename);

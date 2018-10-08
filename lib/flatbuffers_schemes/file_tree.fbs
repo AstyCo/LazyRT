@@ -2,14 +2,20 @@
 
 namespace LazyUT;
 
+table ListSplitted {
+	separator: string;
+	splitted_paths: [string];
+}
+
 table FileRecord {
 	path:string;
 	md5:[ubyte];
 	includes:[string];
-	implements:[string];
-	class_decls:[string];
-	function_decls:[string];
-	using_namespaces:[string];
+	implements:ListSplitted;
+	inheritances:ListSplitted;
+	class_decls:ListSplitted;
+	function_decls:ListSplitted;
+	using_namespaces:ListSplitted;
 }
 
 table FileTree {
