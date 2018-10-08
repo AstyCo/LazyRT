@@ -154,20 +154,20 @@ private:
     {
         MY_ASSERT(!_isJointValid);
         size_t totalSize = 0;
-        for (THashedString &sw : _splitted)
-            totalSize += sw.size() + _separatorSize;
-
-        if (!_splitted.empty())
+        if (!_splitted.empty()){
+            for (THashedString &sw : _splitted)
+                totalSize += sw.size() + _separatorSize;
             totalSize -= _separatorSize;
 
-        _joint.reserve(totalSize);
-        bool first = true;
-        for (THashedString &sw : _splitted) {
-            if (!first)
-                _joint += _separator;
-            else
-                first = false;
-            _joint += sw;
+            _joint.reserve(totalSize);
+            bool first = true;
+            for (THashedString &sw : _splitted) {
+                if (!first)
+                    _joint += _separator;
+                else
+                    first = false;
+                _joint += sw;
+            }
         }
 
         _isJointValid = true;

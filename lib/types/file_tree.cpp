@@ -133,10 +133,10 @@ void FileNode::print(int indent) const
     std::cout << std::endl;
 //    printInherits(indent);
 //    printInheritsFiles(indent);
-    printDependencies(indent);
+//    printDependencies(indent);
 //    printDependentBy(indent);
-    printImpls(indent);
-    printImplFiles(indent);
+//    printImpls(indent);
+//    printImplFiles(indent);
 //    printDecls(indent);
 //    printFuncImpls(indent);
 //    printClassImpls(indent);
@@ -559,6 +559,7 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
                 compareHashArrays(node->record()._hashArray,
                                   restored_node->record()._hashArray)) {
             // md5 hash sums match
+            std::cout << node->name() << " md5 is the same" << std::endl;
             node->swapParsedData(restored_node);
         }
         else {
@@ -674,6 +675,8 @@ void FileTreeFunc::parsePhase(FileTree &tree, const std::__cxx11::string &dumpFi
     FileTree restoredTree;
     FileTreeFunc::deserialize(restoredTree, dumpFileName);
     if (restoredTree._state == FileTree::Restored) {
+        tree.print();
+        restoredTree.print();
         tree.parseModifiedFiles(restoredTree);
     }
     else {

@@ -19,7 +19,7 @@ public:
     static std::vector<std::string> _sourceFileExtensions;
     static std::vector<std::string> _ignore_substrings;
 private:
-    void readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const BoostPath &dir_base);
+    void readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const SplittedPath &sp_base);
     void removeEmptyDirectories(FileTree &fileTree);
 
     bool isSourceFile(const boost::filesystem::path &file_path) const;
