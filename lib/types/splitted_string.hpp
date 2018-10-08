@@ -126,22 +126,20 @@ private:
     {
         MY_ASSERT(!_isJointValid);
         size_t totalSize = 0;
-        for (THashedString &sw : _splitted)
-            totalSize += sw.size() + _separatorSize;
-
-        if (!_splitted.empty())
+        if (!_splitted.empty()){
+            for (THashedString &sw : _splitted)
+                totalSize += sw.size() + _separatorSize;
             totalSize -= _separatorSize;
-        else
-            MY_ASSERT(false);
 
-        _joint.reserve(totalSize);
-        bool first = true;
-        for (THashedString &sw : _splitted) {
-            if (!first)
-                _joint += _separator;
-            else
-                first = false;
-            _joint += sw;
+            _joint.reserve(totalSize);
+            bool first = true;
+            for (THashedString &sw : _splitted) {
+                if (!first)
+                    _joint += _separator;
+                else
+                    first = false;
+                _joint += sw;
+            }
         }
 
         _isJointValid = true;
@@ -159,14 +157,15 @@ private:
     {
         MY_ASSERT(!_isSplittedValid);
 
-        size_t pos = 0, sepPos;
-        while ((sepPos = _joint.find(_separator, pos)) != (size_t)-1) {
-            _splitted.push_back(_joint.substr(pos, sepPos - pos));
+        if (!_joint.empty()) {
+            size_t pos = 0, sepPos;
+            while ((sepPos = _joint.find(_separator, pos)) != (size_t)-1) {
+                _splitted.push_back(_joint.substr(pos, sepPos - pos));
 
-            pos = sepPos + _separatorSize;
+                pos = sepPos + _separatorSize;
+            }
+            _splitted.push_back(_joint.substr(pos));
         }
-
-        _splitted.push_back(_joint.substr(pos));
         _isSplittedValid = true;
     }
 

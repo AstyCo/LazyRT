@@ -126,7 +126,7 @@ void FileNode::print(int indent) const
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" <<  _record.hashHex() << "]";
     std::cout << std::endl;
-    printDependencies(indent);
+//    printDependencies(indent);
 //    printDependentBy(indent);
 //    printIncludes(indent);
 //    printImplementNodes(indent);
@@ -526,6 +526,7 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
                 compareHashArrays(node->record()._hashArray,
                                   restored_node->record()._hashArray)) {
             // md5 hash sums match
+            std::cout << node->name() << " md5 is the same" << std::endl;
             node->swapParsedData(restored_node);
         }
         else {
@@ -634,6 +635,8 @@ void FileTreeFunc::parsePhase(FileTree &tree, const std::__cxx11::string &dumpFi
     FileTree restoredTree;
     FileTreeFunc::deserialize(restoredTree, dumpFileName);
     if (restoredTree._state == FileTree::Restored) {
+        tree.print();
+        restoredTree.print();
         tree.parseModifiedFiles(restoredTree);
     }
     else {

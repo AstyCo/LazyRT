@@ -42,14 +42,50 @@ void DirectoryReader::readDirectory(FileTree &fileTree, const BoostPath &directo
     fileTree._rootPath = directory_path.string();
     _currenDirectory = nullptr;
 
-    readDirectoryRecursively(fileTree, directory_path, directory_path);
+    SplittedPath sp_base = directory_path.string();
+    sp_base.setOsSeparator();
+
+    readDirectoryRecursively(fileTree, directory_path, sp_base);
     fileTree._state = FileTree::Filled;
 
     removeEmptyDirectories(fileTree);
     fileTree.calculateFileHashes();
 }
 
-void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const BoostPath &dir_base)
+static SplittedPath my_relative(const SplittedPath &path_to_file, const SplittedPath &base)
+{
+    const auto &splitted_file = path_to_file.splitted();
+    const auto &splitted_base = base.splitted();
+
+    auto it_file = splitted_file.cbegin();
+    auto it_file_end = splitted_file.cend();
+
+
+    auto it_base = splitted_base.cbegin();
+    auto it_base_end = splitted_base.cend();
+
+    MY_ASSERT(splitted_base.size() <= splitted_file.size());
+
+    SplittedPath result;
+    result.setOsSeparator();
+    while (it_base != it_base_end) {
+        if (*it_base == *it_file) {
+            ++it_base;
+            ++it_file;
+            continue;
+        }
+        MY_ASSERT(false);
+        result.append(std::string("."));
+        return result;
+    }
+    while (it_file != it_file_end) {
+        result.append(*it_file);
+        ++it_file;
+    }
+    return result;
+}
+
+void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const SplittedPath &sp_base)
 {
     try {
         if (isIgnored(directory_path.string()))
@@ -59,16 +95,20 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPa
             return;
         }
 
-        auto rel_path = boost::filesystem::relative(directory_path, dir_base);
+//        auto rel_path = boost::filesystem::relative(directory_path, bp_base);
+        SplittedPath rel_path = my_relative(directory_path.string(), sp_base);
+//        std::cout << "directory_path " << directory_path << " sp_base " << bp_base << std::endl;
+        std::cout << "directory_path " << directory_path << " sp_base " << sp_base.joint() << std::endl;
         if (is_regular_file(directory_path)) {
             if (!isSourceFile(directory_path))
                 return;
             MY_ASSERT(_currenDirectory);
-            _currenDirectory->addChild(new FileNode(rel_path.string(), FileRecord::RegularFile));
-//            parseFile(directory_path.string().c_str());
+            std::cout << "rel_path " << rel_path.joint() << std::endl;
+
+            _currenDirectory->addChild(new FileNode(rel_path, FileRecord::RegularFile));
         }
         else if (is_directory(directory_path)) {
-            FileNode *directoryNode = new FileNode(rel_path.string(), FileRecord::Directory);
+            FileNode *directoryNode = new FileNode(rel_path, FileRecord::Directory);
             if (_currenDirectory == nullptr)
                 fileTree.setRootDirectoryNode(directoryNode);
             else
@@ -78,7 +118,7 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPa
             directory_iterator end;
             while (it != end) {
                 _currenDirectory = directoryNode;
-                readDirectoryRecursively(fileTree, *it, dir_base);
+                readDirectoryRecursively(fileTree, *it, sp_base);
                 ++it;
             }
         }
