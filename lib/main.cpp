@@ -61,10 +61,10 @@ int main(int argc, char *argv[])
     app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
     // optional arguments
-    app.add_option("-m,--main", keep_test_main, "Allways keep test source file with main() implementation");
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-e,--extensions", exts, "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", ignore_substrings, "Substrings of the ignored paths, separated by comma (,)");
+    app.add_flag("-m,--main", keep_test_main, "Allways keep test source file with main() implementation");
     app.add_flag("-v,--verbal", verbal, "Verbal mode");
     //
 
