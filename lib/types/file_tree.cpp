@@ -559,12 +559,12 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
                 compareHashArrays(node->record()._hashArray,
                                   restored_node->record()._hashArray)) {
             // md5 hash sums match
-            std::cout << node->name() << " md5 is the same" << std::endl;
+//            std::cout << node->name() << " md5 is the same" << std::endl;
             node->swapParsedData(restored_node);
         }
         else {
             // md5 hash sums don't match
-            std::cout << node->name() << " md5 is different" << std::endl;
+            std::cout << node->name() << " md5 is the different" << std::endl;
             _srcParser.parseFile(node);
         }
     }
@@ -675,8 +675,6 @@ void FileTreeFunc::parsePhase(FileTree &tree, const std::__cxx11::string &dumpFi
     FileTree restoredTree;
     FileTreeFunc::deserialize(restoredTree, dumpFileName);
     if (restoredTree._state == FileTree::Restored) {
-        tree.print();
-        restoredTree.print();
         tree.parseModifiedFiles(restoredTree);
     }
     else {

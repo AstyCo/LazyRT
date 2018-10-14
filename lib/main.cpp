@@ -125,7 +125,6 @@ int main(int argc, char *argv[])
     PROFILE(FileTreeFunc::analyzePhase(srcsTree));
     PROFILE(FileTreeFunc::analyzePhase(testTree));
 
-    testTree.print();
     PROFILE(
     if (keep_test_main)
         FileTreeFunc::labelMainAffected(testTree);

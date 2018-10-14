@@ -95,16 +95,11 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPa
             return;
         }
 
-//        auto rel_path = boost::filesystem::relative(directory_path, bp_base);
         SplittedPath rel_path = my_relative(directory_path.string(), sp_base);
-//        std::cout << "directory_path " << directory_path << " sp_base " << bp_base << std::endl;
-        std::cout << "directory_path " << directory_path << " sp_base " << sp_base.joint() << std::endl;
         if (is_regular_file(directory_path)) {
             if (!isSourceFile(directory_path))
                 return;
             MY_ASSERT(_currenDirectory);
-            std::cout << "rel_path " << rel_path.joint() << std::endl;
-
             _currenDirectory->addChild(new FileNode(rel_path, FileRecord::RegularFile));
         }
         else if (is_directory(directory_path)) {

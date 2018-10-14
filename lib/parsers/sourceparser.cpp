@@ -334,7 +334,7 @@ const char *SourceParser::readUntil(const char *p, const char *substr) const
     return p;
 }
 
-const char *SourceParser::readUntilM(const char *p, const std::list<std::__cxx11::string> &substrings,
+const char *SourceParser::readUntilM(const char *p, const std::list<std::string> &substrings,
                                      std::list<std::string>::const_iterator &it) const
 {
     if (*p == '\n')
@@ -499,6 +499,15 @@ static std::list<std::string> initChl()
     std::list<std::string> chl;
     chl.push_back(std::string(";"));
     chl.push_back(std::string("{"));
+
+    return chl;
+}
+
+static std::list<std::string> initInheritanceChl()
+{
+    std::list<std::string> chl;
+    chl.push_back(":");
+    chl.push_back("{");
 
     return chl;
 }
@@ -721,8 +730,7 @@ void SourceParser::parseFile(FileNode *node)
 
             static std::list<std::string> chl = initChl();
             std::list<std::string>::const_iterator it;
-            const char *pInh = p;
-            p = readUntilM(p, chl, it);
+            const char *pLast = readUntilM(p, chl, it);
 
             if (it == chl.end()) {
                 MY_ASSERT(false);
@@ -735,10 +743,13 @@ void SourceParser::parseFile(FileNode *node)
                     // decl
                     _classNameDecl = className;
                     listClassDeclAt.push_back(lcbrackets);
+
                     // parse inheritance
                     ScopedName baseClassName;
                     baseClassName.setNamespaceSeparator();
-                    for (; pInh <= p; ++pInh)
+
+                    const char *pInh = p;
+                    for (; pInh < pLast; ++pInh)
                     {
                         if (*pInh == ':' &&
                             *(pInh - 1) != ':' &&
@@ -748,7 +759,17 @@ void SourceParser::parseFile(FileNode *node)
                             break;
                         }
                     }
-                    for (; pInh <= p; )
+
+                    int classHeaderLength = pInh - p;
+                    ScopedName snClassName = _currentNamespace;
+                    const char *pOneParsed = pInh - parseNameR(pInh, classHeaderLength, snClassName);
+                    static HashedString hsFinal = std::string("final");
+                    if (snClassName.last() == hsFinal) {
+                        snClassName = _currentNamespace;
+                        parseNameR(pOneParsed, pInh - pOneParsed, snClassName);
+                    }
+
+                    for (; pInh < pLast; )
                     {
                         pInh = skipSpacesAndComments(pInh);
                         if (*pInh == ',' || *pInh == '{') {
@@ -765,7 +786,14 @@ void SourceParser::parseFile(FileNode *node)
                         }
                         else {
                             baseClassName.clear();
-                            pInh = parseName(pInh, baseClassName);
+                            static const std::list<std::string> chl = initInheritanceChl();
+                            std::list<std::string>::const_iterator it;
+                            const char *p = parseName(pInh, baseClassName);
+                            if (std::find(chl.cbegin(), chl.cend(), std::string(*p, 1)) ==
+                                    chl.cend())
+                                pInh = readUntilM(p, chl, it);
+                            else
+                                pInh = p;
                         }
                     }
 
