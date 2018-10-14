@@ -50,6 +50,18 @@ public:
         _splitted.push_back(s);
     }
 
+    void appendPath(const SplittedString<THashedString> &extra_path)
+    {
+        MY_ASSERT(_separator == extra_path._separator);
+        if (joint().empty())
+            _joint = extra_path.joint();
+        else if (extra_path.joint().empty())
+            _joint = _joint;
+        else
+            _joint = _joint + _separator + extra_path._joint;
+        clearSplitted();
+    }
+
     bool empty() const
     {
         return !_isSplittedValid && !_isJointValid;
@@ -81,14 +93,9 @@ public:
 
     SplittedString operator+(const SplittedString &extra_path) const
     {
-        std::string joint_concat;
-        if (joint().empty())
-            joint_concat = extra_path.joint();
-        else if (extra_path.joint().empty())
-            joint_concat = _joint;
-        else
-            joint_concat = _joint + _separator + extra_path._joint;
-        return SplittedString<THashedString>(joint_concat, _separator);
+        SplittedString tmp = *this;
+        tmp.appendPath(extra_path);
+        return tmp;
     }
     bool operator<(const SplittedString<THashedString> &other) const
     {
@@ -97,6 +104,8 @@ public:
 
     void setSeparator(const std::string &sep)
     {
+        if (_separator == sep)
+            return;
         _separator = sep;
         _separatorSize = _separator.size();
         if (_isJointValid && !_isSplittedValid)
@@ -250,6 +259,8 @@ public:
 
 typedef SplittedString<HashedFileName> ScopedName;
 typedef SplittedString<HashedFileName> SplittedPath;
+
+SplittedPath my_relative(const SplittedPath &path_to_file, const SplittedPath &base);
 
 #endif // SPLITTED_STRING_HPP
 

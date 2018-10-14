@@ -213,6 +213,8 @@ public:
     void installDependencies();
     void installDependentBy();
 
+    void installAffectedFiles();
+
     void parseModifiedFiles(const FileTree &restored_file_tree);
 
     ///---Debug
@@ -223,13 +225,19 @@ public:
     FileNode *addFile(const SplittedPath &path);
 
     void setRootDirectoryNode(FileNode *node);
+    void setProjectDirectory(const SplittedPath &path);
+
+    const SplittedPath &relativePathSources() const { return _relativePathSources;}
 
 public:
     State _state;
     SplittedPath _rootPath;
     FileNode *_rootDirectoryNode;
+    SplittedPath _projectDirectory;
 
     std::list<FileNode*> _includePaths;
+
+    std::list<SplittedPath> _affectedFiles;
 
 public:
     void removeEmptyDirectories(FileNode *node);
@@ -240,6 +248,8 @@ public:
     void installIncludeNodesRecursive(FileNode &node);
     void installInheritanceNodesRecursive(FileNode &node);
     void installImplementNodesRecursive(FileNode &node);
+
+    void installAffectedFilesRecursive(FileNode *node);
 
     template <typename TFunc>
     void recursiveCall(FileNode &node, TFunc f)
@@ -257,6 +267,7 @@ public:
 
 private:
     SourceParser _srcParser;
+    SplittedPath _relativePathSources;
 };
 typedef std::shared_ptr<FileTree> FileTreePtr;
 

@@ -45,6 +45,7 @@ int main(int argc, char *argv[])
 {
     CLI::App app{"LazyUT detects tests, affected by the changes in the code.\n"};
 
+    std::string proDirectory;
     std::string srcDirectory;
     std::string testDirectory;
     std::string outDirectory;
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
     bool keep_test_main = true;
 
     // required arguments
+    app.add_option("-p,--prodir", proDirectory, "Project root directory");
     app.add_option("-s,--srcdir", srcDirectory, "Directory with library source files")->required();
     app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
@@ -109,12 +111,17 @@ int main(int argc, char *argv[])
     SplittedPath totalAffectedSP = outDirectorySP;
     totalAffectedSP.append(std::string(TOTAL_AFFECTED_FILE_NAME));
 
+    SplittedPath spProDirectory = proDirectory;
+    spProDirectory.setOsSeparator();
+
     FileTree srcsTree;
     FileTree testTree;
 
     PROFILE(FileTreeFunc::readDirectory(srcsTree, srcDirectory));
     PROFILE(FileTreeFunc::readDirectory(testTree, testDirectory));
 
+    srcsTree.setProjectDirectory(spProDirectory);
+    testTree.setProjectDirectory(spProDirectory);
 
     testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
 
@@ -129,17 +136,6 @@ int main(int argc, char *argv[])
     if (keep_test_main)
         FileTreeFunc::labelMainAffected(testTree);
     );
-//    testTree.print();
-
-    if (verbal) {
-        FileTreeFunc::printAffected(srcsTree);
-        FileTreeFunc::printAffected(testTree);
-        srcsTree.printModified();
-        testTree.printModified();
-
-        std::cout << "write lazyut files to "
-                  << outDirectorySP.joint() << std::endl;
-    }
 
     boost::filesystem::create_directories(outDirectorySP.joint());
 
@@ -151,8 +147,21 @@ int main(int argc, char *argv[])
     PROFILE(FileTreeFunc::writeModified(srcsTree, srcModifiedSP.joint()));
     PROFILE(FileTreeFunc::writeModified(testTree, testModifiedSP.joint()));
 
+    srcsTree.installAffectedFiles();
+    testTree.installAffectedFiles();
+
     PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
     PROFILE(FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint()));
+
+    if (verbal) {
+        FileTreeFunc::printAffected(srcsTree);
+        FileTreeFunc::printAffected(testTree);
+        srcsTree.printModified();
+        testTree.printModified();
+
+        std::cout << "write lazyut files to "
+                  << outDirectorySP.joint() << std::endl;
+    }
 
     DEBUG(
         // make total_affected_files.txt

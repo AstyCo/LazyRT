@@ -459,6 +459,14 @@ void FileTree::installDependentBy()
     recursiveCall(*_rootDirectoryNode, &FileNode::installDependentBy);
 }
 
+void FileTree::installAffectedFiles()
+{
+    MY_ASSERT(_affectedFiles.empty());
+    MY_ASSERT(_rootDirectoryNode);
+
+    installAffectedFilesRecursive(_rootDirectoryNode);
+}
+
 void FileTree::parseModifiedFiles(const FileTree &restored_file_tree)
 {
     MY_ASSERT(_state == CachesCalculated);
@@ -512,6 +520,14 @@ void FileTree::setRootDirectoryNode(FileNode *node)
         _includePaths.push_back(node);
 
     _rootDirectoryNode = node;
+}
+
+void FileTree::setProjectDirectory(const SplittedPath &path)
+{
+    _projectDirectory = path;
+    _relativePathSources.setOsSeparator();
+    if (!_projectDirectory.empty())
+        _relativePathSources = my_relative(_rootPath, _projectDirectory);
 }
 
 void FileTree::removeEmptyDirectories(FileNode *node)
@@ -614,6 +630,32 @@ void FileTree::installImplementNodesRecursive(FileNode &node)
         installImplementNodesRecursive(*child);
 }
 
+static bool isAffected(const FileNode *file)
+{
+    if (file->isManuallyLabeled())
+        return true;
+    for (auto &dep: file->_setDependencies) {
+        if (dep->isModified()) {
+//            std::cout << dep->name() << " is modified" << std::endl;
+            return true;
+        }
+    }
+    return false;
+}
+
+void FileTree::installAffectedFilesRecursive(FileNode *node)
+{
+    if (isAffected(node)) {
+        SplittedPath tmp = _relativePathSources;
+        tmp.setUnixSeparator();
+        tmp.appendPath(node->name());
+
+        _affectedFiles.push_back(tmp);
+    }
+    for (auto child: node->childs())
+        installAffectedFilesRecursive(child);
+}
+
 FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *node) const
 {
     MY_ASSERT(node);
@@ -706,58 +748,21 @@ void FileTreeFunc::analyzePhase(FileTree &tree)
     );
 }
 
-static bool isAffected(const FileNode *file)
-{
-    if (file->isManuallyLabeled())
-        return true;
-    for (auto &dep: file->_setDependencies) {
-        if (dep->isModified()) {
-//            std::cout << dep->name() << " is modified" << std::endl;
-            return true;
-        }
-    }
-    return false;
-}
-
-static void printAffectedR(const FileNode *file)
-{
-    if (file == nullptr)
-        return;
-
-    if (isAffected(file)) {
-        std::string strIndents = makeIndents(0, 2);
-        std::cout << strIndents << file->name() << std::endl;
-    }
-    for (auto child: file->childs())
-        printAffectedR(child);
-}
-
 void FileTreeFunc::printAffected(const FileTree &tree)
 {
     std::cout << "FileTreeFunc::printAffected " << tree._rootPath.joint() << std::endl;
 
-    printAffectedR(tree._rootDirectoryNode);
-}
-
-static void writeAffectedR(const FileNode *file, FILE *fp)
-{
-    if (file == nullptr)
-        return;
-
-    if (isAffected(file)) {
-        SplittedPath tmp = file->path();
-        tmp.setUnixSeparator();
-        fprintf(fp, "%s\n", tmp.joint().c_str());
-    }
-    for (auto child: file->childs())
-        writeAffectedR(child, fp);
+    std::string strIndents = makeIndents(0, 2);
+    for (const auto &sp: tree._affectedFiles)
+        std::cout << strIndents << sp.joint() << std::endl;
 }
 
 void FileTreeFunc::writeAffected(const FileTree &tree, const std::__cxx11::string &filename)
 {
     /* open the file for writing*/
-    if (FILE * fp = fopen (filename.c_str(),"w")) {
-        writeAffectedR(tree._rootDirectoryNode, fp);
+    if (FILE *fp = fopen (filename.c_str(),"w")) {
+        for (const auto &sp: tree._affectedFiles)
+            fprintf(fp, "%s\n", sp.joint().c_str());
         /* close the file*/
         fclose (fp);
     }
