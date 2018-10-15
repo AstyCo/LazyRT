@@ -570,6 +570,7 @@ void SourceParser::parseFile(FileNode *node)
                         (lcbrackets == listNsbracketsAt.back())) {
                     listNsbracketsAt.pop_back();
                     --nsbrackets;
+                    _currentNamespace.removeLast();
                 }
                 if (!listClassDeclAt.empty() &&
                         (lcbrackets == listClassDeclAt.back())) {
