@@ -805,9 +805,13 @@ void SourceParser::parseFile(FileNode *node)
         }
         case NamespaceState:
         {
+            int curNSSize = _currentNamespace.splitted().size();
             p = parseName(p, _currentNamespace);
-            ++nsbrackets;
-            listNsbracketsAt.push_back(lcbrackets);
+            if (curNSSize < _currentNamespace.splitted().size()) {
+                ++nsbrackets;
+                listNsbracketsAt.push_back(lcbrackets);
+            }
+
             _state = NoSpecialState;
             break;
         }

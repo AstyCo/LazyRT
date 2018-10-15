@@ -357,25 +357,11 @@ void FileNode::swapParsedData(FileNode *file)
 
 void FileNode::setLabeledDependencies()
 {
-    for (const auto &sp: _setDependencies) {
-        std::cout << name() << " setdep " << sp->name() << std::endl;
-    }
     std::for_each(_setDependencies.begin(),
                   _setDependencies.end(), FileNodeFunc::setLabeled);
 }
 
-//void FileNode::addDependency(FileNode &file)
-//{
-//    // install dependencies of dependency first
-//    if (!file._installDependenciesCalled)
-//        file.installDependencies();
-
-//    const auto &otherFileDependencies = file._setDependencies;
-//    _setDependencies.insert(otherFileDependencies.begin(), otherFileDependencies.end());
-//}
-
 void FileNode::addDependencyPrivate(FileNode &file, FileNode::SetFileNode FileNode::*deps,
-//                                    const ListFileNode FileNode::*incls,
                                     const SetFileNode FileNode::*explicitDeps,
                                     bool FileNode::*called)
 {
@@ -492,8 +478,6 @@ void FileTree::printModified() const
         return;
     std::cout << "MODIFIED FILES " << _rootPath.joint() << std::endl;
     _rootDirectoryNode->printModified(0, true);
-    std::cout << "NON-MODIFIED FILES " << _rootPath.joint() << std::endl;
-    _rootDirectoryNode->printModified(0, false);
 }
 
 FileNode *FileTree::addFile(const SplittedPath &path)
