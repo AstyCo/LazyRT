@@ -114,16 +114,20 @@ int main(int argc, char *argv[])
     SplittedPath spProDirectory = proDirectory;
     spProDirectory.setOsSeparator();
 
+    SplittedPath spSrcDirectory = absolute_path(SplittedPath(srcDirectory, SplittedPath::osSep()), spProDirectory);
+    SplittedPath spTestDirectory = absolute_path(SplittedPath(testDirectory, SplittedPath::osSep()), spProDirectory);
+
     FileTree srcsTree;
     FileTree testTree;
 
-    PROFILE(FileTreeFunc::readDirectory(srcsTree, srcDirectory));
-    PROFILE(FileTreeFunc::readDirectory(testTree, testDirectory));
+    PROFILE(FileTreeFunc::readDirectory(srcsTree, spSrcDirectory.joint()));
+    PROFILE(FileTreeFunc::readDirectory(testTree, spTestDirectory.joint()));
 
     srcsTree.setProjectDirectory(spProDirectory);
     testTree.setProjectDirectory(spProDirectory);
 
-    testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
+    if (srcsTree._rootDirectoryNode)
+        testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
 
     PROFILE(FileTreeFunc::parsePhase(srcsTree, srcsDumpInSP.joint()));
     PROFILE(FileTreeFunc::parsePhase(testTree, testsDumpInSP.joint()));
@@ -132,10 +136,8 @@ int main(int argc, char *argv[])
     PROFILE(FileTreeFunc::analyzePhase(srcsTree));
     PROFILE(FileTreeFunc::analyzePhase(testTree));
 
-    PROFILE(
     if (keep_test_main)
         FileTreeFunc::labelMainAffected(testTree);
-    );
 
     boost::filesystem::create_directories(outDirectorySP.joint());
 

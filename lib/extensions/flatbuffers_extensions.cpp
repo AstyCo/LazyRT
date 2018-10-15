@@ -44,7 +44,7 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
         auto file_tree = LazyUT::GetFileTree(file_tree_dump);
 
         tree._state = FileTree::Restored;
-        tree._rootPath = file_tree->rootPath()->str();
+        tree.setRootPath(file_tree->rootPath()->str());
         auto &records = *file_tree->records();
         for (const auto &record : records) {
             SplittedPath sp = record->path()->str();
@@ -151,11 +151,12 @@ void FileTreeFunc::serialize(const FileTree &tree, const std::__cxx11::string &f
     flatbuffers::FlatBufferBuilder builder(1024);
 
     std::vector<flatbuffers::Offset<LazyUT::FileRecord> > fileRecords;
-    pushFiles(builder, fileRecords, tree._rootDirectoryNode);
+    if (tree._rootDirectoryNode)
+        pushFiles(builder, fileRecords, tree._rootDirectoryNode);
 
 
     auto fbs_file_tree = LazyUT::CreateFileTree(builder,
-                                                     builder.CreateString(tree._rootPath.joint()),
+                                                     builder.CreateString(tree.rootPath().joint()),
                                                      builder.CreateVector(fileRecords));
 
     builder.Finish(fbs_file_tree);

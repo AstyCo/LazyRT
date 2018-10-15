@@ -229,9 +229,11 @@ public:
 
     const SplittedPath &relativePathSources() const { return _relativePathSources;}
 
+    const SplittedPath &rootPath() const { return _rootPath;}
+    void setRootPath(const SplittedPath &sp);
+
 public:
     State _state;
-    SplittedPath _rootPath;
     FileNode *_rootDirectoryNode;
     SplittedPath _projectDirectory;
 
@@ -266,6 +268,8 @@ public:
     FileNode *searchInRoot(const SplittedPath &path) const;
 
 private:
+    SplittedPath _rootPath;
+
     SourceParser _srcParser;
     SplittedPath _relativePathSources;
 };

@@ -62,6 +62,14 @@ public:
         clearSplitted();
     }
 
+    void removeLast()
+    {
+        if (splitted().empty())
+            return;
+        _splitted.pop_back();
+        clearJoint();
+    }
+
     bool empty() const
     {
         return !_isSplittedValid && !_isJointValid;
@@ -97,6 +105,25 @@ public:
         tmp.appendPath(extra_path);
         return tmp;
     }
+
+    bool operator==(const SplittedString<THashedString> &other) const
+    {
+        if (splitted().size() != other.splitted().size())
+            return false;
+        auto it = _splitted.cbegin();
+        auto it2 = other._splitted.cbegin();
+        for (; it != _splitted.cend(); ++it, ++it2) {
+            if (*it != *it2)
+                return false;
+        }
+        return true;
+    }
+
+    bool operator!=(const SplittedString<THashedString> &other) const
+    {
+        return !(*this == other);
+    }
+
     bool operator<(const SplittedString<THashedString> &other) const
     {
         return joint() < other.joint();
@@ -261,6 +288,8 @@ typedef SplittedString<HashedFileName> ScopedName;
 typedef SplittedString<HashedFileName> SplittedPath;
 
 SplittedPath my_relative(const SplittedPath &path_to_file, const SplittedPath &base);
+bool is_relative(const SplittedPath &path);
+SplittedPath absolute_path(const SplittedPath &path, const SplittedPath &base);
 
 #endif // SPLITTED_STRING_HPP
 

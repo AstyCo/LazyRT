@@ -518,7 +518,7 @@ void SourceParser::parseFile(FileNode *node)
         return;
     node->setModified();
 
-    std::string fname = (_fileTree._rootPath + node->path()).joint();
+    std::string fname = (_fileTree.rootPath() + node->path()).joint();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
     if(!data) {
@@ -616,26 +616,17 @@ void SourceParser::parseFile(FileNode *node)
                     break;
                 }
                 case ')':
-                    if (!_funcName.empty()) {
+                    if (!_funcName.empty() &&
+                            _funcName != _currentNamespace) {
                         p = skipSpacesAndComments(p + 1);
                         if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
                             // impl function/method
-                            VERBAL_0(MY_PRINTEXT(function/method impl);
-                            std::cout << _funcName.joint() << std::endl;)
-
                             node->record()._setImplements.insert(_funcName);
                         }
                         else if (*p == ';') {
                             // global function decl
-                            VERBAL_0(MY_PRINTEXT(function decl);
-                            std::cout << _funcName.joint() << std::endl;)
-
                             node->record()._setFuncDecl.insert(_funcName);
                         }
-                        VERBAL_0(else {
-                            MY_PRINTEXT(nothing);
-                            std::cout << _funcName.joint() << '\'' << *p << '\'' << std::endl;
-                        })
                         --p;
                         _funcName.clear();
                     }

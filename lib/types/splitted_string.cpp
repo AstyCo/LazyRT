@@ -62,3 +62,17 @@ SplittedPath my_relative(const SplittedPath &path_to_file, const SplittedPath &b
     }
     return result;
 }
+
+bool is_relative(const SplittedPath &path)
+{
+    if (path.empty())
+        return true;
+    return !path.splitted().front().isEmpty();
+}
+
+SplittedPath absolute_path(const SplittedPath &path, const SplittedPath &base)
+{
+    if (!is_relative(path))
+        return path;
+    return base + path;
+}

@@ -135,11 +135,11 @@ void FileNode::print(int indent) const
 //    printInheritsFiles(indent);
 //    printDependencies(indent);
 //    printDependentBy(indent);
-//    printImpls(indent);
-//    printImplFiles(indent);
-//    printDecls(indent);
-//    printFuncImpls(indent);
-//    printClassImpls(indent);
+    printImpls(indent);
+    printImplFiles(indent);
+    printDecls(indent);
+    printFuncImpls(indent);
+    printClassImpls(indent);
 
     list<FileNode*>::const_iterator it = _childs.begin();
     while (it != _childs.end()) {
@@ -357,6 +357,9 @@ void FileNode::swapParsedData(FileNode *file)
 
 void FileNode::setLabeledDependencies()
 {
+    for (const auto &sp: _setDependencies) {
+        std::cout << name() << " setdep " << sp->name() << std::endl;
+    }
     std::for_each(_setDependencies.begin(),
                   _setDependencies.end(), FileNodeFunc::setLabeled);
 }
@@ -426,45 +429,45 @@ void FileTree::calculateFileHashes()
 void FileTree::parseFiles()
 {
     MY_ASSERT(_state == CachesCalculated);
-    parseFilesRecursive(_rootDirectoryNode);
+    if (_rootDirectoryNode)
+        parseFilesRecursive(_rootDirectoryNode);
 }
 
 void FileTree::installIncludeNodes()
 {
-    MY_ASSERT(_rootDirectoryNode);
-    installIncludeNodesRecursive(*_rootDirectoryNode);
+    if (_rootDirectoryNode)
+        installIncludeNodesRecursive(*_rootDirectoryNode);
 }
 
 void FileTree::installInheritanceNodes()
 {
-    MY_ASSERT(_rootDirectoryNode);
-    installInheritanceNodesRecursive(*_rootDirectoryNode);
+    if (_rootDirectoryNode)
+        installInheritanceNodesRecursive(*_rootDirectoryNode);
 }
 
 void FileTree::installImplementNodes()
 {
-    MY_ASSERT(_rootDirectoryNode);
-    installImplementNodesRecursive(*_rootDirectoryNode);
+    if (_rootDirectoryNode)
+        installImplementNodesRecursive(*_rootDirectoryNode);
 }
 
 void FileTree::installDependencies()
 {
-    MY_ASSERT(_rootDirectoryNode);
-    recursiveCall(*_rootDirectoryNode, &FileNode::installDependencies);
+    if (_rootDirectoryNode)
+        recursiveCall(*_rootDirectoryNode, &FileNode::installDependencies);
 }
 
 void FileTree::installDependentBy()
 {
-    MY_ASSERT(_rootDirectoryNode);
-    recursiveCall(*_rootDirectoryNode, &FileNode::installDependentBy);
+    if (_rootDirectoryNode)
+        recursiveCall(*_rootDirectoryNode, &FileNode::installDependentBy);
 }
 
 void FileTree::installAffectedFiles()
 {
     MY_ASSERT(_affectedFiles.empty());
-    MY_ASSERT(_rootDirectoryNode);
-
-    installAffectedFilesRecursive(_rootDirectoryNode);
+    if (_rootDirectoryNode)
+        installAffectedFilesRecursive(_rootDirectoryNode);
 }
 
 void FileTree::parseModifiedFiles(const FileTree &restored_file_tree)
@@ -485,8 +488,9 @@ void FileTree::print() const
 
 void FileTree::printModified() const
 {
-    MY_ASSERT(_rootDirectoryNode);
-    std::cout << "MODIFIED FILES" << _rootPath.joint() << std::endl;
+    if (nullptr == _rootDirectoryNode)
+        return;
+    std::cout << "MODIFIED FILES " << _rootPath.joint() << std::endl;
     _rootDirectoryNode->printModified(0, true);
     std::cout << "NON-MODIFIED FILES " << _rootPath.joint() << std::endl;
     _rootDirectoryNode->printModified(0, false);
@@ -528,6 +532,12 @@ void FileTree::setProjectDirectory(const SplittedPath &path)
     _relativePathSources.setOsSeparator();
     if (!_projectDirectory.empty())
         _relativePathSources = my_relative(_rootPath, _projectDirectory);
+}
+
+void FileTree::setRootPath(const SplittedPath &sp)
+{
+    _rootPath = sp;
+    _rootPath.setOsSeparator();
 }
 
 void FileTree::removeEmptyDirectories(FileNode *node)
@@ -726,6 +736,8 @@ void FileTreeFunc::parsePhase(FileTree &tree, const std::__cxx11::string &dumpFi
 
 static void testDeps(FileNode *fnode)
 {
+    if (nullptr == fnode)
+        return;
     for (auto &file: fnode->_setDependencies) {
         MY_ASSERT(file->_setDependentBy.find(fnode) != file->_setDependentBy.end());
     }
@@ -750,7 +762,7 @@ void FileTreeFunc::analyzePhase(FileTree &tree)
 
 void FileTreeFunc::printAffected(const FileTree &tree)
 {
-    std::cout << "FileTreeFunc::printAffected " << tree._rootPath.joint() << std::endl;
+    std::cout << "FileTreeFunc::printAffected " << tree.rootPath().joint() << std::endl;
 
     std::string strIndents = makeIndents(0, 2);
     for (const auto &sp: tree._affectedFiles)
