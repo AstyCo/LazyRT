@@ -77,9 +77,6 @@ int main(int argc, char *argv[])
     if (!ignore_substrings.empty())
         DirectoryReader::_ignore_substrings = split(ignore_substrings, ",");
 
-//    std::cout << "ignore str " << ignore_substrings << std::endl;
-//    for (auto &i: DirectoryReader::_ignore_substrings)
-//        std::cout << "ignore " << i << std::endl;
     START_PROFILE;
 
     SplittedPath outDirectorySP = outDirectory;
@@ -146,14 +143,14 @@ int main(int argc, char *argv[])
     SplittedPath testModifiedSP = outDirectorySP;
     testModifiedSP.append(std::string("test_modified.txt"));
 
-    PROFILE(FileTreeFunc::writeModified(srcsTree, srcModifiedSP.joint()));
-    PROFILE(FileTreeFunc::writeModified(testTree, testModifiedSP.joint()));
+    FileTreeFunc::writeModified(srcsTree, srcModifiedSP.joint());
+    FileTreeFunc::writeModified(testTree, testModifiedSP.joint());
 
     srcsTree.installAffectedFiles();
     testTree.installAffectedFiles();
 
-    PROFILE(FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint()));
-    PROFILE(FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint()));
+    FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint());
+    FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint());
 
     if (verbal) {
         FileTreeFunc::printAffected(srcsTree);
@@ -164,13 +161,6 @@ int main(int argc, char *argv[])
         std::cout << "write lazyut files to "
                   << outDirectorySP.joint() << std::endl;
     }
-
-    DEBUG(
-        // make total_affected_files.txt
-        concatFiles(srcsAffectedSP.joint(),
-                    testsAffectedSP.joint(),
-                    totalAffectedSP.joint());
-    );
 
     PROFILE(FileTreeFunc::serialize(srcsTree, srcsDumpOutSP.joint()));
     PROFILE(FileTreeFunc::serialize(testTree, testsDumpOutSP.joint()));

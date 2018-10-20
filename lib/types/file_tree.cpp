@@ -251,8 +251,6 @@ void FileNode::installDepsPrivate(FileNode::SetFileNode FileNode::*deps, const F
 
     for (auto node_ptr: (this->*explicitDeps))
         addDependencyPrivate(*node_ptr, deps, explicitDeps, called);
-//    for (auto node_ptr: (this->*impls))
-//        addDependencyPrivate(*node_ptr, deps, incls, impls, called);
 }
 
 bool FileNode::hasRegularFiles() const
@@ -342,8 +340,6 @@ void FileNode::installExplicitDepBy(FileNode *implementedNode)
         return;
     }
     implementedNode->installExplicitDep(this);
-//    _setExplicitDependendentBy.insert(implementedNode);
-//    implementedNode->_setExplicitDependencies.insert(this);
 }
 
 void FileNode::swapParsedData(FileNode *file)
@@ -569,7 +565,6 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
                 compareHashArrays(node->record()._hashArray,
                                   restored_node->record()._hashArray)) {
             // md5 hash sums match
-//            std::cout << node->name() << " md5 is the same" << std::endl;
             node->swapParsedData(restored_node);
         }
         else {
@@ -630,7 +625,6 @@ static bool isAffected(const FileNode *file)
         return true;
     for (auto &dep: file->_setDependencies) {
         if (dep->isModified()) {
-//            std::cout << dep->name() << " is modified" << std::endl;
             return true;
         }
     }

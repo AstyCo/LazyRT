@@ -169,7 +169,6 @@ struct CharTreeNode
     {
         auto it = leafs.find(ch);
         if (it != leafs.end()) {
-//            std::cout << "found " << ch << std::endl;
             return it->second;
         }
         return nullptr;
@@ -228,7 +227,6 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
             nsname.push_front(std::string(p - d + 1, wl));
         }
         else {
-//            MY_PRINTEXT(operatorOverloading);
             operatorOverloading = false;
         }
         d += skipSpacesAndCommentsR(p - d, len - d);
@@ -241,10 +239,6 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
         else {
             if (!namespaceState && d < len) {
                 const char ch = *(p - d);
-//                if (ch == '}' || ch == ';') {
-//                    std::cout << std::string(p-d-20, 20) << std::endl;
-//                    MY_PRINTEXT(ASSERT HERE);
-//                }
                 if (!(is_identifier_ch(ch)
                       || ch == '>'    // template
                       || ch =='&'     // reference
@@ -297,7 +291,6 @@ int SourceParser::dealWithOperatorOverloadingR(const char *p, int len, std::list
 int SourceParser::parseWordR(const char *p, int len) const
 {
     int wordLength = 0;
-//    std::cout << "parseWordR " << std::string(p, M_MIN(10, strlen(p))) << std::endl;
     for ( ; wordLength < len; ++wordLength) {
         const char c = *(p - wordLength);
         if (!(is_identifier_ch(c) || c == '<' ||
@@ -638,7 +631,6 @@ void SourceParser::parseFile(FileNode *node)
                     CHECK_TOKEN(CLASS_TOKEN, ClassState);
                     CHECK_TOKEN(STRUCT_TOKEN, StructState);
                     CHECK_TOKEN(UNION_TOKEN, UnionState);
-//                    CHECK_TOKEN(TYPEDEF_TOKEN, TypedefState); // no need to check for typedef
                     CHECK_TOKEN(TEMPLATE_TOKEN, TemplateState);
 
                     break;
@@ -850,7 +842,6 @@ void SourceParser::parseFile(FileNode *node)
         case TypedefState:
         {
             // just skip
-//            p = readUntil(p, ";");
             _state = NoSpecialState;
             break;
         }
