@@ -25,10 +25,12 @@ set(CLI11_HEADERS
     external/CLI11/CLI11.hpp
     )
 
+file(GLOB_RECURSE RAPIDJSON_HEADERS external/rapidjson "*.h")
 
 set(HEADERS
     ${FLATBUFFERS_HEADERS}
     ${CLI11_HEADERS}
+    ${RAPIDJSON_HEADERS}
     extensions/error_reporter.hpp
     extensions/help_functions.hpp
     extensions/md5.hpp
