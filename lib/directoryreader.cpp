@@ -38,12 +38,12 @@ void DirectoryReader::readDirectory(FileTree &fileTree, const char *directory_pa
 
 void DirectoryReader::readDirectory(FileTree &fileTree, const BoostPath &directory_path)
 {
-    fileTree.clean();
-    fileTree.setRootPath(directory_path.string());
-    _currenDirectory = nullptr;
+    SplittedPath sp_base(directory_path.string(),
+                         SplittedPath::osSep());
 
-    SplittedPath sp_base = directory_path.string();
-    sp_base.setOsSeparator();
+    fileTree.clean();
+    fileTree.setRootPath(sp_base);
+    _currenDirectory = nullptr;
 
     readDirectoryRecursively(fileTree, directory_path, sp_base);
     fileTree._state = FileTree::Filled;
@@ -62,7 +62,8 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPa
             return;
         }
 
-        SplittedPath spDirectoryPath(directory_path.string(), SplittedPath::osSep());
+        SplittedPath spDirectoryPath(directory_path.string(),
+                                     SplittedPath::osSep());
         SplittedPath rel_path = my_relative(spDirectoryPath, sp_base);
         if (is_regular_file(directory_path)) {
             if (!isSourceFile(directory_path))

@@ -78,11 +78,14 @@ set(HEADERS
     extensions/md5.hpp
     extensions/flatbuffers_extensions.hpp
     types/file_tree.hpp
+    types/file_tree_forest.hpp
     types/splitted_string.hpp
     parsers/sourceparser.hpp
     dependency_analyzer.hpp
     directoryreader.hpp
-    lazyut_global.hpp)
+    json_reader.hpp
+    lazyut_global.hpp
+    )
 
 ##
 ## SOURCES
@@ -100,10 +103,6 @@ set(EXTERNAL_SRCS
 
 set(SRCS
     ${EXTERNAL_SRCS}
-    main.cpp
-    directoryreader.cpp
-    dependency_analyzer.cpp
-    parsers/sourceparser.cpp
     extensions/error_reporter.cpp
     extensions/help_functions.cpp
     extensions/profiling.cpp
@@ -111,7 +110,14 @@ set(SRCS
     extensions/md5.cpp
     extensions/flatbuffers_extensions.cpp
     types/file_tree.cpp
-    types/splitted_string.cpp)
+    types/file_tree_forest.cpp
+    types/splitted_string.cpp
+    parsers/sourceparser.cpp
+    directoryreader.cpp
+    dependency_analyzer.cpp
+    json_reader.cpp
+    main.cpp
+    )
 
 ##
 ## TARGET

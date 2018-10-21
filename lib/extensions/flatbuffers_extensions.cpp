@@ -44,11 +44,13 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
         auto file_tree = LazyUT::GetFileTree(file_tree_dump);
 
         tree._state = FileTree::Restored;
-        tree.setRootPath(file_tree->rootPath()->str());
+        SplittedPath spRootPath(file_tree->rootPath()->str(),
+                                SplittedPath::osSep());
+        tree.setRootPath(spRootPath);
         auto &records = *file_tree->records();
         for (const auto &record : records) {
-            SplittedPath sp = record->path()->str();
-            sp.setOsSeparator();
+            SplittedPath sp(record->path()->str(),
+                            SplittedPath::osSep());
             FileNode *fnode = tree.addFile(sp);
             FileRecord &fileRecord = fnode->record();
 

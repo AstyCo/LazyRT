@@ -1,6 +1,6 @@
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
-#include "types/file_tree.hpp"
+#include "types/file_tree_forest.hpp"
 #include "directoryreader.hpp"
 
 #include "external/CLI11/CLI11.hpp"
@@ -53,6 +53,7 @@ int main(int argc, char *argv[])
 
     std::string exts;
     std::string ignore_substrings;
+    std::string extra_dependencies;
 
     bool verbal = false;
     bool keep_test_main = true;
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
     app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
     // optional arguments
+    app.add_option("-d,--deps", extra_dependencies, "Path to the JSON file with extra dependencies");
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-e,--extensions", exts, "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", ignore_substrings, "Substrings of the ignored paths, separated by comma (,)");
@@ -79,11 +81,12 @@ int main(int argc, char *argv[])
 
     START_PROFILE;
 
-    SplittedPath outDirectorySP = outDirectory;
-    outDirectorySP.setOsSeparator();
+    SplittedPath outDirectorySP(outDirectory,
+                                SplittedPath::unixSep());
 
-    SplittedPath inDirectorySP = inDirectory;
-    inDirectorySP.setOsSeparator();
+    SplittedPath inDirectorySP(inDirectory,
+            SplittedPath::unixSep());
+
     if (inDirectory.empty())
         inDirectorySP = outDirectorySP;
 
@@ -108,34 +111,35 @@ int main(int argc, char *argv[])
     SplittedPath totalAffectedSP = outDirectorySP;
     totalAffectedSP.append(std::string(TOTAL_AFFECTED_FILE_NAME));
 
-    SplittedPath spProDirectory = proDirectory;
-    spProDirectory.setOsSeparator();
+    SplittedPath spProDirectory(proDirectory,
+                                SplittedPath::unixSep());
 
-    SplittedPath spSrcDirectory = absolute_path(SplittedPath(srcDirectory, SplittedPath::osSep()), spProDirectory);
-    SplittedPath spTestDirectory = absolute_path(SplittedPath(testDirectory, SplittedPath::osSep()), spProDirectory);
+    SplittedPath spSrcDirectory = absolute_path(SplittedPath(srcDirectory,
+                                                             SplittedPath::unixSep()),
+                                                spProDirectory);
+    SplittedPath spTestDirectory = absolute_path(SplittedPath(testDirectory,
+                                                              SplittedPath::unixSep()),
+                                                 spProDirectory);
 
-    FileTree srcsTree;
-    FileTree testTree;
+    FileTreeForest trees;
+    trees.setProjectDirectory(spProDirectory);
 
-    PROFILE(FileTreeFunc::readDirectory(srcsTree, spSrcDirectory.joint()));
-    PROFILE(FileTreeFunc::readDirectory(testTree, spTestDirectory.joint()));
+    PROFILE(FileTreeFunc::readDirectory(trees.srcTree, spSrcDirectory.joint()));
+    PROFILE(FileTreeFunc::readDirectory(trees.testTree, spTestDirectory.joint()));
 
-    srcsTree.setProjectDirectory(spProDirectory);
-    testTree.setProjectDirectory(spProDirectory);
+    trees.installIncludeSources();
+    trees.installExtraDependencies(extra_dependencies);
 
-    if (srcsTree._rootDirectoryNode)
-        testTree._includePaths.push_back(srcsTree._rootDirectoryNode);
+    PROFILE(FileTreeFunc::parsePhase(trees.srcTree, srcsDumpInSP.joint()));
+    PROFILE(FileTreeFunc::parsePhase(trees.testTree, testsDumpInSP.joint()));
 
-    PROFILE(FileTreeFunc::parsePhase(srcsTree, srcsDumpInSP.joint()));
-    PROFILE(FileTreeFunc::parsePhase(testTree, testsDumpInSP.joint()));
-
-
-    PROFILE(FileTreeFunc::analyzePhase(srcsTree));
-    PROFILE(FileTreeFunc::analyzePhase(testTree));
+    PROFILE(FileTreeFunc::analyzePhase(trees.srcTree));
+    PROFILE(FileTreeFunc::analyzePhase(trees.testTree));
 
     if (keep_test_main)
-        FileTreeFunc::labelMainAffected(testTree);
+        FileTreeFunc::labelMainAffected(trees.testTree);
 
+//    return 0;
     boost::filesystem::create_directories(outDirectorySP.joint());
 
     SplittedPath srcModifiedSP = outDirectorySP;
@@ -143,27 +147,26 @@ int main(int argc, char *argv[])
     SplittedPath testModifiedSP = outDirectorySP;
     testModifiedSP.append(std::string("test_modified.txt"));
 
-    FileTreeFunc::writeModified(srcsTree, srcModifiedSP.joint());
-    FileTreeFunc::writeModified(testTree, testModifiedSP.joint());
+    FileTreeFunc::writeModified(trees.srcTree, srcModifiedSP.joint());
+    FileTreeFunc::writeModified(trees.testTree, testModifiedSP.joint());
 
-    srcsTree.installAffectedFiles();
-    testTree.installAffectedFiles();
+    trees.installAffectedFiles();
 
-    FileTreeFunc::writeAffected(srcsTree, srcsAffectedSP.joint());
-    FileTreeFunc::writeAffected(testTree, testsAffectedSP.joint());
+    FileTreeFunc::writeAffected(trees.srcTree, srcsAffectedSP.joint());
+    FileTreeFunc::writeAffected(trees.testTree, testsAffectedSP.joint());
 
     if (verbal) {
-        FileTreeFunc::printAffected(srcsTree);
-        FileTreeFunc::printAffected(testTree);
-        srcsTree.printModified();
-        testTree.printModified();
+        FileTreeFunc::printAffected(trees.srcTree);
+        FileTreeFunc::printAffected(trees.testTree);
+        trees.srcTree.printModified();
+        trees.testTree.printModified();
 
         std::cout << "write lazyut files to "
                   << outDirectorySP.joint() << std::endl;
     }
 
-    PROFILE(FileTreeFunc::serialize(srcsTree, srcsDumpOutSP.joint()));
-    PROFILE(FileTreeFunc::serialize(testTree, testsDumpOutSP.joint()));
+    PROFILE(FileTreeFunc::serialize(trees.srcTree, srcsDumpOutSP.joint()));
+    PROFILE(FileTreeFunc::serialize(trees.testTree, testsDumpOutSP.joint()));
 
     return 0;
 }

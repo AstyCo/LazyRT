@@ -141,6 +141,7 @@ public:
 
     void swapParsedData(FileNode *file);
 
+    void setStoredNode(FileNode *storedNode) { _storedCopy = storedNode;}
     void setModified() { _record._isModified = true;}
     bool isModified() const { return _record._isModified;}
     void setLabeled() { _record._isManuallyLabeled = true;}
@@ -179,6 +180,8 @@ public:
 private:
     bool _installDependenciesCalled;
     bool _installDependentByCalled;
+
+    FileNode *_storedCopy;
 };
 
 namespace FileNodeFunc {
@@ -244,7 +247,9 @@ public:
 public:
     void removeEmptyDirectories(FileNode *node);
     void calculateFileHashes(FileNode *node);
-    void parseModifiedFilesRecursive(FileNode *node, FileNode *restored_node);
+    void parseModifiedFilesRecursive(FileNode *node);
+    void compareModifiedFilesRecursive(FileNode *node, FileNode *restored_node);
+    void installModifiedFiles(FileNode *node);
     void parseFilesRecursive(FileNode *node);
 
     void installIncludeNodesRecursive(FileNode &node);
@@ -267,6 +272,8 @@ public:
     FileNode *searchInIncludePaths(const SplittedPath &path) const;
     FileNode *searchInRoot(const SplittedPath &path) const;
 
+private:
+    void updateRelativePath();
 private:
     SplittedPath _rootPath;
 

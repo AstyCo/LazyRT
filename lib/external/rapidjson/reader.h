@@ -577,7 +577,9 @@ public:
                 SkipWhitespaceAndComments<parseFlags>(is);
                 RAPIDJSON_PARSE_ERROR_EARLY_RETURN(parseResult_);
 
+
                 if (RAPIDJSON_UNLIKELY(is.Peek() != '\0')) {
+                    std::cout << is.Peek() << std::endl;
                     RAPIDJSON_PARSE_ERROR_NORETURN(kParseErrorDocumentRootNotSingular, is.Tell());
                     RAPIDJSON_PARSE_ERROR_EARLY_RETURN(parseResult_);
                 }

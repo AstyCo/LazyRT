@@ -2335,7 +2335,7 @@ public:
     /*! \param str Read-only zero-terminated string to be parsed.
     */
     GenericDocument& Parse(const Ch* str) {
-        return Parse<kParseDefaultFlags>(str);
+        return Parse<kParseStopWhenDoneFlag>(str);
     }
 
     template <unsigned parseFlags, typename SourceEncoding>

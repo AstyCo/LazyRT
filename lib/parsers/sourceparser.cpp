@@ -509,7 +509,6 @@ void SourceParser::parseFile(FileNode *node)
 {
     if (!node->isRegularFile())
         return;
-    node->setModified();
 
     std::string fname = (_fileTree.rootPath() + node->path()).joint();
     auto data_pair = readFile(fname.c_str(), "r");

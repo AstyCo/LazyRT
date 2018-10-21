@@ -2,14 +2,21 @@
 #define ERROR_REPORTER_HPP
 
 #include <iostream>
+#include <memory>
 
 class ErrorStream
 {
+    class NewlinePrinter
+    {
+    public:
+        ~NewlinePrinter();
+    };
+
+    std::shared_ptr<NewlinePrinter> _nlprntr;
 public:
-    bool _written;
-public:
-    ErrorStream() : _written(false) {}
-    ~ErrorStream();
+    ErrorStream()
+        : _nlprntr(new NewlinePrinter())
+    {}
 };
 
 ErrorStream errors();

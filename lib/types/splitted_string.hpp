@@ -16,7 +16,10 @@ public:
     typedef std::list<THashedString> SplittedType;
 
 public:
-    SplittedString(const std::string &joint_ = std::string(), const std::string &separator_ = std::string("/"))
+    SplittedString() { init();}
+
+    explicit SplittedString(const std::string &joint_,
+                            const std::string &separator_)
         : _joint(joint_), _separator(separator_)
     {
         init();
@@ -106,6 +109,13 @@ public:
         return tmp;
     }
 
+    SplittedString operator+(const THashedString &str)
+    {
+        SplittedString tmp = *this;
+        tmp.append(str);
+        return tmp;
+    }
+
     bool operator==(const SplittedString<THashedString> &other) const
     {
         if (splitted().size() != other.splitted().size())
@@ -133,10 +143,10 @@ public:
     {
         if (_separator == sep)
             return;
-        _separator = sep;
-        _separatorSize = _separator.size();
         if (_isJointValid && !_isSplittedValid)
             split();
+        _separator = sep;
+        _separatorSize = _separator.size();
         clearJoint();
     }
 

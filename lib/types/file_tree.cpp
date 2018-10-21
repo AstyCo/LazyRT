@@ -29,11 +29,13 @@ void FileRecord::calculateHash(const SplittedPath &dir_base)
     auto data_pair = readBinaryFile((dir_base + _path).c_str());
     char *data = data_pair.first;
     if (!data) {
-        std::cout << dir_base.joint() << std::endl;
-        std::cout << _path.joint() << std::endl;
-        std::cout << (dir_base + _path).joint() << std::endl;
+        char buff[1000];
+        snprintf(buff, sizeof(buff),
+                 "LUT: Error: File \"%s\" can not be opened",
+                 (dir_base + _path).c_str());
+        errors() << std::string(buff);
 
-        MY_ASSERT(false);
+//        MY_ASSERT(false);
         return;
     }
     MD5 md5((unsigned char*)data, data_pair.second);
@@ -75,7 +77,8 @@ void FileRecord::swapParsedData(FileRecord &record)
 }
 
 FileNode::FileNode(const SplittedPath &path, FileRecord::Type type)
-    : _record(path, type), _parent(nullptr), _installDependenciesCalled(false)
+    : _record(path, type), _parent(nullptr),
+      _installDependenciesCalled(false), _storedCopy(NULL)
 {
 
 }
@@ -106,7 +109,8 @@ FileNode *FileNode::findOrNewChild(const HashedFileName &hfname, FileRecord::Typ
     if (parent())
         newChild = new FileNode(_record._path + hfname, type);
     else
-        newChild = new FileNode(hfname, type);
+        newChild = new FileNode(SplittedPath(hfname, SplittedPath::unixSep()),
+                                type);
     addChild(newChild);
 
     return newChild;
@@ -381,7 +385,7 @@ FileNode *FileNode::findChild(const HashedFileName &hfname) const
 FileTree::FileTree()
     : _state(Clean), _rootDirectoryNode(nullptr), _srcParser(*this)
 {
-
+    _relativePathSources.setOsSeparator();
 }
 
 void FileTree::clean()
@@ -455,7 +459,8 @@ void FileTree::installAffectedFiles()
 void FileTree::parseModifiedFiles(const FileTree &restored_file_tree)
 {
     MY_ASSERT(_state == CachesCalculated);
-    parseModifiedFilesRecursive(_rootDirectoryNode, restored_file_tree._rootDirectoryNode);
+    compareModifiedFilesRecursive(_rootDirectoryNode, restored_file_tree._rootDirectoryNode);
+    parseModifiedFilesRecursive(_rootDirectoryNode);
 }
 
 void FileTree::print() const
@@ -479,9 +484,10 @@ void FileTree::printModified() const
 FileNode *FileTree::addFile(const SplittedPath &path)
 {
     const std::list<HashedFileName> &splittedPath = path.splitted();
-    if (!_rootDirectoryNode)
-        setRootDirectoryNode(new FileNode(string("."), FileRecord::Directory));
-
+    if (!_rootDirectoryNode) {
+        setRootDirectoryNode(new FileNode(SplittedPath(".", SplittedPath::unixSep()),
+                                          FileRecord::Directory));
+    }
     FileNode *currentNode = _rootDirectoryNode;
     MY_ASSERT(_rootDirectoryNode);
     for (const HashedFileName &fname : splittedPath) {
@@ -509,15 +515,15 @@ void FileTree::setRootDirectoryNode(FileNode *node)
 void FileTree::setProjectDirectory(const SplittedPath &path)
 {
     _projectDirectory = path;
-    _relativePathSources.setOsSeparator();
-    if (!_projectDirectory.empty())
-        _relativePathSources = my_relative(_rootPath, _projectDirectory);
+    _projectDirectory.setOsSeparator();
+    updateRelativePath();
 }
 
 void FileTree::setRootPath(const SplittedPath &sp)
 {
     _rootPath = sp;
     _rootPath.setOsSeparator();
+    updateRelativePath();
 }
 
 void FileTree::removeEmptyDirectories(FileNode *node)
@@ -557,7 +563,17 @@ void FileTree::calculateFileHashes(FileNode *node)
     }
 }
 
-void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_node)
+void FileTree::parseModifiedFilesRecursive(FileNode *node)
+{
+    if (node->isRegularFile()
+            && node->isModified()) {
+        _srcParser.parseFile(node);
+    }
+    for (auto child: node->childs())
+        parseModifiedFilesRecursive(child);
+}
+
+void FileTree::compareModifiedFilesRecursive(FileNode *node, FileNode *restored_node)
 {
     auto thisChilds = node->childs();
     if (node->isRegularFile()) {
@@ -565,24 +581,35 @@ void FileTree::parseModifiedFilesRecursive(FileNode *node, FileNode *restored_no
                 compareHashArrays(node->record()._hashArray,
                                   restored_node->record()._hashArray)) {
             // md5 hash sums match
-            node->swapParsedData(restored_node);
+            node->setStoredNode(restored_node);
         }
         else {
             // md5 hash sums don't match
             std::cout << node->name() << " md5 is the different" << std::endl;
-            _srcParser.parseFile(node);
+            node->setModified();
         }
     }
     for (auto child : thisChilds) {
         if (FileNode *restored_child =
                 restored_node->findChild(child->fname())) {
-            parseModifiedFilesRecursive(child, restored_child);
+            compareModifiedFilesRecursive(child, restored_child);
         }
         else {
             std::cout << "this "<< node->name() << " child " << child->fname() << " not found" << std::endl;
-            parseFilesRecursive(child);
+            installModifiedFiles(child);
         }
     }
+}
+
+void FileTree::installModifiedFiles(FileNode *node)
+{
+    if (node->isRegularFile()) {
+        node->setModified();
+        return;
+    }
+    // else, if directory
+    for (auto child : node->childs())
+        installModifiedFiles(child);
 }
 
 void FileTree::parseFilesRecursive(FileNode *node)
@@ -635,8 +662,8 @@ void FileTree::installAffectedFilesRecursive(FileNode *node)
 {
     if (isAffected(node)) {
         SplittedPath tmp = _relativePathSources;
+        tmp.appendPath(node->path());
         tmp.setUnixSeparator();
-        tmp.appendPath(node->name());
 
         _affectedFiles.push_back(tmp);
     }
@@ -647,7 +674,7 @@ void FileTree::installAffectedFilesRecursive(FileNode *node)
 FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *node) const
 {
     MY_ASSERT(node);
-    const SplittedPath &path = id.filename;
+    const SplittedPath path(id.filename, SplittedPath::unixSep());
     if (id.isQuotes()) {
         // start from current dir
         if (FileNode *result = searchInCurrentDir(path, node->parent()))
@@ -685,6 +712,14 @@ FileNode *FileTree::searchInRoot(const SplittedPath &path) const
     return searchInCurrentDir(path, _rootDirectoryNode);
 }
 
+void FileTree::updateRelativePath()
+{
+    if (!_projectDirectory.empty()
+            && !_rootPath.empty()) {
+        _relativePathSources = my_relative(_rootPath, _projectDirectory);
+    }
+}
+
 std::__cxx11::string IncludeDirective::toPrint() const
 {
     switch (type) {
@@ -694,10 +729,12 @@ std::__cxx11::string IncludeDirective::toPrint() const
     return std::string();
 }
 
-void FileTreeFunc::readDirectory(FileTree &tree, const std::__cxx11::string &dirPath)
+void FileTreeFunc::readDirectory(FileTree &tree, const std::string &dirPath)
 {
+    SplittedPath spReplacedSep(dirPath, SplittedPath::unixSep());
+    spReplacedSep.setOsSeparator();
     DirectoryReader dirReader;
-    dirReader.readDirectory(tree, dirPath);
+    dirReader.readDirectory(tree, spReplacedSep.joint());
 }
 
 void FileTreeFunc::parsePhase(FileTree &tree, const std::__cxx11::string &dumpFileName)
