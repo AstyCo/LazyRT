@@ -72,20 +72,21 @@ set(EXTERNAL_HEADERS
     ${RAPIDJSON_HEADERS})
 
 set(HEADERS
-    ${EXTERNAL_HEADERS}
+    ${FLATBUFFERS_HEADERS}
+    ${CLI11_HEADERS}
     extensions/error_reporter.hpp
     extensions/help_functions.hpp
     extensions/md5.hpp
     extensions/flatbuffers_extensions.hpp
     types/file_tree.hpp
-    types/file_tree_forest.hpp
     types/splitted_string.hpp
+    types/file_tree_forest.hpp
     parsers/sourceparser.hpp
-    dependency_analyzer.hpp
     directoryreader.hpp
+    dependency_analyzer.hpp
+    command_line_args.hpp
     json_reader.hpp
-    lazyut_global.hpp
-    )
+    lazyut_global.hpp)
 
 ##
 ## SOURCES
@@ -93,16 +94,19 @@ set(HEADERS
 ##
 set(FLATBUFFERS_SRCS
     external/flatbuffers/code_generators.cpp
-    external/flatbuffers/idl_gen_text.cpp
     external/flatbuffers/idl_parser.cpp
+    external/flatbuffers/idl_gen_text.cpp
     external/flatbuffers/reflection.cpp
-    external/flatbuffers/util.cpp)
-
-set(EXTERNAL_SRCS
-    ${FLATBUFFERS_SRCS})
-
+    external/flatbuffers/util.cpp
+    )
 set(SRCS
-    ${EXTERNAL_SRCS}
+    ${FLATBUFFERS_SRCS}
+    main.cpp
+    directoryreader.cpp
+    dependency_analyzer.cpp
+    command_line_args.cpp
+    json_reader.cpp
+    parsers/sourceparser.cpp
     extensions/error_reporter.cpp
     extensions/help_functions.cpp
     extensions/profiling.cpp
@@ -110,13 +114,8 @@ set(SRCS
     extensions/md5.cpp
     extensions/flatbuffers_extensions.cpp
     types/file_tree.cpp
-    types/file_tree_forest.cpp
     types/splitted_string.cpp
-    parsers/sourceparser.cpp
-    directoryreader.cpp
-    dependency_analyzer.cpp
-    json_reader.cpp
-    main.cpp
+    types/file_tree_forest.cpp
     )
 
 ##
