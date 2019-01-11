@@ -13,7 +13,8 @@ using namespace boost::filesystem;
 std::vector<std::string> initSourceFileExtensions()
 {
     typedef const char CharArray[5];
-    const CharArray exts_c[] = { ".c", ".cpp", ".h", ".hpp" };
+    const CharArray exts_c[] = { ".c", ".cpp", ".cc", ".C", ".cxx", ".c++",
+                                 ".h", ".hpp", ".hh", ".H", ".hxx", ".h++" };
     int size = sizeof(exts_c) / sizeof(CharArray);
 
     std::vector<std::string> exts;

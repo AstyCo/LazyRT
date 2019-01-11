@@ -145,12 +145,12 @@ void DependencyAnalyzer::analyzeInheritance(const ScopedName &baseClass, FileNod
 
 HashedStringNode *DependencyAnalyzer::findClassForMethod(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode)
 {
-    findScopedPrivate(impl, fnode, hsnode, SearchMethod);
+    return findScopedPrivate(impl, fnode, hsnode, SearchMethod);
 }
 
 HashedStringNode *DependencyAnalyzer::findClass(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode)
 {
-    findScopedPrivate(impl, fnode, hsnode, SearchClass);
+    return findScopedPrivate(impl, fnode, hsnode, SearchClass);
 }
 
 HashedStringNode *DependencyAnalyzer::findScopedPrivate(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode, DependencyAnalyzer::SearchType st)
@@ -227,11 +227,9 @@ void DependencyAnalyzer::analyze(FileNode *fnode)
     auto &impls = fnode->record()._setImplements;
     auto &inheritances = fnode->record()._setInheritances;
 
-    for (const auto &impl: impls) {
-        if (impl.joint().find("TestFixture::") != std::string::npos)
-            std::cout << fnode->name() << ' ' << impl.joint() << std::endl;
+    for (const auto &impl: impls)
         analyzeImpl(impl, fnode);
-    }
+
     for (const auto &inh: inheritances)
         analyzeInheritance(inh, fnode);
 
