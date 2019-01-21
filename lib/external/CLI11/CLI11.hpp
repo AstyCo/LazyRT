@@ -2292,7 +2292,7 @@ class App {
 
     /// Create a new program. Pass in the same arguments as main(), along with a help string.
     explicit App(std::string description_ = "", std::string name = "") : App(description_, name, nullptr) {
-        set_help_flag("-h,--help", "Print this help message and exit");
+        set_help_flag("-h,--help", "Print this help message and ");
     }
 
     /// virtual destructor
@@ -3011,7 +3011,7 @@ class App {
         failure_message_ = function;
     }
 
-    /// Print a nice error message and return the exit code
+    /// Print a nice error message and return the  code
     int exit(const Error &e, std::ostream &out = std::cout, std::ostream &err = std::cerr) const {
 
         /// Avoid printing anything if this is a CLI::RuntimeError

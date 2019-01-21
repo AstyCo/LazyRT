@@ -12,14 +12,16 @@ std::string CommandLineArgs::_srcsModifiedFileName = "src_modified.txt";
 std::string CommandLineArgs::_testsModifiedFileName = "test_modified.txt";
 
 CommandLineArgs::CommandLineArgs(int argc, char *argv[])
-    : _verbal(false), _keepTestMain(false)
+    : _verbal(false), _keepTestMain(false), _retCode(0)
 {
     _retCode = parseArguments(argc, argv);
 }
 
 int CommandLineArgs::parseArguments(int argc, char *argv[])
 {
-    CLI::App app{"LazyUT detects tests, affected by the changes in the code.\n"};
+    CLI::App app {
+        "Description:\n\t"
+        "LazyUT detects tests, affected by the changes in the code.\n"};
 
     std::string proDirectory;
     std::string srcDirectory;
@@ -32,7 +34,7 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     std::string extra_dependencies;
 
     bool verbal = false;
-    bool keep_test_main = true;
+    bool dont_keep_test_main = true;
 
     // required arguments
     app.add_option("-p,--prodir", proDirectory, "Project root directory");
@@ -44,11 +46,17 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-e,--extensions", exts, "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", ignore_substrings, "Substrings of the ignored paths, separated by comma (,)");
-    app.add_flag("-m,--main", keep_test_main, "Allways keep test source file with main() implementation");
+    app.add_flag("-m,--main", dont_keep_test_main, "Allways keep test source file with main() implementation");
     app.add_flag("-v,--verbal", verbal, "Verbal mode");
     //
 
-    CLI11_PARSE(app, argc, argv);
+    try {                                                                                                              \
+        app.parse(argc, argv);                                                                                   \
+    }
+    catch(const CLI::ParseError &e) {
+        _status = Failure;
+        return app.exit(e);;
+    }
 
     if (!exts.empty())
         DirectoryReader::_sourceFileExtensions = split(exts, ",");
@@ -98,5 +106,6 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     _testsModified = _outDirectory;
     _testsModified.append(std::string(_testsModifiedFileName));
 
+    _status = Success;
     return 0;
 }

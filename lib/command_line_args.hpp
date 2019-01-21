@@ -6,8 +6,14 @@
 class CommandLineArgs
 {
 public:
-    CommandLineArgs(int argc, char *argv[]);
+    enum State
+    {
+        Success = 0,
+        Failure = 1
+    };
 public:
+    CommandLineArgs(int argc, char *argv[]);
+
     const SplittedPath &proDir() const { return _proDirectory;}
     const SplittedPath &srcDir() const { return _srcDirectory;}
     const SplittedPath &testDir() const { return _testDirectory;}
@@ -28,6 +34,7 @@ public:
     const SplittedPath &srcsModified() const { return _srcsModified;}
     const SplittedPath &testsModified() const { return _testsModified;}
 
+    int status() const { return _status;}
     int retCode() const { return _retCode;}
 private:
     int parseArguments(int argc, char *argv[]);
@@ -64,7 +71,8 @@ private:
     SplittedPath _srcsModified;
     SplittedPath _testsModified;
 
-    bool _retCode;
+    int _status;
+    int _retCode;
 };
 
 #endif // COMMAND_LINE_ARGS_HPP

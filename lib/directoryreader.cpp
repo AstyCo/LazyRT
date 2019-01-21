@@ -25,19 +25,23 @@ std::vector<std::string> initSourceFileExtensions()
     return exts;
 }
 
-std::vector<std::string> DirectoryReader::_sourceFileExtensions = initSourceFileExtensions();
-std::vector<std::string> DirectoryReader::_ignore_substrings = std::vector<std::string>();
+std::vector<std::string> DirectoryReader::_sourceFileExtensions =
+        initSourceFileExtensions();
+std::vector<std::string> DirectoryReader::_ignore_substrings =
+        std::vector<std::string>();
 
 DirectoryReader::DirectoryReader()
 {
 }
 
-void DirectoryReader::readDirectory(FileTree &fileTree, const char *directory_path)
+void DirectoryReader::readDirectory(FileTree &fileTree,
+                                    const char *directory_path)
 {
     readDirectory(fileTree, BoostPath(directory_path));
 }
 
-void DirectoryReader::readDirectory(FileTree &fileTree, const BoostPath &directory_path)
+void DirectoryReader::readDirectory(FileTree &fileTree,
+                                    const BoostPath &directory_path)
 {
     SplittedPath sp_base(directory_path.string(),
                          SplittedPath::osSep());
@@ -53,13 +57,15 @@ void DirectoryReader::readDirectory(FileTree &fileTree, const BoostPath &directo
     fileTree.calculateFileHashes();
 }
 
-void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPath &directory_path, const SplittedPath &sp_base)
+void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
+                                               const BoostPath &directory_path,
+                                               const SplittedPath &sp_base)
 {
     try {
         if (isIgnored(directory_path.string()))
             return;
         if (!exists(directory_path)) {
-            errors() << directory_path.string() << "does not exist\n";
+            errors() << directory_path.string() << "1does not exist\n";
             return;
         }
 
@@ -70,10 +76,12 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPa
             if (!isSourceFile(directory_path))
                 return;
             MY_ASSERT(_currenDirectory);
-            _currenDirectory->addChild(new FileNode(rel_path, FileRecord::RegularFile));
+            _currenDirectory->addChild(new FileNode(rel_path,
+                                                    FileRecord::RegularFile));
         }
         else if (is_directory(directory_path)) {
-            FileNode *directoryNode = new FileNode(rel_path, FileRecord::Directory);
+            FileNode *directoryNode = new FileNode(rel_path,
+                                                   FileRecord::Directory);
             if (_currenDirectory == nullptr)
                 fileTree.setRootDirectoryNode(directoryNode);
             else
@@ -89,7 +97,8 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree, const BoostPa
         }
 
         else {
-            errors() << directory_path.string() << "exists, but is neither a regular file nor a directory\n";
+            errors() << directory_path.string()
+                << "exists, but is neither a regular file nor a directory\n";
         }
     }
     catch (const boost::filesystem::filesystem_error &exc) {

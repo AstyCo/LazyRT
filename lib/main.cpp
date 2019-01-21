@@ -34,8 +34,9 @@ static void concatFiles(const std::string &fin1, const std::string &fin2, const 
 int main(int argc, char *argv[])
 {
     CommandLineArgs cla(argc, argv);
-    if (cla.retCode() != 0)
+    if (cla.status() != CommandLineArgs::Success)
         return cla.retCode();
+
     START_PROFILE;
 
     FileTreeForest trees;
