@@ -5,13 +5,12 @@
 
 #include <map>
 
-
 struct HashedStringNode
 {
-    typedef FileNode* FileNodePtr;
-    typedef std::list<FileNodePtr> ExtraData;
+    typedef FileNode *FileNodePtr;
+    typedef std::list< FileNodePtr > ExtraData;
     typedef ScopedName TSplittedString;
-    typedef std::map<HashedString::HashType, HashedStringNode *> MapLeafs;
+    typedef std::map< HashedString::HashType, HashedStringNode * > MapLeafs;
 
     HashedString hs;
     MapLeafs childs;
@@ -50,17 +49,17 @@ private:
     void analyzeImpl(const ScopedName &impl, FileNode *fnode);
     void analyzeInheritance(const ScopedName &baseClass, FileNode *fnode);
 
-    HashedStringNode *findClassForMethod(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode);
-    HashedStringNode *findClass(const ScopedName &impl, FileNode *fnode, HashedStringNode *hsnode);
+    HashedStringNode *findClassForMethod(const ScopedName &impl,
+                                         FileNode *fnode,
+                                         HashedStringNode *hsnode);
+    HashedStringNode *findClass(const ScopedName &impl, FileNode *fnode,
+                                HashedStringNode *hsnode);
 
-    enum SearchType
-    {
-        SearchClass,
-        SearchMethod
-    };
+    enum SearchType { SearchClass, SearchMethod };
 
     HashedStringNode *findScopedPrivate(const ScopedName &impl, FileNode *fnode,
-                                        HashedStringNode *hsnode, SearchType st);
+                                        HashedStringNode *hsnode,
+                                        SearchType st);
 
     void addFunctionImpl(FileNode *implNode, HashedStringNode *hsnode);
     void addClassImpl(FileNode *implNode, HashedStringNode *hsnode);
@@ -73,6 +72,5 @@ private:
     HashedStringNode _rootClassDecls;
     HashedStringNode _rootFuncDecls;
 };
-
 
 #endif // DEPENDENCY_ANALYZER_HPP

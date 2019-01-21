@@ -19,7 +19,7 @@ public:
     FileTree testTree;
     FileTree extraDepsTree;
 
-    std::list<FileTree*> _trees;
+    std::list< FileTree * > _trees;
 };
 
 #endif // FILE_TREE_FOREST_HPP

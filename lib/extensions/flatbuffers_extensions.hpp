@@ -5,16 +5,15 @@
 #include "flatbuffers_schemes/file_tree_generated.h"
 #include "types/file_tree.hpp"
 
-
 namespace FileTreeFunc {
 
-void deserialize(FileTree &tree,const std::string &fileName);
+void deserialize(FileTree &tree, const std::string &fileName);
 void serialize(const FileTree &tree, const std::string &fileName);
 
-template <typename FT, typename T>
-void copyVector(const FT& flatVector, T &v);
+template < typename FT, typename T >
+void copyVector(const FT &flatVector, T &v);
 
-template <typename TContainer>
+template < typename TContainer >
 void copyListSplitted(const LazyUT::ListSplitted &fv, TContainer &v);
 
 } // namespace FileTreeFunc

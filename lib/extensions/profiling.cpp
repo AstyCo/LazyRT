@@ -20,12 +20,12 @@ double get_wall_time()
 double getCpuTime()
 {
     FILETIME a, b, c, d;
-    if (GetProcessTimes(GetCurrentProcess(),&a,&b,&c,&d) != 0) {
+    if (GetProcessTimes(GetCurrentProcess(), &a, &b, &c, &d) != 0) {
         //  Returns total user time.
         //  Can be tweaked to include kernel times as well.
-        return
-            (double)(d.dwLowDateTime |
-            ((unsigned long long)d.dwHighDateTime << 32)) * 0.0000001;
+        return (double)(d.dwLowDateTime |
+                        ((unsigned long long)d.dwHighDateTime << 32)) *
+               0.0000001;
     }
     else {
         //  Handle error
@@ -48,8 +48,5 @@ double getWallTime()
     }
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
-double getCpuTime()
-{
-    return (double)clock() / CLOCKS_PER_SEC;
-}
+double getCpuTime() { return (double)clock() / CLOCKS_PER_SEC; }
 #endif

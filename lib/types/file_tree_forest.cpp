@@ -7,12 +7,11 @@ FileTreeForest::FileTreeForest()
     _trees.push_back(&srcTree);
     _trees.push_back(&testTree);
     _trees.push_back(&extraDepsTree);
-
 }
 
 void FileTreeForest::setProjectDirectory(const SplittedPath &path)
 {
-    for (FileTree *p: _trees)
+    for (FileTree *p : _trees)
         p->setProjectDirectory(path);
 }
 
@@ -22,7 +21,8 @@ void FileTreeForest::installIncludeSources()
         testTree._includePaths.push_back(srcTree._rootDirectoryNode);
 }
 
-void FileTreeForest::installExtraDependencies(const std::string &extra_dependencies)
+void FileTreeForest::installExtraDependencies(
+    const std::string &extra_dependencies)
 {
     if (extra_dependencies.empty())
         return;
@@ -37,6 +37,6 @@ void FileTreeForest::installExtraDependencies(const std::string &extra_dependenc
 
 void FileTreeForest::installAffectedFiles()
 {
-    for (FileTree *p: _trees)
+    for (FileTree *p : _trees)
         p->installAffectedFiles();
 }

@@ -14,15 +14,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PROFILE(x) x; prf.step(#x)
+#define PROFILE(x)                                                             \
+    x;                                                                         \
+    prf.step(#x)
 #define START_PROFILE Profiler prf(cla.verbal());
 
-enum LazyUTErrors
-{
-    WRONG_CMD_LINE_OPTIONS = 1
-};
+enum LazyUTErrors { WRONG_CMD_LINE_OPTIONS = 1 };
 
-static void concatFiles(const std::string &fin1, const std::string &fin2, const std::string &fout)
+static void concatFiles(const std::string &fin1, const std::string &fin2,
+                        const std::string &fout)
 {
     std::ifstream if_a(fin1, std::ios_base::binary);
     std::ifstream if_b(fin2, std::ios_base::binary);
@@ -49,7 +49,8 @@ int main(int argc, char *argv[])
     trees.installExtraDependencies(cla.deps());
 
     PROFILE(FileTreeFunc::parsePhase(trees.srcTree, cla.srcsDumpIn().joint()));
-    PROFILE(FileTreeFunc::parsePhase(trees.testTree, cla.testsDumpIn().joint()));
+    PROFILE(
+        FileTreeFunc::parsePhase(trees.testTree, cla.testsDumpIn().joint()));
 
     PROFILE(FileTreeFunc::analyzePhase(trees.srcTree));
     PROFILE(FileTreeFunc::analyzePhase(trees.testTree));
@@ -73,12 +74,13 @@ int main(int argc, char *argv[])
         trees.srcTree.printModified();
         trees.testTree.printModified();
 
-        std::cout << "write lazyut files to "
-                  << cla.outDir().joint() << std::endl;
+        std::cout << "write lazyut files to " << cla.outDir().joint()
+                  << std::endl;
     }
 
     PROFILE(FileTreeFunc::serialize(trees.srcTree, cla.srcsDumpOut().joint()));
-    PROFILE(FileTreeFunc::serialize(trees.testTree, cla.testsDumpOut().joint()));
+    PROFILE(
+        FileTreeFunc::serialize(trees.testTree, cla.testsDumpOut().joint()));
 
     return 0;
 }

@@ -18,14 +18,14 @@
 #define OPERATOR_TOKEN "operator"
 #define TEMPLATE_TOKEN "template"
 
-
 #define CMP_TOKEN(TOKEN_NAME) (!strncmp(p, TOKEN_NAME, sizeof(TOKEN_NAME) - 1))
-#define CHECK_TOKEN(TOKEN_NAME, STATE) \
-    if (CMP_TOKEN(TOKEN_NAME)) {\
-        if (!is_identifier_ch(*(p-1)) && !is_identifier_ch(*(p + sizeof(TOKEN_NAME) - 1))) {\
-            p += sizeof(TOKEN_NAME) - 2;\
-            _state = STATE;\
-        }\
+#define CHECK_TOKEN(TOKEN_NAME, STATE)                                         \
+    if (CMP_TOKEN(TOKEN_NAME)) {                                               \
+        if (!is_identifier_ch(*(p - 1)) &&                                     \
+            !is_identifier_ch(*(p + sizeof(TOKEN_NAME) - 1))) {                \
+            p += sizeof(TOKEN_NAME) - 2;                                       \
+            _state = STATE;                                                    \
+        }                                                                      \
     }
 
 #define M_MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -39,7 +39,7 @@ static bool is_identifier_ch(const char c)
 const char *SourceParser::skipSpaces(const char *line) const
 {
     MY_ASSERT(line);
-    for (;*line;++line) {
+    for (; *line; ++line) {
         if (!isspace(*line))
             return line;
     }
@@ -50,14 +50,13 @@ const char *SourceParser::skipSpacesAndComments(const char *line) const
 {
     MY_ASSERT(line);
     bool commentState = false;
-    for ( ; *line; ++line) {
-        COUNT_LINES(
-                if (*line == '\n') {
-                    VERBAL_1(std::cout << _line << " ++_line '"
-                    << std::string(line, M_MIN(20, strlen(line)))
-                    << '\'' << std::endl;)
-                    ++_line;
-                })
+    for (; *line; ++line) {
+        COUNT_LINES(if (*line == '\n') {
+            VERBAL_1(std::cout << _line << " ++_line '"
+                               << std::string(line, M_MIN(20, strlen(line)))
+                               << '\'' << std::endl;)
+            ++_line;
+        })
         if (commentState) {
             if (!strncmp(line, "*/", 2)) {
                 commentState = false;
@@ -89,7 +88,7 @@ int SourceParser::skipSpacesAndCommentsR(const char *line, int len) const
 
     const int len1 = len - 1;
     int d = 0;
-    for ( ; d < len1; ++d) {
+    for (; d < len1; ++d) {
         if (commentState) {
             if (!strncmp(line - d - 1, "/*", 2)) {
                 commentState = false;
@@ -118,7 +117,7 @@ int SourceParser::skipSpacesAndCommentsR(const char *line, int len) const
 const char *SourceParser::parseWord(const char *p, int &wordLength) const
 {
     wordLength = 0;
-    for ( ; *p; ++p) {
+    for (; *p; ++p) {
         const char c = *p;
         if (!(isalpha(c) || c == '_' || isdigit(c)))
             break;
@@ -129,7 +128,7 @@ const char *SourceParser::parseWord(const char *p, int &wordLength) const
 
 struct CharTreeNode
 {
-    typedef std::map<char, CharTreeNode*> LeafMap;
+    typedef std::map< char, CharTreeNode * > LeafMap;
 
     bool finite;
     LeafMap leafs;
@@ -137,7 +136,7 @@ struct CharTreeNode
     CharTreeNode() : finite(false) {}
     ~CharTreeNode()
     {
-        for (auto &n: leafs)
+        for (auto &n : leafs)
             delete n.second;
     }
 
@@ -147,8 +146,9 @@ struct CharTreeNode
 
         if (1 == indent)
             std::cout << "CharTreeNode_ROOT" << std::endl;
-        for (auto &p: leafs) {
-            std::cout << strIndents << p.first << ' ' << p.second->finite << std::endl;
+        for (auto &p : leafs) {
+            std::cout << strIndents << p.first << ' ' << p.second->finite
+                      << std::endl;
             p.second->print(indent + 1);
         }
     }
@@ -190,16 +190,15 @@ struct CharTreeNode
 static CharTreeNode initOverloadingOperators()
 {
     CharTreeNode root;
-    const char* const operators[] = {
-        "+",    "-",    "*",    "/",    "%",    "^",
-        "&",    "|",    "~",    "!",    ",",    "=",
-        "<",    ">",    "<=",   ">=",   "++",   "--",
-        "<<",   ">>",   "==",   "!=",   "&&",   "||",
-        "+=",   "-=",   "/=",   "%=",   "^=",   "&=",
-        "|=",   "*=",   "<<=",  ">>=",  "[]",   "()",
-        "->",   "->*",   "new",  "delete",
-        "new []",   "delete []"
-    }; // table is taken from https://www.tutorialspoint.com/cplusplus/cpp_overloading.htm
+    const char *const operators[] =
+        {
+            "+",      "-",        "*",  "/",  "%",  "^",   "&",   "|",
+            "~",      "!",        ",",  "=",  "<",  ">",   "<=",  ">=",
+            "++",     "--",       "<<", ">>", "==", "!=",  "&&",  "||",
+            "+=",     "-=",       "/=", "%=", "^=", "&=",  "|=",  "*=",
+            "<<=",    ">>=",      "[]", "()", "->", "->*", "new", "delete",
+            "new []", "delete []"}; // table is taken from
+                                    // https://www.tutorialspoint.com/cplusplus/cpp_overloading.htm
     for (auto &op : operators)
         root.insertRev(op);
 
@@ -213,7 +212,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
     MY_ASSERT(p);
     int d = 0;
     d += skipSpacesAndCommentsR(p, len);
-    std::list<std::string> nsname;
+    std::list< std::string > nsname;
     d += dealWithOperatorOverloadingR(p - d, len - d, nsname);
     bool operatorOverloading = !nsname.empty();
     bool namespaceState = false;
@@ -239,10 +238,9 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
         else {
             if (!namespaceState && d < len) {
                 const char ch = *(p - d);
-                if (!(is_identifier_ch(ch)
-                      || ch == '>'    // template
-                      || ch =='&'     // reference
-                      || ch =='*'     // pointer
+                if (!(is_identifier_ch(ch) || ch == '>' // template
+                      || ch == '&'                      // reference
+                      || ch == '*'                      // pointer
                       )) {
                     nsname.clear();
                 }
@@ -255,7 +253,8 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
     return d;
 }
 
-int SourceParser::dealWithOperatorOverloadingR(const char *p, int len, std::list<std::__cxx11::string> &nsname) const
+int SourceParser::dealWithOperatorOverloadingR(
+    const char *p, int len, std::list< std::__cxx11::string > &nsname) const
 {
     CharTreeNode *node = &charTreeRevOverloadTokens;
     for (int d = 0; d < len; ++d) {
@@ -272,14 +271,15 @@ int SourceParser::dealWithOperatorOverloadingR(const char *p, int len, std::list
         offset += skipSpacesAndCommentsR(p - offset, len - offset);
         if (offset + sizeof(OPERATOR_TOKEN) >= len)
             return 0; // not operator overloading
-        if (!strncmp(OPERATOR_TOKEN, p - offset - sizeof(OPERATOR_TOKEN) + 2, sizeof(OPERATOR_TOKEN) - 1)) {
+        if (!strncmp(OPERATOR_TOKEN, p - offset - sizeof(OPERATOR_TOKEN) + 2,
+                     sizeof(OPERATOR_TOKEN) - 1)) {
             // ... operator <op>(...)
             offset += sizeof(OPERATOR_TOKEN) - 1;
             std::string opStrNormalized(p - offset + 1, offset);
             // remove spaces
-            opStrNormalized.erase(
-                        remove_if(opStrNormalized.begin(), opStrNormalized.end(), isspace),
-                        opStrNormalized.end());
+            opStrNormalized.erase(remove_if(opStrNormalized.begin(),
+                                            opStrNormalized.end(), isspace),
+                                  opStrNormalized.end());
             // insert method name (without spaces)
             nsname.push_back(opStrNormalized);
             return offset;
@@ -291,10 +291,9 @@ int SourceParser::dealWithOperatorOverloadingR(const char *p, int len, std::list
 int SourceParser::parseWordR(const char *p, int len) const
 {
     int wordLength = 0;
-    for ( ; wordLength < len; ++wordLength) {
+    for (; wordLength < len; ++wordLength) {
         const char c = *(p - wordLength);
-        if (!(is_identifier_ch(c) || c == '<' ||
-              c == '>' || c == '~'))
+        if (!(is_identifier_ch(c) || c == '<' || c == '>' || c == '~'))
             break;
     }
     return wordLength;
@@ -314,37 +313,39 @@ const char *SourceParser::readUntil(const char *p, const char *substr) const
     int substrLength = strlen(substr);
     if (*p == '\n')
         --_line;
-    for ( ; *p; ++p) {
+    for (; *p; ++p) {
         if (!strncmp(p, substr, substrLength))
             return p + substrLength;
         COUNT_LINES(if (*p == '\n') {
-                     VERBAL_1(std::cout << _line << " ++_line '"
-                     << std::string(p, M_MIN(20, strlen(p)))
-                     << '\'' << std::endl;)
-                     ++_line;
-                 })
+            VERBAL_1(std::cout << _line << " ++_line '"
+                               << std::string(p, M_MIN(20, strlen(p))) << '\''
+                               << std::endl;)
+            ++_line;
+        })
     }
     return p;
 }
 
-const char *SourceParser::readUntilM(const char *p, const std::list<std::string> &substrings,
-                                     std::list<std::string>::const_iterator &it) const
+const char *
+SourceParser::readUntilM(const char *p,
+                         const std::list< std::string > &substrings,
+                         std::list< std::string >::const_iterator &it) const
 {
     if (*p == '\n')
         --_line;
-    for ( ; *p; ++p) {
-        for (auto & ss: substrings) {
+    for (; *p; ++p) {
+        for (auto &ss : substrings) {
             if (!strncmp(p, ss.c_str(), ss.size())) {
                 it = std::find(substrings.begin(), substrings.end(), ss);
                 return p + ss.size();
             }
         }
         COUNT_LINES(if (*p == '\n') {
-                     VERBAL_1(std::cout << _line << " ++_line '"
-                     << std::string(p, M_MIN(20, strlen(p)))
-                     << '\'' << std::endl;)
-                     ++_line;
-                 })
+            VERBAL_1(std::cout << _line << " ++_line '"
+                               << std::string(p, M_MIN(20, strlen(p))) << '\''
+                               << std::endl;)
+            ++_line;
+        })
     }
     return p;
 }
@@ -352,7 +353,7 @@ const char *SourceParser::readUntilM(const char *p, const std::list<std::string>
 const char *SourceParser::parseName(const char *p, ScopedName &name) const
 {
     MY_ASSERT(p);
-    std::list<std::string> nsname;
+    std::list< std::string > nsname;
     for (;;) {
         int wl;
         p = skipSpacesAndComments(p);
@@ -375,31 +376,46 @@ const char *SourceParser::parseName(const char *p, ScopedName &name) const
 std::string SourceParser::stateToString(SourceParser::SpecialState state)
 {
     switch (state) {
-    case NoSpecialState:        return "NoSpecialState";
-    case HashSign:              return "HashSign";
-    case IncludeState:          return "IncludeState";
-    case NotIncludeMacroState:  return "NotIncludeMacroState";
+    case NoSpecialState:
+        return "NoSpecialState";
+    case HashSign:
+        return "HashSign";
+    case IncludeState:
+        return "IncludeState";
+    case NotIncludeMacroState:
+        return "NotIncludeMacroState";
 
-    case ClassState:            return "ClassState";
-    case StructState:           return "StructState";
-    case UnionState:            return "UnionState";
-    case TypedefState:          return "TypedefState";
+    case ClassState:
+        return "ClassState";
+    case StructState:
+        return "StructState";
+    case UnionState:
+        return "UnionState";
+    case TypedefState:
+        return "TypedefState";
 
-    case UsingState:            return "UsingState";
-    case NamespaceState:        return "NamespaceState";
-    case TemplateState:         return "TemplateState";
-    case Quotes:                return "Quotes";
+    case UsingState:
+        return "UsingState";
+    case NamespaceState:
+        return "NamespaceState";
+    case TemplateState:
+        return "TemplateState";
+    case Quotes:
+        return "Quotes";
 
-    case SingleQuotes:          return "SingleQuotes";
-    case OpenBracket:           return "OpenBracket";
-    case MultiComments:         return "MultiComments";
-    case SingleComments:        return "SingleComments";
+    case SingleQuotes:
+        return "SingleQuotes";
+    case OpenBracket:
+        return "OpenBracket";
+    case MultiComments:
+        return "MultiComments";
+    case SingleComments:
+        return "SingleComments";
     }
     return "UNKNOWN SpecialState";
 }
 
-SourceParser::SourceParser(const FileTree &ftree)
-    : _fileTree(ftree)
+SourceParser::SourceParser(const FileTree &ftree) : _fileTree(ftree)
 {
     _currentNamespace.setNamespaceSeparator();
 }
@@ -409,8 +425,7 @@ const char *SourceParser::skipTemplateAndSpaces(const char *p) const
     p = skipSpacesAndComments(p);
 
     int tmplDeep = 0;
-    for ( ; *p; ++p)
-    {
+    for (; *p; ++p) {
         const char ch = *p;
         switch (ch) {
         case '<':
@@ -467,19 +482,16 @@ int SourceParser::skipTemplateR(const char *line, int len) const
 
 const char *SourceParser::skipLine(const char *p) const
 {
-    COUNT_LINES(
-                VERBAL_1(std::cout << _line << " ++_line '"
-                         << std::string(p, M_MIN(20, strlen(p)))
-                         << '\'' << std::endl;)
-                ++_line);
-    for ( ; *p; ++p) {
-        COUNT_LINES(
-            if (*(p - 1) == '\\' && *p == '\n') {
-                VERBAL_1(std::cout << _line << " ++_line '"
-                << std::string(p, M_MIN(20, strlen(p)))
-                << '\'' << std::endl;)
-                ++_line;
-            })
+    COUNT_LINES(VERBAL_1(std::cout << _line << " ++_line '"
+                                   << std::string(p, M_MIN(20, strlen(p)))
+                                   << '\'' << std::endl;)++ _line);
+    for (; *p; ++p) {
+        COUNT_LINES(if (*(p - 1) == '\\' && *p == '\n') {
+            VERBAL_1(std::cout << _line << " ++_line '"
+                               << std::string(p, M_MIN(20, strlen(p))) << '\''
+                               << std::endl;)
+            ++_line;
+        })
 
         if (*p == '\n' && *(p - 1) != '\\')
             return p + 1;
@@ -487,18 +499,18 @@ const char *SourceParser::skipLine(const char *p) const
     return p;
 }
 
-static std::list<std::string> initChl()
+static std::list< std::string > initChl()
 {
-    std::list<std::string> chl;
+    std::list< std::string > chl;
     chl.push_back(std::string(";"));
     chl.push_back(std::string("{"));
 
     return chl;
 }
 
-static std::list<std::string> initInheritanceChl()
+static std::list< std::string > initInheritanceChl()
 {
-    std::list<std::string> chl;
+    std::list< std::string > chl;
     chl.push_back(":");
     chl.push_back("{");
 
@@ -513,15 +525,16 @@ void SourceParser::parseFile(FileNode *node)
     std::string fname = (_fileTree.rootPath() + node->path()).joint();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
-    if(!data) {
-        errors() << "Failed to open the file" << '\'' + std::string(fname) + '\'';
+    if (!data) {
+        errors() << "Failed to open the file"
+                 << '\'' + std::string(fname) + '\'';
         return;
     }
     long file_size = data_pair.second;
     int lcbrackets = 0;
     int nsbrackets = 0;
-    std::list<int> listNsbracketsAt;
-    std::list<int> listClassDeclAt;
+    std::list< int > listNsbracketsAt;
+    std::list< int > listClassDeclAt;
 
     _line = 1;
     _currentFile = node;
@@ -530,22 +543,20 @@ void SourceParser::parseFile(FileNode *node)
     _currentNamespace.clear();
     _listUsingNamespace.clear();
 
-    for (const char *p = data; p - data < file_size;)
-    {
+    for (const char *p = data; p - data < file_size;) {
         MY_ASSERTF(0 != *p);
-        VERBAL_1(std::cout << "ch '" << *p << "' state " << stateToString(_state) << std::endl;);
+        VERBAL_1(std::cout << "ch '" << *p << "' state "
+                           << stateToString(_state) << std::endl;);
         COUNT_LINES(if (*p == '\n') {
-                     VERBAL_1(std::cout << _line << " ++_line '" <<
-                     std::string(p, M_MIN(20, strlen(p))) << '\'' << std::endl;)
-                     ++_line;
-                 })
-        switch (_state)
-        {
-        case NoSpecialState:
-        {
+            VERBAL_1(std::cout << _line << " ++_line '"
+                               << std::string(p, M_MIN(20, strlen(p))) << '\''
+                               << std::endl;)
+            ++_line;
+        })
+        switch (_state) {
+        case NoSpecialState: {
             const char ch = *p;
-            switch (ch)
-            {
+            switch (ch) {
             case '\"':
                 _state = Quotes;
                 break;
@@ -559,13 +570,13 @@ void SourceParser::parseFile(FileNode *node)
                 MY_ASSERTF(lcbrackets > 0);
                 --lcbrackets;
                 if (!listNsbracketsAt.empty() &&
-                        (lcbrackets == listNsbracketsAt.back())) {
+                    (lcbrackets == listNsbracketsAt.back())) {
                     listNsbracketsAt.pop_back();
                     --nsbrackets;
                     _currentNamespace.removeLast();
                 }
                 if (!listClassDeclAt.empty() &&
-                        (lcbrackets == listClassDeclAt.back())) {
+                    (lcbrackets == listClassDeclAt.back())) {
                     MY_ASSERTF(!_classNameDecl.empty());
                     if (!_classNameDecl.empty()) {
                         listClassDeclAt.pop_back();
@@ -580,8 +591,7 @@ void SourceParser::parseFile(FileNode *node)
             case '#':
                 _state = HashSign;
                 break;
-            case '/':
-            {
+            case '/': {
                 const char nch = *(p + 1);
                 switch (nch) {
                 case '/':
@@ -602,15 +612,13 @@ void SourceParser::parseFile(FileNode *node)
             }
             if (lcbrackets <= nsbrackets) {
                 switch (ch) {
-                case '(':
-                {
+                case '(': {
                     _funcName = _currentNamespace;
                     parseNameR(p - 1, p - data - 1, _funcName);
                     break;
                 }
                 case ')':
-                    if (!_funcName.empty() &&
-                            _funcName != _currentNamespace) {
+                    if (!_funcName.empty() && _funcName != _currentNamespace) {
                         p = skipSpacesAndComments(p + 1);
                         if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
                             // impl function/method
@@ -638,14 +646,12 @@ void SourceParser::parseFile(FileNode *node)
             ++p;
             break;
         }
-        case NotIncludeMacroState:
-        {
+        case NotIncludeMacroState: {
             p = skipLine(p);
             _state = NoSpecialState;
             break;
         }
-        case HashSign:
-        {
+        case HashSign: {
             // check if include directive
             p = skipSpacesAndComments(p);
             if (CMP_TOKEN(INCLUDE_TOKEN)) {
@@ -657,8 +663,7 @@ void SourceParser::parseFile(FileNode *node)
             }
             break;
         }
-        case IncludeState:
-        {
+        case IncludeState: {
             // parse filename
             const char ch = *p;
             char pairChar;
@@ -676,13 +681,14 @@ void SourceParser::parseFile(FileNode *node)
                 MY_ASSERT(false)
             }
             ++p;
-            const char *end_of_filename = (char*) memchr(p, pairChar, strlen(p));
+            const char *end_of_filename =
+                (char *)memchr(p, pairChar, strlen(p));
             MY_ASSERT(end_of_filename);
             COUNT_LINES(for (const char *s = p; s < end_of_filename; ++s) {
                 if (*s == '\n') {
                     VERBAL_1(std::cout << _line << " ++_line '"
-                              << std::string(p, M_MIN(20, strlen(p)))
-                              << '\'' << std::endl;)
+                                       << std::string(p, M_MIN(20, strlen(p)))
+                                       << '\'' << std::endl;)
                     ++_line;
                 }
             })
@@ -698,21 +704,20 @@ void SourceParser::parseFile(FileNode *node)
             p = skipLine(end_of_filename);
             break;
         }
-        case TemplateState:
-        {
+        case TemplateState: {
             p = skipTemplateAndSpaces(p);
             _state = NoSpecialState;
             break;
         }
         case UnionState:
-        case StructState:  // no difference between parsing
-        case ClassState:   // struct ... and class ...
+        case StructState: // no difference between parsing
+        case ClassState:  // struct ... and class ...
         {
             ScopedName className = _currentNamespace;
             p = parseName(p, className);
 
-            static std::list<std::string> chl = initChl();
-            std::list<std::string>::const_iterator it;
+            static std::list< std::string > chl = initChl();
+            std::list< std::string >::const_iterator it;
             const char *pLast = readUntilM(p, chl, it);
 
             if (it == chl.end()) {
@@ -721,8 +726,7 @@ void SourceParser::parseFile(FileNode *node)
             else {
                 const char ch = *it->c_str();
                 switch (ch) {
-                case '{':
-                {
+                case '{': {
                     // decl
                     _classNameDecl = className;
                     listClassDeclAt.push_back(lcbrackets);
@@ -732,12 +736,9 @@ void SourceParser::parseFile(FileNode *node)
                     baseClassName.setNamespaceSeparator();
 
                     const char *pInh = p;
-                    for (; pInh < pLast; ++pInh)
-                    {
-                        if (*pInh == ':' &&
-                            *(pInh - 1) != ':' &&
-                            *(pInh + 1) != ':')
-                        {
+                    for (; pInh < pLast; ++pInh) {
+                        if (*pInh == ':' && *(pInh - 1) != ':' &&
+                            *(pInh + 1) != ':') {
                             ++pInh;
                             break;
                         }
@@ -745,35 +746,38 @@ void SourceParser::parseFile(FileNode *node)
 
                     int classHeaderLength = pInh - p;
                     ScopedName snClassName = _currentNamespace;
-                    const char *pOneParsed = pInh - parseNameR(pInh, classHeaderLength, snClassName);
+                    const char *pOneParsed =
+                        pInh - parseNameR(pInh, classHeaderLength, snClassName);
                     static HashedString hsFinal = std::string("final");
                     if (snClassName.last() == hsFinal) {
                         snClassName = _currentNamespace;
                         parseNameR(pOneParsed, pInh - pOneParsed, snClassName);
                     }
 
-                    for (; pInh < pLast; )
-                    {
+                    for (; pInh < pLast;) {
                         pInh = skipSpacesAndComments(pInh);
                         if (*pInh == ',' || *pInh == '{') {
                             // add inherits
-                            auto &inheritances = node->record()._setInheritances;
+                            auto &inheritances =
+                                node->record()._setInheritances;
 
                             // insert base class to inheritances
                             inheritances.insert(baseClassName);
                             // also insert namespace version
                             if (!_currentNamespace.empty())
-                                inheritances.insert(_currentNamespace + baseClassName);
+                                inheritances.insert(_currentNamespace +
+                                                    baseClassName);
 
                             ++pInh;
                         }
                         else {
                             baseClassName.clear();
-                            static const std::list<std::string> chl = initInheritanceChl();
-                            std::list<std::string>::const_iterator it;
+                            static const std::list< std::string > chl =
+                                initInheritanceChl();
+                            std::list< std::string >::const_iterator it;
                             const char *p = parseName(pInh, baseClassName);
-                            if (std::find(chl.cbegin(), chl.cend(), std::string(*p, 1)) ==
-                                    chl.cend())
+                            if (std::find(chl.cbegin(), chl.cend(),
+                                          std::string(*p, 1)) == chl.cend())
                                 pInh = readUntilM(p, chl, it);
                             else
                                 pInh = p;
@@ -794,8 +798,7 @@ void SourceParser::parseFile(FileNode *node)
             _state = NoSpecialState;
             break;
         }
-        case NamespaceState:
-        {
+        case NamespaceState: {
             int curNSSize = _currentNamespace.splitted().size();
             p = parseName(p, _currentNamespace);
             if (curNSSize < _currentNamespace.splitted().size()) {
@@ -806,8 +809,7 @@ void SourceParser::parseFile(FileNode *node)
             _state = NoSpecialState;
             break;
         }
-        case SingleQuotes:
-        {
+        case SingleQuotes: {
             const char ch = *p;
             switch (ch) {
             case '\\':
@@ -823,8 +825,7 @@ void SourceParser::parseFile(FileNode *node)
             _state = NoSpecialState;
             break;
         }
-        case UsingState:
-        {
+        case UsingState: {
             p = skipSpacesAndComments(p);
             if (CMP_TOKEN(NAMESPACE_TOKEN)) {
                 // using namespace ->ns
@@ -832,27 +833,26 @@ void SourceParser::parseFile(FileNode *node)
                 ns.setNamespaceSeparator();
                 p = parseName(p, ns);
                 if (!ns.empty()) {
-                    VERBAL_0(std::cout << "using namespace " << ns.joint() << std::endl;)
+                    VERBAL_0(std::cout << "using namespace " << ns.joint()
+                                       << std::endl;)
                     node->record()._listUsingNamespace.push_back(ns);
                 }
             }
             _state = NoSpecialState;
         }
-        case TypedefState:
-        {
+        case TypedefState: {
             // just skip
             _state = NoSpecialState;
             break;
         }
-        case Quotes:
-        {
-            for ( ; *p; ++p) {
+        case Quotes: {
+            for (; *p; ++p) {
                 COUNT_LINES(if (*p == '\n') {
-                             VERBAL_1(std::cout << _line << " ++_line '"
-                             << std::string(p, M_MIN(20, strlen(p)))
-                             << '\'' << std::endl;)
-                             ++_line;
-                         })
+                    VERBAL_1(std::cout << _line << " ++_line '"
+                                       << std::string(p, M_MIN(20, strlen(p)))
+                                       << '\'' << std::endl;)
+                    ++_line;
+                })
                 if (*p == '\\')
                     ++p; // skip next
                 else if (*p == '\"') {
@@ -863,14 +863,12 @@ void SourceParser::parseFile(FileNode *node)
             }
             break;
         }
-        case MultiComments:
-        {
+        case MultiComments: {
             p = readUntil(p, "*/");
             _state = NoSpecialState;
             break;
         }
-        case SingleComments:
-        {
+        case SingleComments: {
             p = skipLine(p);
             _state = NoSpecialState;
             break;

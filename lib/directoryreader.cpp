@@ -7,17 +7,16 @@
 #include <string.h>
 #include <fcntl.h>
 
-
 using namespace boost::filesystem;
 
-std::vector<std::string> initSourceFileExtensions()
+std::vector< std::string > initSourceFileExtensions()
 {
     typedef const char CharArray[5];
-    const CharArray exts_c[] = { ".c", ".cpp", ".cc", ".C", ".cxx", ".c++",
-                                 ".h", ".hpp", ".hh", ".H", ".hxx", ".h++" };
+    const CharArray exts_c[] = {".c", ".cpp", ".cc", ".C", ".cxx", ".c++",
+                                ".h", ".hpp", ".hh", ".H", ".hxx", ".h++"};
     int size = sizeof(exts_c) / sizeof(CharArray);
 
-    std::vector<std::string> exts;
+    std::vector< std::string > exts;
 
     for (int i = 0; i < size; ++i)
         exts.push_back(exts_c[i]);
@@ -25,14 +24,12 @@ std::vector<std::string> initSourceFileExtensions()
     return exts;
 }
 
-std::vector<std::string> DirectoryReader::_sourceFileExtensions =
-        initSourceFileExtensions();
-std::vector<std::string> DirectoryReader::_ignore_substrings =
-        std::vector<std::string>();
+std::vector< std::string > DirectoryReader::_sourceFileExtensions =
+    initSourceFileExtensions();
+std::vector< std::string > DirectoryReader::_ignore_substrings =
+    std::vector< std::string >();
 
-DirectoryReader::DirectoryReader()
-{
-}
+DirectoryReader::DirectoryReader() {}
 
 void DirectoryReader::readDirectory(FileTree &fileTree,
                                     const char *directory_path)
@@ -43,8 +40,7 @@ void DirectoryReader::readDirectory(FileTree &fileTree,
 void DirectoryReader::readDirectory(FileTree &fileTree,
                                     const BoostPath &directory_path)
 {
-    SplittedPath sp_base(directory_path.string(),
-                         SplittedPath::osSep());
+    SplittedPath sp_base(directory_path.string(), SplittedPath::osSep());
 
     fileTree.clean();
     fileTree.setRootPath(sp_base);
@@ -76,12 +72,12 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
             if (!isSourceFile(directory_path))
                 return;
             MY_ASSERT(_currenDirectory);
-            _currenDirectory->addChild(new FileNode(rel_path,
-                                                    FileRecord::RegularFile));
+            _currenDirectory->addChild(
+                new FileNode(rel_path, FileRecord::RegularFile));
         }
         else if (is_directory(directory_path)) {
-            FileNode *directoryNode = new FileNode(rel_path,
-                                                   FileRecord::Directory);
+            FileNode *directoryNode =
+                new FileNode(rel_path, FileRecord::Directory);
             if (_currenDirectory == nullptr)
                 fileTree.setRootDirectoryNode(directoryNode);
             else
@@ -97,7 +93,8 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
         }
 
         else {
-            errors() << directory_path.string()
+            errors()
+                << directory_path.string()
                 << "exists, but is neither a regular file nor a directory\n";
         }
     }
@@ -115,21 +112,18 @@ void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)
 bool DirectoryReader::isSourceFile(const path &file_path) const
 {
     MY_ASSERT(boost::filesystem::is_regular_file(file_path));
-    return std::find(_sourceFileExtensions.begin(),
-                     _sourceFileExtensions.end(),
-                     boost::filesystem::extension(file_path).c_str())
-            != _sourceFileExtensions.end();
+    return std::find(_sourceFileExtensions.begin(), _sourceFileExtensions.end(),
+                     boost::filesystem::extension(file_path).c_str()) !=
+           _sourceFileExtensions.end();
 }
 
 bool DirectoryReader::isIgnored(const std::__cxx11::string &path) const
 {
     // check if path is ignored
-    for (auto &ignore_substring: _ignore_substrings) {
+    for (auto &ignore_substring : _ignore_substrings) {
         if (path.find(ignore_substring) != std::string::npos)
             return true;
     }
     // not found
     return false;
 }
-
-

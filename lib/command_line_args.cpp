@@ -19,7 +19,7 @@ CommandLineArgs::CommandLineArgs(int argc, char *argv[])
 
 int CommandLineArgs::parseArguments(int argc, char *argv[])
 {
-    CLI::App app {
+    CLI::App app{
         "Description:\n\t"
         "LazyUT detects tests, affected by the changes in the code.\n"};
 
@@ -37,25 +37,35 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     bool dont_keep_test_main = true;
 
     // required arguments
-    app.add_option("-p,--prodir", proDirectory, "Project root directory");
-    app.add_option("-s,--srcdir", srcDirectory, "Directory with library source files")->required();
-    app.add_option("-t,--testdir", testDirectory, "Directory with tests source files")->required();
+    app.add_option("-s,--srcdir", srcDirectory,
+                   "Directory with library source files")
+        ->required();
+    app.add_option("-t,--testdir", testDirectory,
+                   "Directory with tests source files")
+        ->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
+
     // optional arguments
-    app.add_option("-d,--deps", extra_dependencies, "Path to the JSON file with extra dependencies");
+    app.add_option("-p,--prodir", proDirectory, "Project root directory");
+    app.add_option("-d,--deps", extra_dependencies,
+                   "Path to the JSON file with extra dependencies");
     app.add_option("-i,--indir", inDirectory, "Input directory");
-    app.add_option("-e,--extensions", exts, "Source files extensions, separated by comma (,)");
-    app.add_option("--ignore", ignore_substrings, "Substrings of the ignored paths, separated by comma (,)");
-    app.add_flag("-m,--main", dont_keep_test_main, "Allways keep test source file with main() implementation");
+    app.add_option("-e,--extensions", exts,
+                   "Source files extensions, separated by comma (,)");
+    app.add_option("--ignore", ignore_substrings,
+                   "Substrings of the ignored paths, separated by comma (,)");
+    app.add_flag("-m,--main", dont_keep_test_main,
+                 "Allways keep test source file with main() implementation");
     app.add_flag("-v,--verbal", verbal, "Verbal mode");
     //
 
-    try {                                                                                                              \
-        app.parse(argc, argv);                                                                                   \
+    try {
+        app.parse(argc, argv);
     }
-    catch(const CLI::ParseError &e) {
+    catch (const CLI::ParseError &e) {
         _status = Failure;
-        return app.exit(e);;
+        return app.exit(e);
+        ;
     }
 
     if (!exts.empty())
@@ -94,13 +104,11 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     _totalAffected.append(std::string(_totalAffectedFileName));
 
     _proDirectory = SplittedPath(proDirectory, SplittedPath::unixSep());
-    _srcDirectory = absolute_path(SplittedPath(srcDirectory,
-                                               SplittedPath::unixSep()),
-                                  _proDirectory);
+    _srcDirectory = absolute_path(
+        SplittedPath(srcDirectory, SplittedPath::unixSep()), _proDirectory);
 
-    _testDirectory = absolute_path(SplittedPath(testDirectory,
-                                                SplittedPath::unixSep()),
-                                   _proDirectory);
+    _testDirectory = absolute_path(
+        SplittedPath(testDirectory, SplittedPath::unixSep()), _proDirectory);
     _srcsModified = _outDirectory;
     _srcsModified.append(std::string(_srcsModifiedFileName));
     _testsModified = _outDirectory;

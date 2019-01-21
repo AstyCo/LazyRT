@@ -6,28 +6,27 @@
 #include "external/rapidjson/document.h"
 #include "external/rapidjson/error/en.h"
 
-
 #define STR_ROOT_DIRECTORY "root_path"
 
-#define CHECK_STRING(x) if (!(x).IsString()) { error_wrong_type(path_to_json, );
+#define CHECK_STRING(x)                                                        \
+    if (!(x).IsString()) {                                                     \
+        error_wrong_type(path_to_json, );
 
 using namespace rapidjson;
 
-static const char* kTypeNames[] =
-    { "Null", "False", "True", "Object", "Array", "String", "Number" };
+static const char *kTypeNames[] = {"Null",  "False",  "True",  "Object",
+                                   "Array", "String", "Number"};
 
 static void error_missing_argument(const std::string &path_to_json,
                                    const std::string &arg)
 {
-    errors() << "JSON file" << path_to_json
-             << "missing key" << arg;
+    errors() << "JSON file" << path_to_json << "missing key" << arg;
 }
 
-template <typename TValue>
+template < typename TValue >
 static std::string get_string_json(const TValue &value, const char *key = NULL)
 {
-    if (!value.IsString())
-    {
+    if (!value.IsString()) {
         if (key) {
             char buff[1000];
             snprintf(buff, sizeof(buff),
@@ -39,11 +38,12 @@ static std::string get_string_json(const TValue &value, const char *key = NULL)
     return std::string(value.GetString());
 }
 
-void JsonReader::read_extra_dependencies(const std::string &path_to_json, FileTree &tree)
+void JsonReader::read_extra_dependencies(const std::string &path_to_json,
+                                         FileTree &tree)
 {
     auto data_pair = readFile(path_to_json.c_str(), "r");
     char *data = data_pair.first;
-    if(!data) {
+    if (!data) {
         errors() << "Failed to open the file" << '\'' + path_to_json + '\'';
         return;
     }
@@ -54,12 +54,11 @@ void JsonReader::read_extra_dependencies(const std::string &path_to_json, FileTr
         char buff[1000];
         snprintf(buff, sizeof(buff),
                  "Error parsing JSON file %s\n(offset %u): %s\n",
-                 path_to_json.c_str(),
-                 (unsigned)document.GetErrorOffset(),
+                 path_to_json.c_str(), (unsigned)document.GetErrorOffset(),
                  GetParseError_En(document.GetParseError()));
 
         errors() << buff;
-//        return;
+        //        return;
     }
 
     if (!document.HasMember(STR_ROOT_DIRECTORY)) {
@@ -67,17 +66,15 @@ void JsonReader::read_extra_dependencies(const std::string &path_to_json, FileTr
         return;
     }
 
-    std::string sRootDir = get_string_json(document[STR_ROOT_DIRECTORY],
-                                           STR_ROOT_DIRECTORY);
+    std::string sRootDir =
+        get_string_json(document[STR_ROOT_DIRECTORY], STR_ROOT_DIRECTORY);
     SplittedPath spRootDir(sRootDir, SplittedPath::unixSep());
     spRootDir.setOsSeparator();
     SplittedPath tmp = tree._projectDirectory + spRootDir;
-    std::cout << STR_ROOT_DIRECTORY << " "
-              << tmp.joint() << std::endl;
+    std::cout << STR_ROOT_DIRECTORY << " " << tmp.joint() << std::endl;
     tree.setRootPath(tmp);
     for (Value::ConstMemberIterator it_members = document.MemberBegin();
-        it_members != document.MemberEnd(); ++it_members)
-    {
+         it_members != document.MemberEnd(); ++it_members) {
         if (!strcmp(it_members->name.GetString(), STR_ROOT_DIRECTORY))
             continue;
 
@@ -87,19 +84,20 @@ void JsonReader::read_extra_dependencies(const std::string &path_to_json, FileTr
             fp.setOsSeparator();
             SplittedPath tmpFullPath = tree.rootPath() + fp;
             FileNode *file = tree.addFile(fp);
-            printf("%s depends on %s\n",
-                it_members->name.GetString(), tmpFullPath.joint().c_str());
+            printf("%s depends on %s\n", it_members->name.GetString(),
+                   tmpFullPath.joint().c_str());
         }
         else if (v.IsArray()) {
             for (Value::ConstValueIterator it_array = v.Begin();
                  it_array != v.End(); ++it_array) {
                 if (it_array->IsString()) {
-                    SplittedPath fp(it_array->GetString(), SplittedPath::unixSep());
+                    SplittedPath fp(it_array->GetString(),
+                                    SplittedPath::unixSep());
                     fp.setOsSeparator();
                     FileNode *file = tree.addFile(fp);
                     SplittedPath tmpFullPath = tree.rootPath() + fp;
-                    printf("%s depends on %s\n",
-                        it_members->name.GetString(), tmpFullPath.joint().c_str());
+                    printf("%s depends on %s\n", it_members->name.GetString(),
+                           tmpFullPath.joint().c_str());
                 }
                 else {
                     errors() << "Warning: JSON file wrong type:"
@@ -112,8 +110,7 @@ void JsonReader::read_extra_dependencies(const std::string &path_to_json, FileTr
         else {
             errors() << "Warning: JSON file wrong type:"
                      << "SKIPPED key:" << it_members->name.GetString()
-                     << "type:" << kTypeNames[v.GetType()]
-                     << "\n";
+                     << "type:" << kTypeNames[v.GetType()] << "\n";
         }
     }
 }

@@ -20,51 +20,52 @@ public:
     const char *skipSpacesAndComments(const char *line) const;
     int skipSpacesAndCommentsR(const char *line, int len) const;
 
-
     const char *parseName(const char *p, ScopedName &name) const;
     const char *parseWord(const char *p, int &wordLength) const;
 
     int parseNameR(const char *p, int len, ScopedName &name) const;
-    int dealWithOperatorOverloadingR(const char *p, int len, std::list<std::string> &nsname) const;
+    int dealWithOperatorOverloadingR(const char *p, int len,
+                                     std::list< std::string > &nsname) const;
     int parseWordR(const char *p, int len) const;
     bool checkIfFunctionHeadR(const char *p, int len) const;
 
     const char *readUntil(const char *p, const char *substr) const;
-    const char *readUntilM(const char *p, const std::list<std::string> &substrings,
-                           std::list<std::string>::const_iterator &it) const;
+    const char *readUntilM(const char *p,
+                           const std::list< std::string > &substrings,
+                           std::list< std::string >::const_iterator &it) const;
+
 private:
     const FileTree &_fileTree;
 
 private:
     // States
-    enum SpecialState
-    {
-        NoSpecialState,         //
-        HashSign,               // #
-        IncludeState,           // #include
-        NotIncludeMacroState,   // #smth (not #include)
+    enum SpecialState {
+        NoSpecialState,       //
+        HashSign,             // #
+        IncludeState,         // #include
+        NotIncludeMacroState, // #smth (not #include)
 
-        ClassState,             // class
-        StructState,            // struct
-        UnionState,             // union
-        TypedefState,           // typedef
+        ClassState,   // class
+        StructState,  // struct
+        UnionState,   // union
+        TypedefState, // typedef
 
-        UsingState,             // using
-        NamespaceState,         // namespace
-        TemplateState,          // template
-        Quotes,                 // "
+        UsingState,     // using
+        NamespaceState, // namespace
+        TemplateState,  // template
+        Quotes,         // "
 
-        SingleQuotes,           // '
-        OpenBracket,            // (
-        MultiComments,          // /*
-        SingleComments          // //
+        SingleQuotes,  // '
+        OpenBracket,   // (
+        MultiComments, // /*
+        SingleComments // //
     };
     static std::string stateToString(SpecialState state);
 
     SpecialState _state;
 
     ScopedName _currentNamespace;
-    std::list<ScopedName> _listUsingNamespace;
+    std::list< ScopedName > _listUsingNamespace;
 
     ScopedName _funcName;
     ScopedName _classNameDecl;

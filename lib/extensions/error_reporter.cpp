@@ -1,9 +1,6 @@
 #include "extensions/error_reporter.hpp"
 
-ErrorStream errors()
-{
-    return ErrorStream();
-}
+ErrorStream errors() { return ErrorStream(); }
 
 ErrorStream operator<<(ErrorStream stream, const std::string &text)
 {
@@ -11,7 +8,4 @@ ErrorStream operator<<(ErrorStream stream, const std::string &text)
     return stream;
 }
 
-ErrorStream::NewlinePrinter::~NewlinePrinter()
-{
-    std::cerr << std::endl;
-}
+ErrorStream::NewlinePrinter::~NewlinePrinter() { std::cerr << std::endl; }

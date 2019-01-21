@@ -11,46 +11,40 @@
 #include <list>
 #include <set>
 
-using std::string;
 using std::list;
+using std::string;
 
 typedef boost::filesystem::path BoostPath;
 
 struct IncludeDirective
 {
-    enum SeqCharType
-    {
-        Quotes,
-        Brackets
-    };
+    enum SeqCharType { Quotes, Brackets };
 
     IncludeDirective(const std::string &fname = std::string())
-        : type(Quotes), filename(fname) {}
+        : type(Quotes), filename(fname)
+    {
+    }
 
     SeqCharType type;
     std::string filename;
 
     std::string toPrint() const;
-    bool isQuotes() const { return type == Quotes;}
-    bool isBrackets() const { return type == Brackets;}
+    bool isQuotes() const { return type == Quotes; }
+    bool isBrackets() const { return type == Brackets; }
 };
 
 class FileRecord
 {
 public:
-    enum Type
-    {
-        Directory,
-        RegularFile
-    };
+    enum Type { Directory, RegularFile };
 
     FileRecord(const SplittedPath &path, Type type);
-public:
 
+public:
     void calculateHash(const SplittedPath &dir_base);
 
-    bool isRegularFile() const { return _type == RegularFile;}
-    bool isDirectory() const { return _type == Directory;}
+    bool isRegularFile() const { return _type == RegularFile; }
+    bool isDirectory() const { return _type == Directory; }
 
     void setHash(const unsigned char *hash);
 
@@ -65,22 +59,22 @@ public:
     bool _isModified;
     bool _isManuallyLabeled;
 
-    list<IncludeDirective> _listIncludes;
+    list< IncludeDirective > _listIncludes;
 
-    std::set<ScopedName> _setImplements;
+    std::set< ScopedName > _setImplements;
 
-    std::set<ScopedName> _setClassDecl;
-    std::set<ScopedName> _setFuncDecl;
+    std::set< ScopedName > _setClassDecl;
+    std::set< ScopedName > _setFuncDecl;
 
-    std::set<ScopedName> _setInheritances;
+    std::set< ScopedName > _setInheritances;
 
-    list<ScopedName> _listUsingNamespace;
+    list< ScopedName > _listUsingNamespace;
 
     // Analyze stage
-    std::set<ScopedName> _setFuncImplFiles;
-    std::set<ScopedName> _setClassImplFiles;
-    std::set<ScopedName> _setBaseClassFiles;
-    std::set<ScopedName> _setImplementFiles;
+    std::set< ScopedName > _setFuncImplFiles;
+    std::set< ScopedName > _setClassImplFiles;
+    std::set< ScopedName > _setBaseClassFiles;
+    std::set< ScopedName > _setImplementFiles;
 
 public:
     MD5::HashArray _hashArray;
@@ -91,39 +85,40 @@ class FileTree;
 class FileNode
 {
 public:
-    typedef std::list<FileNode*> ListFileNode;
-    typedef std::set<FileNode*> SetFileNode;
+    typedef std::list< FileNode * > ListFileNode;
+    typedef std::set< FileNode * > SetFileNode;
     typedef ListFileNode::iterator FileNodeIterator;
     typedef ListFileNode::const_iterator FileNodeConstIterator;
 
     typedef void (FileNode::*VoidProcedure)(void);
     typedef void (FileNode::*CFileTreeProcedure)(const FileTree &);
-public:
 
+public:
     explicit FileNode(const SplittedPath &path, FileRecord::Type type);
     virtual ~FileNode();
 
     FileNode *findChild(const HashedFileName &hfname) const;
     void addChild(FileNode *child);
-    FileNode *findOrNewChild(const HashedFileName &hfname, FileRecord::Type type);
+    FileNode *findOrNewChild(const HashedFileName &hfname,
+                             FileRecord::Type type);
     void removeChild(FileNode *child);
 
-    const FileRecord &record() const { return _record;}
-    FileRecord &record() { return _record;}
+    const FileRecord &record() const { return _record; }
+    FileRecord &record() { return _record; }
 
-    FileNode *parent() const { return _parent;}
+    FileNode *parent() const { return _parent; }
     void setParent(FileNode *parent);
 
-    list<FileNode*> &childs() { return _childs;}
-    const list<FileNode*> &childs() const { return _childs;}
+    list< FileNode * > &childs() { return _childs; }
+    const list< FileNode * > &childs() const { return _childs; }
 
-    const SplittedPath &path() const { return _record._path;}
-    const SplittedPath::HashedType &fname() const { return path().last();}
-    const std::string &name() const { return path().joint();}
+    const SplittedPath &path() const { return _record._path; }
+    const SplittedPath::HashedType &fname() const { return path().last(); }
+    const std::string &name() const { return path().joint(); }
 
     bool hasRegularFiles() const;
-    bool isRegularFile() const { return _record.isRegularFile();}
-    bool isDirectory() const { return _record.isDirectory();}
+    bool isRegularFile() const { return _record.isRegularFile(); }
+    bool isDirectory() const { return _record.isDirectory(); }
 
     void destroy();
 
@@ -141,12 +136,12 @@ public:
 
     void swapParsedData(FileNode *file);
 
-    void setStoredNode(FileNode *storedNode) { _storedCopy = storedNode;}
-    void setModified() { _record._isModified = true;}
-    bool isModified() const { return _record._isModified;}
-    void setLabeled() { _record._isManuallyLabeled = true;}
+    void setStoredNode(FileNode *storedNode) { _storedCopy = storedNode; }
+    void setModified() { _record._isModified = true; }
+    bool isModified() const { return _record._isModified; }
+    void setLabeled() { _record._isManuallyLabeled = true; }
     void setLabeledDependencies();
-    bool isManuallyLabeled() const { return _record._isManuallyLabeled;}
+    bool isManuallyLabeled() const { return _record._isManuallyLabeled; }
 
 public:
     ///---Debug
@@ -163,8 +158,12 @@ public:
     void printInheritsFiles(int indent = 0) const;
     ///
 private:
-    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps, const SetFileNode FileNode::*explicitDeps, bool FileNode::*called);
-    void installDepsPrivate(SetFileNode FileNode::*deps, const SetFileNode FileNode::*explicitDeps, bool FileNode::*called);
+    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps,
+                              const SetFileNode FileNode::*explicitDeps,
+                              bool FileNode::*called);
+    void installDepsPrivate(SetFileNode FileNode::*deps,
+                            const SetFileNode FileNode::*explicitDeps,
+                            bool FileNode::*called);
 
     FileNode *_parent;
     ListFileNode _childs;
@@ -174,9 +173,9 @@ public:
     SetFileNode _setExplicitDependencies;
     SetFileNode _setExplicitDependendentBy;
 
-
     SetFileNode _setDependencies;
     SetFileNode _setDependentBy;
+
 private:
     bool _installDependenciesCalled;
     bool _installDependentByCalled;
@@ -186,15 +185,18 @@ private:
 
 namespace FileNodeFunc {
 
-inline void setLabeled(FileNode *f) { MY_ASSERT(f); f->setLabeled();}
+inline void setLabeled(FileNode *f)
+{
+    MY_ASSERT(f);
+    f->setLabeled();
+}
 
 } // namespace FileNodeFunc
 
 class FileTree
 {
 public:
-    enum State
-    {
+    enum State {
         Clean,
         Restored,
         Filled,
@@ -230,9 +232,12 @@ public:
     void setRootDirectoryNode(FileNode *node);
     void setProjectDirectory(const SplittedPath &path);
 
-    const SplittedPath &relativePathSources() const { return _relativePathSources;}
+    const SplittedPath &relativePathSources() const
+    {
+        return _relativePathSources;
+    }
 
-    const SplittedPath &rootPath() const { return _rootPath;}
+    const SplittedPath &rootPath() const { return _rootPath; }
     void setRootPath(const SplittedPath &sp);
 
 public:
@@ -240,9 +245,9 @@ public:
     FileNode *_rootDirectoryNode;
     SplittedPath _projectDirectory;
 
-    std::list<FileNode*> _includePaths;
+    std::list< FileNode * > _includePaths;
 
-    std::list<SplittedPath> _affectedFiles;
+    std::list< SplittedPath > _affectedFiles;
 
 public:
     void removeEmptyDirectories(FileNode *node);
@@ -258,7 +263,7 @@ public:
 
     void installAffectedFilesRecursive(FileNode *node);
 
-    template <typename TFunc>
+    template < typename TFunc >
     void recursiveCall(FileNode &node, TFunc f)
     {
         (node.*f)();
@@ -266,21 +271,24 @@ public:
             recursiveCall(*child, f);
     }
 
-    FileNode *searchIncludedFile(const IncludeDirective &id, FileNode *node) const;
+    FileNode *searchIncludedFile(const IncludeDirective &id,
+                                 FileNode *node) const;
 
-    FileNode *searchInCurrentDir(const SplittedPath &path, FileNode *current_dir) const;
+    FileNode *searchInCurrentDir(const SplittedPath &path,
+                                 FileNode *current_dir) const;
     FileNode *searchInIncludePaths(const SplittedPath &path) const;
     FileNode *searchInRoot(const SplittedPath &path) const;
 
 private:
     void updateRelativePath();
+
 private:
     SplittedPath _rootPath;
 
     SourceParser _srcParser;
     SplittedPath _relativePathSources;
 };
-typedef std::shared_ptr<FileTree> FileTreePtr;
+typedef std::shared_ptr< FileTree > FileTreePtr;
 
 namespace FileTreeFunc {
 
@@ -310,8 +318,6 @@ void writeModified(const FileTree &tree, const std::__cxx11::string &filename);
 //  Prints list of files, affected by modifications to specific file.
 void writeAffected(const FileTree &tree, const std::string &filename);
 
-
 } // namespace FileTreeFunc
-
 
 #endif // FILE_TREE_HPP

@@ -18,8 +18,8 @@
 #include <fcntl.h>
 
 FileRecord::FileRecord(const SplittedPath &path, Type type)
-    : _path(path), _type(type), _isModified(false),
-      _isManuallyLabeled(false), _isHashValid(false)
+    : _path(path), _type(type), _isModified(false), _isManuallyLabeled(false),
+      _isHashValid(false)
 {
     _path.setOsSeparator();
 }
@@ -35,10 +35,10 @@ void FileRecord::calculateHash(const SplittedPath &dir_base)
                  (dir_base + _path).c_str());
         errors() << std::string(buff);
 
-//        MY_ASSERT(false);
+        //        MY_ASSERT(false);
         return;
     }
-    MD5 md5((unsigned char*)data, data_pair.second);
+    MD5 md5((unsigned char *)data, data_pair.second);
     md5.copyResultTo(_hashArray);
 
     _isHashValid = true;
@@ -58,9 +58,9 @@ std::__cxx11::string FileRecord::hashHex() const
         return std::string();
 
     char buf[33];
-    for (int i=0; i<16; i++)
-        sprintf(buf+i*2, "%02x", _hashArray[i]);
-    buf[32]=0;
+    for (int i = 0; i < 16; i++)
+        sprintf(buf + i * 2, "%02x", _hashArray[i]);
+    buf[32] = 0;
 
     return std::string(buf);
 }
@@ -77,15 +77,14 @@ void FileRecord::swapParsedData(FileRecord &record)
 }
 
 FileNode::FileNode(const SplittedPath &path, FileRecord::Type type)
-    : _record(path, type), _parent(nullptr),
-      _installDependenciesCalled(false), _storedCopy(NULL)
+    : _record(path, type), _parent(nullptr), _installDependenciesCalled(false),
+      _storedCopy(NULL)
 {
-
 }
 
 FileNode::~FileNode()
 {
-    list<FileNode*>::iterator it = _childs.begin();
+    list< FileNode * >::iterator it = _childs.begin();
     while (it != _childs.end()) {
         delete *it;
         ++it;
@@ -100,7 +99,8 @@ void FileNode::addChild(FileNode *child)
     _childs.push_back(child);
 }
 
-FileNode *FileNode::findOrNewChild(const HashedFileName &hfname, FileRecord::Type type)
+FileNode *FileNode::findOrNewChild(const HashedFileName &hfname,
+                                   FileRecord::Type type)
 {
     if (FileNode *foundChild = findChild(hfname))
         return foundChild;
@@ -109,8 +109,8 @@ FileNode *FileNode::findOrNewChild(const HashedFileName &hfname, FileRecord::Typ
     if (parent())
         newChild = new FileNode(_record._path + hfname, type);
     else
-        newChild = new FileNode(SplittedPath(hfname, SplittedPath::unixSep()),
-                                type);
+        newChild =
+            new FileNode(SplittedPath(hfname, SplittedPath::unixSep()), type);
     addChild(newChild);
 
     return newChild;
@@ -122,10 +122,7 @@ void FileNode::removeChild(FileNode *child)
     _childs.remove(child);
 }
 
-void FileNode::setParent(FileNode *parent)
-{
-    _parent = parent;
-}
+void FileNode::setParent(FileNode *parent) { _parent = parent; }
 
 void FileNode::print(int indent) const
 {
@@ -133,19 +130,19 @@ void FileNode::print(int indent) const
 
     std::cout << strIndents << _record._path.joint();
     if (_record._type == FileRecord::RegularFile)
-        std::cout << "\thex:[" <<  _record.hashHex() << "]";
+        std::cout << "\thex:[" << _record.hashHex() << "]";
     std::cout << std::endl;
-//    printInherits(indent);
-//    printInheritsFiles(indent);
-//    printDependencies(indent);
-//    printDependentBy(indent);
+    //    printInherits(indent);
+    //    printInheritsFiles(indent);
+    //    printDependencies(indent);
+    //    printDependentBy(indent);
     printImpls(indent);
     printImplFiles(indent);
     printDecls(indent);
     printFuncImpls(indent);
     printClassImpls(indent);
 
-    list<FileNode*>::const_iterator it = _childs.begin();
+    list< FileNode * >::const_iterator it = _childs.begin();
     while (it != _childs.end()) {
         (*it)->print(indent + 1);
         ++it;
@@ -157,11 +154,11 @@ void FileNode::printModified(int indent, bool modified) const
     std::string strIndents = makeIndents(indent, 2);
 
     if (isRegularFile() && (isModified() == modified)) {
-        std::cout << strIndents << (modified ? " + " : " - " )
-                  << name() << std::endl;
+        std::cout << strIndents << (modified ? " + " : " - ") << name()
+                  << std::endl;
     }
 
-    for (auto f: _childs)
+    for (auto f : _childs)
         f->printModified(indent + 1, modified);
 }
 
@@ -170,9 +167,11 @@ void FileNode::printDecls(int indent) const
     std::string strIndents = makeIndents(indent, 2);
 
     for (auto &decl : _record._setClassDecl)
-        std::cout << strIndents << string("class decl: ") << decl.joint() << std::endl;
+        std::cout << strIndents << string("class decl: ") << decl.joint()
+                  << std::endl;
     for (auto &decl : _record._setFuncDecl)
-        std::cout << strIndents << string("function decl: ") << decl.joint() << std::endl;
+        std::cout << strIndents << string("function decl: ") << decl.joint()
+                  << std::endl;
 }
 
 void FileNode::printImpls(int indent) const
@@ -180,15 +179,17 @@ void FileNode::printImpls(int indent) const
     std::string strIndents = makeIndents(indent, 2);
 
     for (auto &impl : _record._setImplements)
-        std::cout << strIndents << string("impl: ") << impl.joint() << std::endl;
+        std::cout << strIndents << string("impl: ") << impl.joint()
+                  << std::endl;
 }
 
 void FileNode::printImplFiles(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &impl_file: _record._setImplementFiles)
-        std::cout << strIndents << string("impl_file: ") << impl_file.joint() << std::endl;
+    for (auto &impl_file : _record._setImplementFiles)
+        std::cout << strIndents << string("impl_file: ") << impl_file.joint()
+                  << std::endl;
 }
 
 void FileNode::printFuncImpls(int indent) const
@@ -196,7 +197,8 @@ void FileNode::printFuncImpls(int indent) const
     std::string strIndents = makeIndents(indent, 2);
 
     for (auto &impl : _record._setFuncImplFiles)
-        std::cout << strIndents << string("impl func: ") << impl.joint() << std::endl;
+        std::cout << strIndents << string("impl func: ") << impl.joint()
+                  << std::endl;
 }
 
 void FileNode::printClassImpls(int indent) const
@@ -204,7 +206,8 @@ void FileNode::printClassImpls(int indent) const
     std::string strIndents = makeIndents(indent, 2);
 
     for (auto &impl : _record._setClassImplFiles)
-        std::cout << strIndents << string("impl class: ") << impl.joint() << std::endl;
+        std::cout << strIndents << string("impl class: ") << impl.joint()
+                  << std::endl;
 }
 
 void FileNode::printDependencies(int indent) const
@@ -214,7 +217,8 @@ void FileNode::printDependencies(int indent) const
     for (auto &file : _setDependencies) {
         if (file == this)
             continue; // don't print the file itself
-        std::cout << strIndents << string("dependecy: ") << file->name() << std::endl;
+        std::cout << strIndents << string("dependecy: ") << file->name()
+                  << std::endl;
     }
 }
 
@@ -225,7 +229,8 @@ void FileNode::printDependentBy(int indent) const
     for (auto &file : _setDependentBy) {
         if (file == this)
             continue; // don't print the file itself
-        std::cout << strIndents << string("dependent by: ") << file->name() << std::endl;
+        std::cout << strIndents << string("dependent by: ") << file->name()
+                  << std::endl;
     }
 }
 
@@ -234,7 +239,8 @@ void FileNode::printInherits(int indent) const
     std::string strIndents = makeIndents(indent, 2);
 
     for (auto &inh : _record._setInheritances)
-        std::cout << strIndents << string("inherits: ") << inh.joint() << std::endl;
+        std::cout << strIndents << string("inherits: ") << inh.joint()
+                  << std::endl;
 }
 
 void FileNode::printInheritsFiles(int indent) const
@@ -242,18 +248,21 @@ void FileNode::printInheritsFiles(int indent) const
     std::string strIndents = makeIndents(indent, 2);
 
     for (auto &inh : _record._setBaseClassFiles)
-        std::cout << strIndents << string("inh_file: ") << inh.joint() << std::endl;
+        std::cout << strIndents << string("inh_file: ") << inh.joint()
+                  << std::endl;
 }
 
-void FileNode::installDepsPrivate(FileNode::SetFileNode FileNode::*deps, const FileNode::SetFileNode FileNode::*explicitDeps,
-                                  /*const FileNode::ListFileNode FileNode::*impls, */bool FileNode::*called)
+void FileNode::installDepsPrivate(
+    FileNode::SetFileNode FileNode::*deps,
+    const FileNode::SetFileNode FileNode::*explicitDeps,
+    /*const FileNode::ListFileNode FileNode::*impls, */ bool FileNode::*called)
 {
     this->*called = true;
 
     // File allways depends on himself
     (this->*deps).insert(this);
 
-    for (auto node_ptr: (this->*explicitDeps))
+    for (auto node_ptr : (this->*explicitDeps))
         addDependencyPrivate(*node_ptr, deps, explicitDeps, called);
 }
 
@@ -262,7 +271,7 @@ bool FileNode::hasRegularFiles() const
     if (_record._type == FileRecord::RegularFile)
         return true;
     FileNodeConstIterator it(_childs.begin());
-    while(it != _childs.end()) {
+    while (it != _childs.end()) {
         if ((*it)->hasRegularFiles())
             return true;
         ++it;
@@ -280,16 +289,17 @@ void FileNode::destroy()
 void FileNode::installIncludes(const FileTree &fileTree)
 {
     for (auto &include_directive : _record._listIncludes) {
-       if (FileNode *includedFile = fileTree.searchIncludedFile(include_directive, this))
-           installExplicitDep(includedFile);
+        if (FileNode *includedFile =
+                fileTree.searchIncludedFile(include_directive, this))
+            installExplicitDep(includedFile);
     }
 }
 
 void FileNode::installInheritances(const FileTree &fileTree)
 {
     for (auto &file_path : _record._setBaseClassFiles) {
-       if (FileNode *baseClassFile = fileTree.searchInRoot(file_path))
-           installExplicitDep(baseClassFile);
+        if (FileNode *baseClassFile = fileTree.searchInRoot(file_path))
+            installExplicitDep(baseClassFile);
     }
 }
 
@@ -297,8 +307,8 @@ void FileNode::installImplements(const FileTree &fileTree)
 {
     for (auto &file_path : _record._setImplementFiles) {
 
-       if (FileNode *implementedFile = fileTree.searchInRoot(file_path))
-           installExplicitDepBy(implementedFile);
+        if (FileNode *implementedFile = fileTree.searchInRoot(file_path))
+            installExplicitDepBy(implementedFile);
     }
 }
 
@@ -357,11 +367,12 @@ void FileNode::swapParsedData(FileNode *file)
 
 void FileNode::setLabeledDependencies()
 {
-    std::for_each(_setDependencies.begin(),
-                  _setDependencies.end(), FileNodeFunc::setLabeled);
+    std::for_each(_setDependencies.begin(), _setDependencies.end(),
+                  FileNodeFunc::setLabeled);
 }
 
-void FileNode::addDependencyPrivate(FileNode &file, FileNode::SetFileNode FileNode::*deps,
+void FileNode::addDependencyPrivate(FileNode &file,
+                                    FileNode::SetFileNode FileNode::*deps,
                                     const SetFileNode FileNode::*explicitDeps,
                                     bool FileNode::*called)
 {
@@ -370,7 +381,8 @@ void FileNode::addDependencyPrivate(FileNode &file, FileNode::SetFileNode FileNo
         file.installDepsPrivate(deps, explicitDeps, called);
 
     const auto &otherFileDependencies = file.*deps;
-    (this->*deps).insert(otherFileDependencies.begin(), otherFileDependencies.end());
+    (this->*deps)
+        .insert(otherFileDependencies.begin(), otherFileDependencies.end());
 }
 
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
@@ -459,7 +471,8 @@ void FileTree::installAffectedFiles()
 void FileTree::parseModifiedFiles(const FileTree &restored_file_tree)
 {
     MY_ASSERT(_state == CachesCalculated);
-    compareModifiedFilesRecursive(_rootDirectoryNode, restored_file_tree._rootDirectoryNode);
+    compareModifiedFilesRecursive(_rootDirectoryNode,
+                                  restored_file_tree._rootDirectoryNode);
     parseModifiedFilesRecursive(_rootDirectoryNode);
 }
 
@@ -483,17 +496,17 @@ void FileTree::printModified() const
 
 FileNode *FileTree::addFile(const SplittedPath &path)
 {
-    const std::list<HashedFileName> &splittedPath = path.splitted();
+    const std::list< HashedFileName > &splittedPath = path.splitted();
     if (!_rootDirectoryNode) {
-        setRootDirectoryNode(new FileNode(SplittedPath(".", SplittedPath::unixSep()),
-                                          FileRecord::Directory));
+        setRootDirectoryNode(new FileNode(
+            SplittedPath(".", SplittedPath::unixSep()), FileRecord::Directory));
     }
     FileNode *currentNode = _rootDirectoryNode;
     MY_ASSERT(_rootDirectoryNode);
     for (const HashedFileName &fname : splittedPath) {
-        FileRecord::Type type = ((fname == splittedPath.back())
-                                 ? FileRecord::RegularFile
-                                 : FileRecord::Directory);
+        FileRecord::Type type =
+            ((fname == splittedPath.back()) ? FileRecord::RegularFile
+                                            : FileRecord::Directory);
         currentNode = currentNode->findOrNewChild(fname, type);
         MY_ASSERT(currentNode);
     }
@@ -536,7 +549,7 @@ void FileTree::removeEmptyDirectories(FileNode *node)
     FileNode::ListFileNode &childs = node->childs();
     FileNode::FileNodeIterator it(childs.begin());
 
-    while(it != childs.end()) {
+    while (it != childs.end()) {
         removeEmptyDirectories(*it);
 
         if ((*it)->hasRegularFiles())
@@ -556,7 +569,7 @@ void FileTree::calculateFileHashes(FileNode *node)
     FileNode::ListFileNode &childs = node->childs();
     FileNode::FileNodeIterator it(childs.begin());
 
-    while(it != childs.end()) {
+    while (it != childs.end()) {
         calculateFileHashes(*it);
 
         ++it;
@@ -565,21 +578,21 @@ void FileTree::calculateFileHashes(FileNode *node)
 
 void FileTree::parseModifiedFilesRecursive(FileNode *node)
 {
-    if (node->isRegularFile()
-            && node->isModified()) {
+    if (node->isRegularFile() && node->isModified()) {
         _srcParser.parseFile(node);
     }
-    for (auto child: node->childs())
+    for (auto child : node->childs())
         parseModifiedFilesRecursive(child);
 }
 
-void FileTree::compareModifiedFilesRecursive(FileNode *node, FileNode *restored_node)
+void FileTree::compareModifiedFilesRecursive(FileNode *node,
+                                             FileNode *restored_node)
 {
     auto thisChilds = node->childs();
     if (node->isRegularFile()) {
         if (restored_node->isRegularFile() &&
-                compareHashArrays(node->record()._hashArray,
-                                  restored_node->record()._hashArray)) {
+            compareHashArrays(node->record()._hashArray,
+                              restored_node->record()._hashArray)) {
             // md5 hash sums match
             node->setStoredNode(restored_node);
         }
@@ -595,7 +608,8 @@ void FileTree::compareModifiedFilesRecursive(FileNode *node, FileNode *restored_
             compareModifiedFilesRecursive(child, restored_child);
         }
         else {
-            std::cout << "this "<< node->name() << " child " << child->fname() << " not found" << std::endl;
+            std::cout << "this " << node->name() << " child " << child->fname()
+                      << " not found" << std::endl;
             installModifiedFiles(child);
         }
     }
@@ -621,9 +635,7 @@ void FileTree::parseFilesRecursive(FileNode *node)
     // else, if directory
     for (auto child : node->childs())
         parseFilesRecursive(child);
-
 }
-
 
 void FileTree::installIncludeNodesRecursive(FileNode &node)
 {
@@ -650,7 +662,7 @@ static bool isAffected(const FileNode *file)
 {
     if (file->isManuallyLabeled())
         return true;
-    for (auto &dep: file->_setDependencies) {
+    for (auto &dep : file->_setDependencies) {
         if (dep->isModified()) {
             return true;
         }
@@ -667,11 +679,12 @@ void FileTree::installAffectedFilesRecursive(FileNode *node)
 
         _affectedFiles.push_back(tmp);
     }
-    for (auto child: node->childs())
+    for (auto child : node->childs())
         installAffectedFilesRecursive(child);
 }
 
-FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *node) const
+FileNode *FileTree::searchIncludedFile(const IncludeDirective &id,
+                                       FileNode *node) const
 {
     MY_ASSERT(node);
     const SplittedPath path(id.filename, SplittedPath::unixSep());
@@ -689,7 +702,8 @@ FileNode *FileTree::searchIncludedFile(const IncludeDirective &id, FileNode *nod
     }
 }
 
-FileNode *FileTree::searchInCurrentDir(const SplittedPath &path, FileNode *dir) const
+FileNode *FileTree::searchInCurrentDir(const SplittedPath &path,
+                                       FileNode *dir) const
 {
     MY_ASSERT(dir && dir->isDirectory());
     if (!dir)
@@ -714,8 +728,7 @@ FileNode *FileTree::searchInRoot(const SplittedPath &path) const
 
 void FileTree::updateRelativePath()
 {
-    if (!_projectDirectory.empty()
-            && !_rootPath.empty()) {
+    if (!_projectDirectory.empty() && !_rootPath.empty()) {
         _relativePathSources = my_relative(_rootPath, _projectDirectory);
     }
 }
@@ -723,8 +736,10 @@ void FileTree::updateRelativePath()
 std::__cxx11::string IncludeDirective::toPrint() const
 {
     switch (type) {
-    case Quotes: return '"' + filename + '"';
-    case Brackets: return '<' + filename + '>';
+    case Quotes:
+        return '"' + filename + '"';
+    case Brackets:
+        return '<' + filename + '>';
     }
     return std::string();
 }
@@ -737,7 +752,8 @@ void FileTreeFunc::readDirectory(FileTree &tree, const std::string &dirPath)
     dirReader.readDirectory(tree, spReplacedSep.joint());
 }
 
-void FileTreeFunc::parsePhase(FileTree &tree, const std::__cxx11::string &dumpFileName)
+void FileTreeFunc::parsePhase(FileTree &tree,
+                              const std::__cxx11::string &dumpFileName)
 {
     FileTree restoredTree;
     FileTreeFunc::deserialize(restoredTree, dumpFileName);
@@ -753,8 +769,9 @@ static void testDeps(FileNode *fnode)
 {
     if (nullptr == fnode)
         return;
-    for (auto &file: fnode->_setDependencies) {
-        MY_ASSERT(file->_setDependentBy.find(fnode) != file->_setDependentBy.end());
+    for (auto &file : fnode->_setDependencies) {
+        MY_ASSERT(file->_setDependentBy.find(fnode) !=
+                  file->_setDependentBy.end());
     }
 }
 
@@ -769,29 +786,28 @@ void FileTreeFunc::analyzePhase(FileTree &tree)
 
     tree.installDependencies();
 
-    DEBUG(
-        tree.installDependentBy();
-        testDeps(tree._rootDirectoryNode)
-    );
+    DEBUG(tree.installDependentBy(); testDeps(tree._rootDirectoryNode));
 }
 
 void FileTreeFunc::printAffected(const FileTree &tree)
 {
-    std::cout << "FileTreeFunc::printAffected " << tree.rootPath().joint() << std::endl;
+    std::cout << "FileTreeFunc::printAffected " << tree.rootPath().joint()
+              << std::endl;
 
     std::string strIndents = makeIndents(0, 2);
-    for (const auto &sp: tree._affectedFiles)
+    for (const auto &sp : tree._affectedFiles)
         std::cout << strIndents << sp.joint() << std::endl;
 }
 
-void FileTreeFunc::writeAffected(const FileTree &tree, const std::__cxx11::string &filename)
+void FileTreeFunc::writeAffected(const FileTree &tree,
+                                 const std::__cxx11::string &filename)
 {
     /* open the file for writing*/
-    if (FILE *fp = fopen (filename.c_str(),"w")) {
-        for (const auto &sp: tree._affectedFiles)
+    if (FILE *fp = fopen(filename.c_str(), "w")) {
+        for (const auto &sp : tree._affectedFiles)
             fprintf(fp, "%s\n", sp.joint().c_str());
         /* close the file*/
-        fclose (fp);
+        fclose(fp);
     }
 }
 
@@ -799,7 +815,7 @@ static bool containsMain(FileNode *file)
 {
     static std::string mainPrototype = "main";
     const auto &impls = file->record()._setImplements;
-    for (const auto &impl: impls) {
+    for (const auto &impl : impls) {
         if (impl.joint() == mainPrototype) {
             std::cout << file->name() << " contains main() {}" << std::endl;
             return true;
@@ -809,7 +825,8 @@ static bool containsMain(FileNode *file)
     return false;
 }
 
-static void searchTestMainR(FileNode *file, std::vector<FileNode *> &vTestMainFiles)
+static void searchTestMainR(FileNode *file,
+                            std::vector< FileNode * > &vTestMainFiles)
 {
     if (vTestMainFiles.size() > 2)
         return;
@@ -820,14 +837,14 @@ static void searchTestMainR(FileNode *file, std::vector<FileNode *> &vTestMainFi
     }
     else {
         // directory
-        for (auto childFile: file->childs())
+        for (auto childFile : file->childs())
             searchTestMainR(childFile, vTestMainFiles);
     }
 }
 
 static FileNode *searchTestMain(FileTree &testTree)
 {
-    std::vector<FileNode *> vTestMainFiles;
+    std::vector< FileNode * > vTestMainFiles;
     vTestMainFiles.reserve(2);
     searchTestMainR(testTree._rootDirectoryNode, vTestMainFiles);
     // return file only if main() implemented in exactly one file
@@ -842,7 +859,7 @@ void FileTreeFunc::labelMainAffected(FileTree &testTree)
         testMainFile->setLabeledDependencies();
 }
 
-static void writeModifiedR(const FileNode *file, FILE * fp)
+static void writeModifiedR(const FileNode *file, FILE *fp)
 {
     if (file == nullptr)
         return;
@@ -852,16 +869,17 @@ static void writeModifiedR(const FileNode *file, FILE * fp)
         tmp.setUnixSeparator();
         fprintf(fp, "%s\n", tmp.joint().c_str());
     }
-    for (auto child: file->childs())
+    for (auto child : file->childs())
         writeModifiedR(child, fp);
 }
 
-void FileTreeFunc::writeModified(const FileTree &tree, const std::string &filename)
+void FileTreeFunc::writeModified(const FileTree &tree,
+                                 const std::string &filename)
 {
     /* open the file for writing*/
-    if (FILE * fp = fopen (filename.c_str(),"w")) {
+    if (FILE *fp = fopen(filename.c_str(), "w")) {
         writeModifiedR(tree._rootDirectoryNode, fp);
         /* close the file*/
-        fclose (fp);
+        fclose(fp);
     }
 }

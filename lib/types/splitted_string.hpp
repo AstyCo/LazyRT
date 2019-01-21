@@ -8,15 +8,15 @@
 #include <string>
 #include <list>
 
-template <typename THashedString>
+template < typename THashedString >
 class SplittedString
 {
 public:
     typedef THashedString HashedType;
-    typedef std::list<THashedString> SplittedType;
+    typedef std::list< THashedString > SplittedType;
 
 public:
-    SplittedString() { init();}
+    SplittedString() { init(); }
 
     explicit SplittedString(const std::string &joint_,
                             const std::string &separator_)
@@ -25,8 +25,7 @@ public:
         init();
     }
 
-    SplittedString(const SplittedType &splitted_)
-        : _splitted(splitted_)
+    SplittedString(const SplittedType &splitted_) : _splitted(splitted_)
     {
         init();
     }
@@ -53,7 +52,7 @@ public:
         _splitted.push_back(s);
     }
 
-    void appendPath(const SplittedString<THashedString> &extra_path)
+    void appendPath(const SplittedString< THashedString > &extra_path)
     {
         MY_ASSERT(_separator == extra_path._separator);
         if (joint().empty())
@@ -73,12 +72,9 @@ public:
         clearJoint();
     }
 
-    bool empty() const
-    {
-        return !_isSplittedValid && !_isJointValid;
-    }
+    bool empty() const { return !_isSplittedValid && !_isJointValid; }
 
-    const std::list<THashedString> &splitted() const
+    const std::list< THashedString > &splitted() const
     {
         if (!_isSplittedValid)
             split();
@@ -91,7 +87,7 @@ public:
         return _joint;
     }
 
-    const char *c_str() const { return joint().c_str();}
+    const char *c_str() const { return joint().c_str(); }
 
     const THashedString &last() const
     {
@@ -116,7 +112,7 @@ public:
         return tmp;
     }
 
-    bool operator==(const SplittedString<THashedString> &other) const
+    bool operator==(const SplittedString< THashedString > &other) const
     {
         if (splitted().size() != other.splitted().size())
             return false;
@@ -129,12 +125,12 @@ public:
         return true;
     }
 
-    bool operator!=(const SplittedString<THashedString> &other) const
+    bool operator!=(const SplittedString< THashedString > &other) const
     {
         return !(*this == other);
     }
 
-    bool operator<(const SplittedString<THashedString> &other) const
+    bool operator<(const SplittedString< THashedString > &other) const
     {
         return joint() < other.joint();
     }
@@ -149,7 +145,6 @@ public:
         _separatorSize = _separator.size();
         clearJoint();
     }
-
 
     static const std::string &namespaceSep()
     {
@@ -170,10 +165,9 @@ public:
         return sep;
     }
 
-
-    void setNamespaceSeparator() { setSeparator(namespaceSep());}
-    void setOsSeparator() { setSeparator(osSep());}
-    void setUnixSeparator() { setSeparator(unixSep());}
+    void setNamespaceSeparator() { setSeparator(namespaceSep()); }
+    void setOsSeparator() { setSeparator(osSep()); }
+    void setUnixSeparator() { setSeparator(unixSep()); }
 
     void clear()
     {
@@ -200,7 +194,7 @@ private:
     {
         MY_ASSERT(!_isJointValid);
         size_t totalSize = 0;
-        if (!_splitted.empty()){
+        if (!_splitted.empty()) {
             for (THashedString &sw : _splitted)
                 totalSize += sw.size() + _separatorSize;
             totalSize -= _separatorSize;
@@ -258,6 +252,7 @@ public:
     mutable bool _isSplittedValid;
 
     mutable bool _isEmpty;
+
 protected:
     mutable std::string _joint;
     mutable SplittedType _splitted;
@@ -266,17 +261,25 @@ protected:
     size_t _separatorSize;
 };
 
-class HashedString: public std::string
+class HashedString : public std::string
 {
 public:
     typedef MurmurHashType HashType;
+
 public:
     HashedString(const std::string &str);
 
     MurmurHashType hash() const;
 
-    bool operator==(const HashedString &other) const { return hash() == other.hash();}
-    bool operator!=(const HashedString &other) const { return !(*this == other);}
+    bool operator==(const HashedString &other) const
+    {
+        return hash() == other.hash();
+    }
+    bool operator!=(const HashedString &other) const
+    {
+        return !(*this == other);
+    }
+
 protected:
     mutable MurmurHashType _hash;
 };
@@ -286,20 +289,20 @@ class HashedFileName : public HashedString
 public:
     HashedFileName(const std::string &str);
 
-    bool isDot() const { return hash() == _hashDot;}
-    bool isDotDot() const { return hash() == _hashDotDot;}
-    bool isEmpty() const { return length() == 0;}
+    bool isDot() const { return hash() == _hashDot; }
+    bool isDotDot() const { return hash() == _hashDotDot; }
+    bool isEmpty() const { return length() == 0; }
 
     static const MurmurHashType _hashDot;
     static const MurmurHashType _hashDotDot;
 };
 
-typedef SplittedString<HashedFileName> ScopedName;
-typedef SplittedString<HashedFileName> SplittedPath;
+typedef SplittedString< HashedFileName > ScopedName;
+typedef SplittedString< HashedFileName > SplittedPath;
 
-SplittedPath my_relative(const SplittedPath &path_to_file, const SplittedPath &base);
+SplittedPath my_relative(const SplittedPath &path_to_file,
+                         const SplittedPath &base);
 bool is_relative(const SplittedPath &path);
 SplittedPath absolute_path(const SplittedPath &path, const SplittedPath &base);
 
 #endif // SPLITTED_STRING_HPP
-

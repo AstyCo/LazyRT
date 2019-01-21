@@ -1,41 +1,37 @@
 #include "extensions/flatbuffers_extensions.hpp"
 
-template<typename FT, typename T>
+template < typename FT, typename T >
 void FileTreeFunc::copyVector(const FT &flatVector, T &v)
 {
-    std::transform(flatVector.begin(),
-                   flatVector.end(),
-                   std::inserter(v, v.end()),
-                   [](const flatbuffers::String* value) {
-                        return value->str();
-                   }
-    );
+    std::transform(
+        flatVector.begin(), flatVector.end(), std::inserter(v, v.end()),
+        [](const flatbuffers::String *value) { return value->str(); });
 }
 
-typedef flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String> > FB_VectorOfStrings;
-template void FileTreeFunc::copyVector<FB_VectorOfStrings,
-                                       std::list<IncludeDirective> >(
-    const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> &,
-    std::list<IncludeDirective> &);
+typedef flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > >
+    FB_VectorOfStrings;
+template void
+FileTreeFunc::copyVector< FB_VectorOfStrings, std::list< IncludeDirective > >(
+    const flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > > &,
+    std::list< IncludeDirective > &);
 
-template<typename TContainer>
-void FileTreeFunc::copyListSplitted(const LazyUT::ListSplitted &fv, TContainer &v)
+template < typename TContainer >
+void FileTreeFunc::copyListSplitted(const LazyUT::ListSplitted &fv,
+                                    TContainer &v)
 {
     std::string sep = fv.separator()->str();
     const auto &flatVector = *fv.splitted_paths();
-    std::transform(flatVector.begin(),
-                   flatVector.end(),
+    std::transform(flatVector.begin(), flatVector.end(),
                    std::inserter(v, v.end()),
-                   [&sep](const flatbuffers::String* value) {
-                        return ScopedName(value->str(), sep);
-                   }
-    );
+                   [&sep](const flatbuffers::String *value) {
+                       return ScopedName(value->str(), sep);
+                   });
 }
 
-typedef std::set<ScopedName> SetScopedName;
-template void FileTreeFunc::copyListSplitted<SetScopedName>(
-    const LazyUT::ListSplitted &fv, SetScopedName &v);
-
+typedef std::set< ScopedName > SetScopedName;
+template void
+FileTreeFunc::copyListSplitted< SetScopedName >(const LazyUT::ListSplitted &fv,
+                                                SetScopedName &v);
 
 void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
 {
@@ -49,18 +45,20 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
         tree.setRootPath(spRootPath);
         auto &records = *file_tree->records();
         for (const auto &record : records) {
-            SplittedPath sp(record->path()->str(),
-                            SplittedPath::osSep());
+            SplittedPath sp(record->path()->str(), SplittedPath::osSep());
             FileNode *fnode = tree.addFile(sp);
             FileRecord &fileRecord = fnode->record();
 
             fileRecord.setHash(record->md5()->data()); // Hash
             copyVector(*record->includes(), fileRecord._listIncludes);
             copyListSplitted(*record->implements(), fileRecord._setImplements);
-            copyListSplitted(*record->inheritances(), fileRecord._setInheritances);
+            copyListSplitted(*record->inheritances(),
+                             fileRecord._setInheritances);
             copyListSplitted(*record->class_decls(), fileRecord._setClassDecl);
-            copyListSplitted(*record->function_decls(), fileRecord._setFuncDecl);
-            copyListSplitted(*record->using_namespaces(), fileRecord._listUsingNamespace);
+            copyListSplitted(*record->function_decls(),
+                             fileRecord._setFuncDecl);
+            copyListSplitted(*record->using_namespaces(),
+                             fileRecord._listUsingNamespace);
 
             /// TODO install separators
         }
@@ -69,72 +67,65 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
     }
 }
 
-static  flatbuffers::Offset<
-            flatbuffers::Vector<
-                flatbuffers::Offset<
-                    flatbuffers::String>>>
-    CreateVectorOfStrings(flatbuffers::FlatBufferBuilder &builder,
-                          const std::list<IncludeDirective> &l)
+static flatbuffers::Offset<
+    flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > > >
+CreateVectorOfStrings(flatbuffers::FlatBufferBuilder &builder,
+                      const std::list< IncludeDirective > &l)
 {
-    std::vector<flatbuffers::Offset<flatbuffers::String>> offsets(l.size());
+    std::vector< flatbuffers::Offset< flatbuffers::String > > offsets(l.size());
     auto it = l.cbegin();
     int i = 0;
-    for (auto &dir: l)
+    for (auto &dir : l)
         offsets[i++] = builder.CreateString(dir.filename);
     return builder.CreateVector(offsets);
 }
 
-template <typename TContainer>
-static  flatbuffers::Offset<LazyUT::ListSplitted>
-    CreateListSplittedH(flatbuffers::FlatBufferBuilder &builder,
-                        const TContainer &container,
-                        const std::string &separator)
+template < typename TContainer >
+static flatbuffers::Offset< LazyUT::ListSplitted >
+CreateListSplittedH(flatbuffers::FlatBufferBuilder &builder,
+                    const TContainer &container, const std::string &separator)
 {
-    return LazyUT::CreateListSplitted(builder,
-                                      builder.CreateString(separator),
-                                      CreateVectorOfStrings(builder, container));
+    return LazyUT::CreateListSplitted(
+        builder, builder.CreateString(separator),
+        CreateVectorOfStrings(builder, container));
 }
 
-
-
-template <typename TContainer>
-static  flatbuffers::Offset<
-            flatbuffers::Vector<
-                flatbuffers::Offset<
-                    flatbuffers::String>>>
-    CreateVectorOfStrings(flatbuffers::FlatBufferBuilder &builder,
-                          const TContainer &container)
+template < typename TContainer >
+static flatbuffers::Offset<
+    flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > > >
+CreateVectorOfStrings(flatbuffers::FlatBufferBuilder &builder,
+                      const TContainer &container)
 {
-    std::vector<flatbuffers::Offset<flatbuffers::String>> offsets(container.size());
+    std::vector< flatbuffers::Offset< flatbuffers::String > > offsets(
+        container.size());
     auto it = container.cbegin();
     int i = 0;
-    for (auto &scopedName: container)
+    for (auto &scopedName : container)
         offsets[i++] = builder.CreateString(scopedName.joint());
     return builder.CreateVector(offsets);
 }
 
-
-static void pushFiles(flatbuffers::FlatBufferBuilder &builder,
-               std::vector<flatbuffers::Offset<LazyUT::FileRecord> > &records, const FileNode *node)
+static void
+pushFiles(flatbuffers::FlatBufferBuilder &builder,
+          std::vector< flatbuffers::Offset< LazyUT::FileRecord > > &records,
+          const FileNode *node)
 {
     if (node->isRegularFile()) {
         auto frecord = node->record();
         auto fbs_frecord = LazyUT::CreateFileRecord(
-                    builder,
-                    builder.CreateString(frecord._path.joint()),
-                    builder.CreateVector(frecord._hashArray, 16),
-                    CreateVectorOfStrings(builder, frecord._listIncludes),
-                    CreateListSplittedH(builder, frecord._setImplements,
-                                        SplittedPath::namespaceSep()),
-                    CreateListSplittedH(builder, frecord._setInheritances,
-                                        SplittedPath::namespaceSep()),
-                    CreateListSplittedH(builder, frecord._setClassDecl,
-                                        SplittedPath::namespaceSep()),
-                    CreateListSplittedH(builder, frecord._setFuncDecl,
-                                        SplittedPath::namespaceSep()),
-                    CreateListSplittedH(builder, frecord._listUsingNamespace,
-                                        SplittedPath::namespaceSep())
-                    );
+            builder, builder.CreateString(frecord._path.joint()),
+            builder.CreateVector(frecord._hashArray, 16),
+            CreateVectorOfStrings(builder, frecord._listIncludes),
+            CreateListSplittedH(builder, frecord._setImplements,
+                                SplittedPath::namespaceSep()),
+            CreateListSplittedH(builder, frecord._setInheritances,
+                                SplittedPath::namespaceSep()),
+            CreateListSplittedH(builder, frecord._setClassDecl,
+                                SplittedPath::namespaceSep()),
+            CreateListSplittedH(builder, frecord._setFuncDecl,
+                                SplittedPath::namespaceSep()),
+            CreateListSplittedH(builder, frecord._listUsingNamespace,
+                                SplittedPath::namespaceSep()));
         records.push_back(fbs_frecord);
     }
 
@@ -147,19 +138,19 @@ static void pushFiles(flatbuffers::FlatBufferBuilder &builder,
     }
 }
 
-void FileTreeFunc::serialize(const FileTree &tree, const std::__cxx11::string &fileName)
+void FileTreeFunc::serialize(const FileTree &tree,
+                             const std::__cxx11::string &fileName)
 {
     // store to binary file
     flatbuffers::FlatBufferBuilder builder(1024);
 
-    std::vector<flatbuffers::Offset<LazyUT::FileRecord> > fileRecords;
+    std::vector< flatbuffers::Offset< LazyUT::FileRecord > > fileRecords;
     if (tree._rootDirectoryNode)
         pushFiles(builder, fileRecords, tree._rootDirectoryNode);
 
-
-    auto fbs_file_tree = LazyUT::CreateFileTree(builder,
-                                                     builder.CreateString(tree.rootPath().joint()),
-                                                     builder.CreateVector(fileRecords));
+    auto fbs_file_tree = LazyUT::CreateFileTree(
+        builder, builder.CreateString(tree.rootPath().joint()),
+        builder.CreateVector(fileRecords));
 
     builder.Finish(fbs_file_tree);
     uint8_t *data = builder.GetBufferPointer();
