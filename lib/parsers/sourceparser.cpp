@@ -303,7 +303,6 @@ bool SourceParser::checkIfFunctionHeadR(const char *p, int len) const
 {
     int d = skipSpacesAndCommentsR(p, len);
     const char ch = *(p - d);
-    std::cout << "checkIfFunctionHeadR " << ch << std::endl;
 
     return is_identifier_ch(ch) || ch == ':';
 }

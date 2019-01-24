@@ -1,7 +1,9 @@
 #include "types/file_tree.hpp"
+
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
 
+#include "command_line_args.hpp"
 #include "directoryreader.hpp"
 #include "dependency_analyzer.hpp"
 
@@ -31,7 +33,7 @@ void FileRecord::calculateHash(const SplittedPath &dir_base)
     if (!data) {
         char buff[1000];
         snprintf(buff, sizeof(buff),
-                 "LUT: Error: File \"%s\" can not be opened",
+                 "LazyUT: Error: File \"%s\" can not be opened",
                  (dir_base + _path).c_str());
         errors() << std::string(buff);
 
@@ -427,8 +429,10 @@ void FileTree::calculateFileHashes()
 void FileTree::parseFiles()
 {
     MY_ASSERT(_state == CachesCalculated);
-    if (_rootDirectoryNode)
+    if (_rootDirectoryNode) {
+        installModifiedFiles(_rootDirectoryNode);
         parseFilesRecursive(_rootDirectoryNode);
+    }
 }
 
 void FileTree::installIncludeNodes()
@@ -578,9 +582,9 @@ void FileTree::calculateFileHashes(FileNode *node)
 
 void FileTree::parseModifiedFilesRecursive(FileNode *node)
 {
-    if (node->isRegularFile() && node->isModified()) {
+    if (node->isRegularFile() && node->isModified())
         _srcParser.parseFile(node);
-    }
+
     for (auto child : node->childs())
         parseModifiedFilesRecursive(child);
 }
@@ -598,7 +602,8 @@ void FileTree::compareModifiedFilesRecursive(FileNode *node,
         }
         else {
             // md5 hash sums don't match
-            std::cout << node->name() << " md5 is the different" << std::endl;
+            if (clargs.verbal())
+                std::cout << node->name() << " md5 is the different" << std::endl;
             node->setModified();
         }
     }
@@ -608,8 +613,9 @@ void FileTree::compareModifiedFilesRecursive(FileNode *node,
             compareModifiedFilesRecursive(child, restored_child);
         }
         else {
-            std::cout << "this " << node->name() << " child " << child->fname()
-                      << " not found" << std::endl;
+            if (clargs.verbal())
+                std::cout << "this " << node->name() << " child " << child->fname()
+                          << " not found" << std::endl;
             installModifiedFiles(child);
         }
     }
@@ -786,7 +792,10 @@ void FileTreeFunc::analyzePhase(FileTree &tree)
 
     tree.installDependencies();
 
-    DEBUG(tree.installDependentBy(); testDeps(tree._rootDirectoryNode));
+    DEBUG(
+        tree.installDependentBy();
+        testDeps(tree._rootDirectoryNode)
+    );
 }
 
 void FileTreeFunc::printAffected(const FileTree &tree)
@@ -817,7 +826,6 @@ static bool containsMain(FileNode *file)
     const auto &impls = file->record()._setImplements;
     for (const auto &impl : impls) {
         if (impl.joint() == mainPrototype) {
-            std::cout << file->name() << " contains main() {}" << std::endl;
             return true;
         }
     }

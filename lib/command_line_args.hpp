@@ -9,7 +9,9 @@ public:
     enum State { Success = 0, Failure = 1 };
 
 public:
-    CommandLineArgs(int argc, char *argv[]);
+    CommandLineArgs();
+
+    void parseArguments(int argc, char *argv[]);
 
     const SplittedPath &proDir() const { return _proDirectory; }
     const SplittedPath &srcDir() const { return _srcDirectory; }
@@ -19,7 +21,7 @@ public:
     const std::string &deps() const { return _extra_dependencies; }
 
     bool verbal() const { return _verbal; }
-    bool keepTestMain() const { return _keepTestMain; }
+    bool isNoMain() const { return _isNoMain; }
 
     const SplittedPath &srcsDumpIn() const { return _srcsDumpIn; }
     const SplittedPath &srcsDumpOut() const { return _srcsDumpOut; }
@@ -33,10 +35,6 @@ public:
 
     int status() const { return _status; }
     int retCode() const { return _retCode; }
-
-private:
-    int parseArguments(int argc, char *argv[]);
-
 private:
     SplittedPath _proDirectory;
     SplittedPath _srcDirectory;
@@ -48,7 +46,7 @@ private:
     std::string _exts;
     std::string _ignore_substrings;
     bool _verbal;
-    bool _keepTestMain;
+    bool _isNoMain;
 
     static std::string _srcsFileTreeName;
     static std::string _testsFileTreeName;
@@ -72,5 +70,7 @@ private:
     int _status;
     int _retCode;
 };
+
+extern CommandLineArgs clargs;
 
 #endif // COMMAND_LINE_ARGS_HPP

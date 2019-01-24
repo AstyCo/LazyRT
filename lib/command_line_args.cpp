@@ -11,13 +11,14 @@ std::string CommandLineArgs::_totalAffectedFileName = "total_affected.txt";
 std::string CommandLineArgs::_srcsModifiedFileName = "src_modified.txt";
 std::string CommandLineArgs::_testsModifiedFileName = "test_modified.txt";
 
-CommandLineArgs::CommandLineArgs(int argc, char *argv[])
-    : _verbal(false), _keepTestMain(false), _retCode(0)
+CommandLineArgs clargs;
+
+CommandLineArgs::CommandLineArgs()
+    : _verbal(false), _isNoMain(false), _retCode(0)
 {
-    _retCode = parseArguments(argc, argv);
 }
 
-int CommandLineArgs::parseArguments(int argc, char *argv[])
+void CommandLineArgs::parseArguments(int argc, char *argv[])
 {
     CLI::App app{
         "Description:\n\t"
@@ -32,9 +33,6 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     std::string exts;
     std::string ignore_substrings;
     std::string extra_dependencies;
-
-    bool verbal = false;
-    bool dont_keep_test_main = true;
 
     // required arguments
     app.add_option("-s,--srcdir", srcDirectory,
@@ -54,9 +52,9 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
                    "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", ignore_substrings,
                    "Substrings of the ignored paths, separated by comma (,)");
-    app.add_flag("-m,--main", dont_keep_test_main,
-                 "Allways keep test source file with main() implementation");
-    app.add_flag("-v,--verbal", verbal, "Verbal mode");
+    app.add_flag("-m,--no-main", _isNoMain,
+                 "Don't keep test source file with main() implementation");
+    app.add_flag("-v,--verbal", _verbal, "Verbal mode");
     //
 
     try {
@@ -64,8 +62,8 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     }
     catch (const CLI::ParseError &e) {
         _status = Failure;
-        return app.exit(e);
-        ;
+        _retCode = app.exit(e);
+        return;
     }
 
     if (!exts.empty())
@@ -115,5 +113,5 @@ int CommandLineArgs::parseArguments(int argc, char *argv[])
     _testsModified.append(std::string(_testsModifiedFileName));
 
     _status = Success;
-    return 0;
+    _retCode = 0;
 }

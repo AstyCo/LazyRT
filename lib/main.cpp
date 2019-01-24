@@ -17,7 +17,7 @@
 #define PROFILE(x)                                                             \
     x;                                                                         \
     prf.step(#x)
-#define START_PROFILE Profiler prf(cla.verbal());
+#define START_PROFILE Profiler prf(clargs.verbal());
 
 enum LazyUTErrors { WRONG_CMD_LINE_OPTIONS = 1 };
 
@@ -33,54 +33,54 @@ static void concatFiles(const std::string &fin1, const std::string &fin2,
 
 int main(int argc, char *argv[])
 {
-    CommandLineArgs cla(argc, argv);
-    if (cla.status() != CommandLineArgs::Success)
-        return cla.retCode();
+    clargs.parseArguments(argc, argv);
+    if (clargs.status() != CommandLineArgs::Success)
+        return clargs.retCode();
 
     START_PROFILE;
 
     FileTreeForest trees;
-    trees.setProjectDirectory(cla.proDir());
+    trees.setProjectDirectory(clargs.proDir());
 
-    PROFILE(FileTreeFunc::readDirectory(trees.srcTree, cla.srcDir().joint()));
-    PROFILE(FileTreeFunc::readDirectory(trees.testTree, cla.testDir().joint()));
+    PROFILE(FileTreeFunc::readDirectory(trees.srcTree, clargs.srcDir().joint()));
+    PROFILE(FileTreeFunc::readDirectory(trees.testTree, clargs.testDir().joint()));
 
     trees.installIncludeSources();
-    trees.installExtraDependencies(cla.deps());
+    trees.installExtraDependencies(clargs.deps());
 
-    PROFILE(FileTreeFunc::parsePhase(trees.srcTree, cla.srcsDumpIn().joint()));
+    PROFILE(FileTreeFunc::parsePhase(trees.srcTree, clargs.srcsDumpIn().joint()));
     PROFILE(
-        FileTreeFunc::parsePhase(trees.testTree, cla.testsDumpIn().joint()));
+        FileTreeFunc::parsePhase(trees.testTree, clargs.testsDumpIn().joint()));
 
     PROFILE(FileTreeFunc::analyzePhase(trees.srcTree));
     PROFILE(FileTreeFunc::analyzePhase(trees.testTree));
 
-    if (cla.keepTestMain())
+    if (!clargs.isNoMain())
         FileTreeFunc::labelMainAffected(trees.testTree);
 
-    boost::filesystem::create_directories(cla.outDir().joint());
+    boost::filesystem::create_directories(clargs.outDir().joint());
 
-    FileTreeFunc::writeModified(trees.srcTree, cla.srcsModified().joint());
-    FileTreeFunc::writeModified(trees.testTree, cla.testsModified().joint());
+    FileTreeFunc::writeModified(trees.srcTree, clargs.srcsModified().joint());
+    FileTreeFunc::writeModified(trees.testTree, clargs.testsModified().joint());
 
     trees.installAffectedFiles();
 
-    FileTreeFunc::writeAffected(trees.srcTree, cla.srcsAffected().joint());
-    FileTreeFunc::writeAffected(trees.testTree, cla.testsAffected().joint());
+    FileTreeFunc::writeAffected(trees.srcTree, clargs.srcsAffected().joint());
+    FileTreeFunc::writeAffected(trees.testTree, clargs.testsAffected().joint());
 
-    if (cla.verbal()) {
+    if (clargs.verbal()) {
         FileTreeFunc::printAffected(trees.srcTree);
         FileTreeFunc::printAffected(trees.testTree);
         trees.srcTree.printModified();
         trees.testTree.printModified();
 
-        std::cout << "write lazyut files to " << cla.outDir().joint()
+        std::cout << "write lazyut files to " << clargs.outDir().joint()
                   << std::endl;
     }
 
-    PROFILE(FileTreeFunc::serialize(trees.srcTree, cla.srcsDumpOut().joint()));
+    PROFILE(FileTreeFunc::serialize(trees.srcTree, clargs.srcsDumpOut().joint()));
     PROFILE(
-        FileTreeFunc::serialize(trees.testTree, cla.testsDumpOut().joint()));
+        FileTreeFunc::serialize(trees.testTree, clargs.testsDumpOut().joint()));
 
     return 0;
 }

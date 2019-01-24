@@ -1,4 +1,7 @@
 #include "extensions/help_functions.hpp"
+
+#include "command_line_args.hpp"
+
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
@@ -25,7 +28,8 @@ std::pair< char *, long > readFile(const char *fname, const char *mode)
 {
     FILE *file = fopen(fname, mode);
     if (!file) {
-        errors() << "file" << std::string(fname) << "can not be opened";
+        if (clargs.verbal())
+            errors() << "file" << std::string(fname) << "can not be opened";
         return std::pair< char *, long >(nullptr, 0);
     }
     long long fsize = file_size(fname);
