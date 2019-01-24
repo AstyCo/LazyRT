@@ -83,13 +83,12 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
         DirectoryReader::_sourceFileExtensions = split(exts, ",");
 
     _outDirectory = SplittedPath(outDirectory, SplittedPath::unixSep());
-    if (inDirectory.empty())
-        _inDirectory = _outDirectory;
-    else
-        SplittedPath(inDirectory, SplittedPath::unixSep());
+    _inDirectory = SplittedPath(inDirectory, SplittedPath::unixSep());
 
-    _outDirectory = SplittedPath(outDirectory, SplittedPath::unixSep());
-    _outDirectory = SplittedPath(outDirectory, SplittedPath::unixSep());
+    if (_inDirectory.empty())
+        _inDirectory = _outDirectory;
+    if (_outDirectory.empty())
+        _outDirectory = _inDirectory;
 
     _srcsDumpIn = _inDirectory;
     _srcsDumpIn.append(std::string(_srcsFileTreeName));
