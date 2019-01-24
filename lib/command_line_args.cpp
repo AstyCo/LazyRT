@@ -30,8 +30,10 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     std::string outDirectory;
     std::string inDirectory;
 
+    std::string srcBase;
+    std::string testBase;
+
     std::string exts;
-    std::string ignore_substrings;
     std::string extra_dependencies;
 
     // required arguments
@@ -50,8 +52,19 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-e,--extensions", exts,
                    "Source files extensions, separated by comma (,)");
-    app.add_option("--ignore", ignore_substrings,
-                   "Substrings of the ignored paths, separated by comma (,)");
+
+    app.add_option("--src-ignore", _srcIgnoreSubstrings,
+                   "Substrings of the ignored paths, separated by comma (,) "
+                   "for project source files");
+    app.add_option("--test-ignore", _testIgnoreSubstrings,
+                   "Substrings of the ignored paths, separated by comma (,) "
+                   "for test source files");
+
+    app.add_option("--test-base", testBase,
+                   "Directory relative to which the test source files list is displayed");
+    app.add_option("--src-base", srcBase,
+                   "Directory relative to which the project source files list is displayed");
+
     app.add_flag("-m,--no-main", _isNoMain,
                  "Don't keep test source file with main() implementation");
     app.add_flag("-v,--verbal", _verbal, "Verbal mode");
@@ -68,8 +81,6 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
 
     if (!exts.empty())
         DirectoryReader::_sourceFileExtensions = split(exts, ",");
-    if (!ignore_substrings.empty())
-        DirectoryReader::_ignore_substrings = split(ignore_substrings, ",");
 
     _outDirectory = SplittedPath(outDirectory, SplittedPath::unixSep());
     if (inDirectory.empty())
@@ -112,6 +123,15 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     _testsModified = _outDirectory;
     _testsModified.append(std::string(_testsModifiedFileName));
 
+    if (!srcBase.empty())
+        _srcBase = SplittedPath(srcBase, SplittedPath::unixSep());
+    else
+        _srcBase = _proDirectory;
+
+    if (!testBase.empty())
+        _testBase = SplittedPath(testBase, SplittedPath::unixSep());
+    else
+        _testBase = _proDirectory;
     _status = Success;
     _retCode = 0;
 }

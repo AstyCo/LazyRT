@@ -73,11 +73,13 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
                 return;
             MY_ASSERT(_currenDirectory);
             _currenDirectory->addChild(
-                new FileNode(rel_path, FileRecord::RegularFile));
+                new FileNode(rel_path, FileRecord::RegularFile,
+                             fileTree));
         }
         else if (is_directory(directory_path)) {
             FileNode *directoryNode =
-                new FileNode(rel_path, FileRecord::Directory);
+                new FileNode(rel_path, FileRecord::Directory,
+                             fileTree);
             if (_currenDirectory == nullptr)
                 fileTree.setRootDirectoryNode(directoryNode);
             else

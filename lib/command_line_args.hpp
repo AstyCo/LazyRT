@@ -18,7 +18,7 @@ public:
     const SplittedPath &testDir() const { return _testDirectory; }
     const SplittedPath &outDir() const { return _outDirectory; }
     const SplittedPath &inDir() const { return _inDirectory; }
-    const std::string &deps() const { return _extra_dependencies; }
+    const std::string &deps() const { return _extraDependencies; }
 
     bool verbal() const { return _verbal; }
     bool isNoMain() const { return _isNoMain; }
@@ -35,16 +35,28 @@ public:
 
     int status() const { return _status; }
     int retCode() const { return _retCode; }
+
+    const std::string &testIgnoreSubstrings() const { return _testIgnoreSubstrings;}
+    const std::string &srcIgnoreSubstrings() const { return _srcIgnoreSubstrings;}
+
+    const SplittedPath &srcBase() const { return _srcBase;}
+    const SplittedPath &testBase() const { return _testBase;}
 private:
     SplittedPath _proDirectory;
     SplittedPath _srcDirectory;
     SplittedPath _testDirectory;
     SplittedPath _outDirectory;
     SplittedPath _inDirectory;
-    std::string _extra_dependencies;
+    std::string _extraDependencies;
 
     std::string _exts;
-    std::string _ignore_substrings;
+
+    std::string _srcIgnoreSubstrings;
+    std::string _testIgnoreSubstrings;
+
+    SplittedPath _srcBase;
+    SplittedPath _testBase;
+
     bool _verbal;
     bool _isNoMain;
 

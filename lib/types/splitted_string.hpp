@@ -8,6 +8,8 @@
 #include <string>
 #include <list>
 
+const char *get_home_dir();
+
 template < typename THashedString >
 class SplittedString
 {
@@ -228,26 +230,55 @@ private:
         if (_joint.empty())
             return;
         size_t pos = 0, sepPos;
-        while ((sepPos = _joint.find(_separator, pos)) != (size_t)-1) {
+        while ((sepPos = _joint.find(_separator, pos))
+               != static_cast<size_t>(-1)) {
             _splitted.push_back(_joint.substr(pos, sepPos - pos));
 
             pos = sepPos + _separatorSize;
         }
-        _splitted.push_back(_joint.substr(pos));
+
+        std::string lastItem = _joint.substr(pos);
+        if (!lastItem.empty())
+            _splitted.push_back(lastItem);
     }
 
     void init()
     {
-        if (_separator.empty()) {
+        if (_separator.empty())
             _separator = std::string("/");
-        }
+
         _separatorSize = _separator.size();
+
+        normalize();
 
         _isJointValid = !_joint.empty();
         _isSplittedValid = !_splitted.empty();
     }
 
-public:
+private:
+    void normalize()
+    {
+        removeHomeDirSign();
+        removeTrailingSeparators();
+    }
+
+    void removeHomeDirSign()
+    {
+        size_t pos;
+        while ((pos = _joint.find('~'))
+               != static_cast<size_t>(-1)) {
+            _joint.replace(pos, 1, std::string(get_home_dir()));
+        }
+    }
+
+    void removeTrailingSeparators()
+    {
+        while (_joint.find(_separator, _joint.size() - _separator.size())
+               != static_cast<size_t>(-1)) {
+            _joint.resize(_joint.size() - _separator.size());
+        }
+    }
+private:
     mutable bool _isJointValid;
     mutable bool _isSplittedValid;
 

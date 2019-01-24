@@ -42,8 +42,12 @@ int main(int argc, char *argv[])
     FileTreeForest trees;
     trees.setProjectDirectory(clargs.proDir());
 
-    PROFILE(FileTreeFunc::readDirectory(trees.srcTree, clargs.srcDir().joint()));
-    PROFILE(FileTreeFunc::readDirectory(trees.testTree, clargs.testDir().joint()));
+    PROFILE(FileTreeFunc::readDirectory(trees.srcTree,
+                                        clargs.srcDir().joint(),
+                                        clargs.srcIgnoreSubstrings()));
+    PROFILE(FileTreeFunc::readDirectory(trees.testTree,
+                                        clargs.testDir().joint(),
+                                        clargs.testIgnoreSubstrings()));
 
     trees.installIncludeSources();
     trees.installExtraDependencies(clargs.deps());
@@ -71,8 +75,8 @@ int main(int argc, char *argv[])
     if (clargs.verbal()) {
         FileTreeFunc::printAffected(trees.srcTree);
         FileTreeFunc::printAffected(trees.testTree);
-        trees.srcTree.printModified();
-        trees.testTree.printModified();
+        trees.srcTree.printModified(clargs.srcBase());
+        trees.testTree.printModified(clargs.testBase());
 
         std::cout << "write lazyut files to " << clargs.outDir().joint()
                   << std::endl;

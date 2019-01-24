@@ -78,9 +78,9 @@ void FileRecord::swapParsedData(FileRecord &record)
     _listUsingNamespace.swap(record._listUsingNamespace);
 }
 
-FileNode::FileNode(const SplittedPath &path, FileRecord::Type type)
+FileNode::FileNode(const SplittedPath &path, FileRecord::Type type, const FileTree &fileTree)
     : _record(path, type), _parent(nullptr), _installDependenciesCalled(false),
-      _storedCopy(NULL)
+      _storedCopy(NULL), _fileTree(fileTree)
 {
 }
 
@@ -109,10 +109,11 @@ FileNode *FileNode::findOrNewChild(const HashedFileName &hfname,
     // not found, create new one
     FileNode *newChild;
     if (parent())
-        newChild = new FileNode(_record._path + hfname, type);
+        newChild = new FileNode(_record._path + hfname, type, _fileTree);
     else
         newChild =
-            new FileNode(SplittedPath(hfname, SplittedPath::unixSep()), type);
+            new FileNode(SplittedPath(hfname, SplittedPath::unixSep()), type,
+                         _fileTree);
     addChild(newChild);
 
     return newChild;
@@ -125,6 +126,16 @@ void FileNode::removeChild(FileNode *child)
 }
 
 void FileNode::setParent(FileNode *parent) { _parent = parent; }
+
+SplittedPath FileNode::fullPath() const
+{
+    return _fileTree.rootPath() + path();
+}
+
+std::string FileNode::relativeName(const SplittedPath &base) const
+{
+    return my_relative(fullPath(), base).joint();
+}
 
 void FileNode::print(int indent) const
 {
@@ -151,17 +162,17 @@ void FileNode::print(int indent) const
     }
 }
 
-void FileNode::printModified(int indent, bool modified) const
+void FileNode::printModified(int indent, bool modified, const SplittedPath &base) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
     if (isRegularFile() && (isModified() == modified)) {
-        std::cout << strIndents << (modified ? " + " : " - ") << name()
+        std::cout << strIndents << (modified ? " + " : " - ") << relativeName(base)
                   << std::endl;
     }
 
     for (auto f : _childs)
-        f->printModified(indent + 1, modified);
+        f->printModified(indent + 1, modified, base);
 }
 
 void FileNode::printDecls(int indent) const
@@ -490,12 +501,12 @@ void FileTree::print() const
     }
 }
 
-void FileTree::printModified() const
+void FileTree::printModified(const SplittedPath &base) const
 {
     if (nullptr == _rootDirectoryNode)
         return;
     std::cout << "MODIFIED FILES " << _rootPath.joint() << std::endl;
-    _rootDirectoryNode->printModified(0, true);
+    _rootDirectoryNode->printModified(0, true, base);
 }
 
 FileNode *FileTree::addFile(const SplittedPath &path)
@@ -503,7 +514,8 @@ FileNode *FileTree::addFile(const SplittedPath &path)
     const std::list< HashedFileName > &splittedPath = path.splitted();
     if (!_rootDirectoryNode) {
         setRootDirectoryNode(new FileNode(
-            SplittedPath(".", SplittedPath::unixSep()), FileRecord::Directory));
+            SplittedPath(".", SplittedPath::unixSep()), FileRecord::Directory,
+                                 *this));
     }
     FileNode *currentNode = _rootDirectoryNode;
     MY_ASSERT(_rootDirectoryNode);
@@ -531,8 +543,8 @@ void FileTree::setRootDirectoryNode(FileNode *node)
 
 void FileTree::setProjectDirectory(const SplittedPath &path)
 {
-    _projectDirectory = path;
-    _projectDirectory.setOsSeparator();
+    _rootDirectory = path;
+    _rootDirectory.setOsSeparator();
     updateRelativePath();
 }
 
@@ -734,8 +746,8 @@ FileNode *FileTree::searchInRoot(const SplittedPath &path) const
 
 void FileTree::updateRelativePath()
 {
-    if (!_projectDirectory.empty() && !_rootPath.empty()) {
-        _relativePathSources = my_relative(_rootPath, _projectDirectory);
+    if (!_rootDirectory.empty() && !_rootPath.empty()) {
+        _relativePathSources = my_relative(_rootPath, _rootDirectory);
     }
 }
 
@@ -750,11 +762,14 @@ std::__cxx11::string IncludeDirective::toPrint() const
     return std::string();
 }
 
-void FileTreeFunc::readDirectory(FileTree &tree, const std::string &dirPath)
+void FileTreeFunc::readDirectory(FileTree &tree,
+                                 const std::string &dirPath,
+                                 const std::string &ignore_substrings)
 {
     SplittedPath spReplacedSep(dirPath, SplittedPath::unixSep());
     spReplacedSep.setOsSeparator();
     DirectoryReader dirReader;
+    dirReader._ignore_substrings = split(ignore_substrings, ",");;
     dirReader.readDirectory(tree, spReplacedSep.joint());
 }
 

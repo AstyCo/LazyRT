@@ -94,7 +94,9 @@ public:
     typedef void (FileNode::*CFileTreeProcedure)(const FileTree &);
 
 public:
-    explicit FileNode(const SplittedPath &path, FileRecord::Type type);
+    explicit FileNode(const SplittedPath &path,
+                      FileRecord::Type type,
+                      const FileTree &fileTree);
     virtual ~FileNode();
 
     FileNode *findChild(const HashedFileName &hfname) const;
@@ -114,7 +116,11 @@ public:
 
     const SplittedPath &path() const { return _record._path; }
     const SplittedPath::HashedType &fname() const { return path().last(); }
+
     const std::string &name() const { return path().joint(); }
+    SplittedPath fullPath() const;
+
+    std::string relativeName(const SplittedPath &base) const;
 
     bool hasRegularFiles() const;
     bool isRegularFile() const { return _record.isRegularFile(); }
@@ -146,7 +152,8 @@ public:
 public:
     ///---Debug
     void print(int indent = 0) const;
-    void printModified(int indent = 0, bool modified = true) const;
+    void printModified(int indent, bool modified,
+                       const SplittedPath &base) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
     void printImplFiles(int indent = 0) const;
@@ -181,6 +188,8 @@ private:
     bool _installDependentByCalled;
 
     FileNode *_storedCopy;
+
+    const FileTree &_fileTree;
 };
 
 namespace FileNodeFunc {
@@ -224,7 +233,7 @@ public:
 
     ///---Debug
     void print() const;
-    void printModified() const;
+    void printModified(const SplittedPath &base) const;
     ///
 
     FileNode *addFile(const SplittedPath &path);
@@ -243,7 +252,7 @@ public:
 public:
     State _state;
     FileNode *_rootDirectoryNode;
-    SplittedPath _projectDirectory;
+    SplittedPath _rootDirectory;
 
     std::list< FileNode * > _includePaths;
 
@@ -293,7 +302,8 @@ typedef std::shared_ptr< FileTree > FileTreePtr;
 namespace FileTreeFunc {
 
 //  Reads directory and initializes tree structure of FileTree instance
-void readDirectory(FileTree &tree, const std::string &dirPath);
+void readDirectory(FileTree &tree, const std::string &dirPath,
+                   const std::string &ignore_substrings);
 
 //  Reads dump file, and checks for modified source/header files.
 // Then it parses modified files, or just restores information

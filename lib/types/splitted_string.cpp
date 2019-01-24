@@ -2,6 +2,12 @@
 
 #include <string.h>
 
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#endif
+
 #define STR_DOT (".")
 #define STR_DOT_DOT ("..")
 
@@ -9,6 +15,16 @@ const MurmurHashType HashedFileName::_hashDot =
     MurmurHash2(STR_DOT, strlen(STR_DOT));
 const MurmurHashType HashedFileName::_hashDotDot =
     MurmurHash2(STR_DOT_DOT, strlen(STR_DOT_DOT));
+
+const char *get_home_dir()
+{
+    const char *homedir;
+    if ((homedir = getenv("HOME")) == NULL)
+        homedir = getpwuid(getuid())->pw_dir;
+
+    return homedir;
+}
+
 
 HashedString::HashedString(const std::__cxx11::string &str)
     : std::string(str), _hash(0)
@@ -74,3 +90,4 @@ SplittedPath absolute_path(const SplittedPath &path, const SplittedPath &base)
         return path;
     return base + path;
 }
+
