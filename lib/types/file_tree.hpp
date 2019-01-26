@@ -239,6 +239,8 @@ public:
     FileNode *addFile(const SplittedPath &path);
 
     void setRootDirectoryNode(FileNode *node);
+
+    const SplittedPath &projectDirectory() const { return _projectDirectory;}
     void setProjectDirectory(const SplittedPath &path);
 
     const SplittedPath &relativePathSources() const
@@ -252,7 +254,7 @@ public:
 public:
     State _state;
     FileNode *_rootDirectoryNode;
-    SplittedPath _rootDirectory;
+    SplittedPath _projectDirectory;
 
     std::list< FileNode * > _includePaths;
 

@@ -543,8 +543,8 @@ void FileTree::setRootDirectoryNode(FileNode *node)
 
 void FileTree::setProjectDirectory(const SplittedPath &path)
 {
-    _rootDirectory = path;
-    _rootDirectory.setOsSeparator();
+    _projectDirectory = path;
+    _projectDirectory.setOsSeparator();
     updateRelativePath();
 }
 
@@ -750,9 +750,8 @@ FileNode *FileTree::searchInRoot(const SplittedPath &path) const
 
 void FileTree::updateRelativePath()
 {
-    if (!_rootDirectory.empty() && !_rootPath.empty()) {
-        _relativePathSources = my_relative(_rootPath, _rootDirectory);
-    }
+    if (!_projectDirectory.empty() && !_rootPath.empty())
+        _relativePathSources = my_relative(_rootPath, _projectDirectory);
 }
 
 std::__cxx11::string IncludeDirective::toPrint() const
@@ -860,6 +859,8 @@ static void searchTestMainR(FileNode *file,
     if (vTestMainFiles.size() > 2)
         return;
     if (file->isRegularFile()) {
+        if (str_equal(file->name(), "main.cpp"))
+            std::cout << "main.cpp" << std::endl;
         if (containsMain(file))
             vTestMainFiles.push_back(file);
         return;

@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "external/flatbuffers/flatbuffers.h"
+#include "flatbuffers/flatbuffers.h"
 
 namespace flatbuffers {
 

@@ -70,7 +70,7 @@ void JsonReader::read_extra_dependencies(const std::string &path_to_json,
         get_string_json(document[STR_ROOT_DIRECTORY], STR_ROOT_DIRECTORY);
     SplittedPath spRootDir(sRootDir, SplittedPath::unixSep());
     spRootDir.setOsSeparator();
-    SplittedPath tmp = tree._rootDirectory + spRootDir;
+    SplittedPath tmp = tree._projectDirectory + spRootDir;
     std::cout << STR_ROOT_DIRECTORY << " " << tmp.joint() << std::endl;
     tree.setRootPath(tmp);
     for (Value::ConstMemberIterator it_members = document.MemberBegin();

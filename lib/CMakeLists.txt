@@ -123,7 +123,10 @@ set(SRCS
 ## create target and add include path
 ##
 add_executable(${LAZYUT_TARGET_NAME} ${SRCS} ${HEADERS})
+
 target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/lib)
+target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/lib/external)
+
 target_compile_features(${LAZYUT_TARGET_NAME} PUBLIC cxx_std_11)
 
 # link boost
