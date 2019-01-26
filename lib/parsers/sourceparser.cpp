@@ -521,7 +521,10 @@ void SourceParser::parseFile(FileNode *node)
     if (!node->isRegularFile())
         return;
 
-    std::string fname = (_fileTree.rootPath() + node->path()).joint();
+    std::string fname = node->fullPath().joint();
+    if (str_equal(node->name(), "main.cpp")
+            || str_equal(node->name(), "tests.cpp"))
+        std::cout << "interesting file parsing" << std::endl;
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
     if (!data) {
@@ -530,6 +533,7 @@ void SourceParser::parseFile(FileNode *node)
         return;
     }
     long file_size = data_pair.second;
+    int lbrackets = 0;
     int lcbrackets = 0;
     int nsbrackets = 0;
     std::list< int > listNsbracketsAt;
@@ -612,11 +616,17 @@ void SourceParser::parseFile(FileNode *node)
             if (lcbrackets <= nsbrackets) {
                 switch (ch) {
                 case '(': {
+                    if (lbrackets++ > 0)
+                        break;
                     _funcName = _currentNamespace;
                     parseNameR(p - 1, p - data - 1, _funcName);
                     break;
                 }
                 case ')':
+                    if (--lbrackets > 0)
+                        break;
+                    MY_ASSERT(lbrackets >= 0);
+                    _funcName.joint();
                     if (!_funcName.empty() && _funcName != _currentNamespace) {
                         p = skipSpacesAndComments(p + 1);
                         if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
@@ -800,10 +810,10 @@ void SourceParser::parseFile(FileNode *node)
         case NamespaceState: {
             int curNSSize = _currentNamespace.splitted().size();
             p = parseName(p, _currentNamespace);
-            if (curNSSize < _currentNamespace.splitted().size()) {
-                ++nsbrackets;
-                listNsbracketsAt.push_back(lcbrackets);
-            }
+//            if (curNSSize < _currentNamespace.splitted().size()) {
+            ++nsbrackets;
+            listNsbracketsAt.push_back(lcbrackets);
+//            }
 
             _state = NoSpecialState;
             break;

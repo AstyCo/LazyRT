@@ -61,7 +61,7 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
         if (isIgnored(directory_path.string()))
             return;
         if (!exists(directory_path)) {
-            errors() << directory_path.string() << "1does not exist\n";
+            errors() << directory_path.string() << "does not exist\n";
             return;
         }
 

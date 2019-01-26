@@ -441,8 +441,8 @@ void FileTree::parseFiles()
 {
     MY_ASSERT(_state == CachesCalculated);
     if (_rootDirectoryNode) {
-        installModifiedFiles(_rootDirectoryNode);
         parseFilesRecursive(_rootDirectoryNode);
+        installModifiedFiles(_rootDirectoryNode);
     }
 }
 
@@ -690,6 +690,10 @@ static bool isAffected(const FileNode *file)
 
 void FileTree::installAffectedFilesRecursive(FileNode *node)
 {
+    if (str_equal(node->name(), "tests.cpp")
+            || str_equal(node->name(), "main.cpp")
+            || str_equal(node->name(), "tests.h"))
+        std::cout << "interesting affected file" << std::endl;
     if (isAffected(node)) {
         SplittedPath tmp = _relativePathSources;
         tmp.appendPath(node->path());
@@ -839,6 +843,8 @@ static bool containsMain(FileNode *file)
 {
     static std::string mainPrototype = "main";
     const auto &impls = file->record()._setImplements;
+    if (file->fullPath().joint().find("main") != static_cast<size_t>(-1))
+        std::cout << "main.cpp?" << std::endl;
     for (const auto &impl : impls) {
         if (impl.joint() == mainPrototype) {
             return true;

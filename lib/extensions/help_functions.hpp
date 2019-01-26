@@ -38,6 +38,16 @@ std::string numberToString(T Number)
     return ss.str();
 }
 
+inline bool str_contains(const std::string &str, const std::string &substr)
+{
+    return str.find(substr) != static_cast<size_t>(-1);
+}
+
+inline bool str_equal(const std::string &str, const std::string &substr)
+{
+    return str == substr;
+}
+
 typedef unsigned int MurmurHashType;
 MurmurHashType MurmurHash2(const void *key, int len, unsigned int seed = 0);
 
