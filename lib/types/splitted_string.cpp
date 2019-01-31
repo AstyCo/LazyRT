@@ -2,7 +2,10 @@
 
 #include <string.h>
 
-#ifdef __linux__
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#else
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
@@ -18,13 +21,22 @@ const MurmurHashType HashedFileName::_hashDotDot =
 
 const char *get_home_dir()
 {
-    const char *homedir;
+    const char *homedir = NULL;
+#ifdef _WIN32
+    if ((homedir = getenv("HOME")) == NULL) {
+        static char path[MAX_PATH];
+        if (SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, path) != S_OK) {
+            MY_ASSERT(false);
+            return NULL;
+        }
+        homedir = path;
+    }
+#else
     if ((homedir = getenv("HOME")) == NULL)
         homedir = getpwuid(getuid())->pw_dir;
-
+#endif
     return homedir;
 }
-
 
 HashedString::HashedString(const std::__cxx11::string &str)
     : std::string(str), _hash(0)
@@ -90,4 +102,3 @@ SplittedPath absolute_path(const SplittedPath &path, const SplittedPath &base)
         return path;
     return base + path;
 }
-

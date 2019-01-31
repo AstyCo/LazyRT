@@ -42,8 +42,7 @@ int main(int argc, char *argv[])
     FileTreeForest trees;
     trees.setProjectDirectory(clargs.proDir());
 
-    PROFILE(FileTreeFunc::readDirectory(trees.srcTree,
-                                        clargs.srcDir().joint(),
+    PROFILE(FileTreeFunc::readDirectory(trees.srcTree, clargs.srcDir().joint(),
                                         clargs.srcIgnoreSubstrings()));
     PROFILE(FileTreeFunc::readDirectory(trees.testTree,
                                         clargs.testDir().joint(),
@@ -52,7 +51,8 @@ int main(int argc, char *argv[])
     trees.installIncludeSources();
     trees.installExtraDependencies(clargs.deps());
 
-    PROFILE(FileTreeFunc::parsePhase(trees.srcTree, clargs.srcsDumpIn().joint()));
+    PROFILE(
+        FileTreeFunc::parsePhase(trees.srcTree, clargs.srcsDumpIn().joint()));
     PROFILE(
         FileTreeFunc::parsePhase(trees.testTree, clargs.testsDumpIn().joint()));
 
@@ -82,7 +82,8 @@ int main(int argc, char *argv[])
                   << std::endl;
     }
 
-    PROFILE(FileTreeFunc::serialize(trees.srcTree, clargs.srcsDumpOut().joint()));
+    PROFILE(
+        FileTreeFunc::serialize(trees.srcTree, clargs.srcsDumpOut().joint()));
     PROFILE(
         FileTreeFunc::serialize(trees.testTree, clargs.testsDumpOut().joint()));
 

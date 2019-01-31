@@ -94,8 +94,7 @@ public:
     typedef void (FileNode::*CFileTreeProcedure)(const FileTree &);
 
 public:
-    explicit FileNode(const SplittedPath &path,
-                      FileRecord::Type type,
+    explicit FileNode(const SplittedPath &path, FileRecord::Type type,
                       const FileTree &fileTree);
     virtual ~FileNode();
 
@@ -142,7 +141,7 @@ public:
 
     void swapParsedData(FileNode *file);
 
-    void setStoredNode(FileNode *storedNode) { _storedCopy = storedNode; }
+    void copy(FileNode *storedNode) { _record = storedNode->record(); }
     void setModified() { _record._isModified = true; }
     bool isModified() const { return _record._isModified; }
     void setLabeled() { _record._isManuallyLabeled = true; }
@@ -186,8 +185,6 @@ public:
 private:
     bool _installDependenciesCalled;
     bool _installDependentByCalled;
-
-    FileNode *_storedCopy;
 
     const FileTree &_fileTree;
 };
@@ -240,7 +237,7 @@ public:
 
     void setRootDirectoryNode(FileNode *node);
 
-    const SplittedPath &projectDirectory() const { return _projectDirectory;}
+    const SplittedPath &projectDirectory() const { return _projectDirectory; }
     void setProjectDirectory(const SplittedPath &path);
 
     const SplittedPath &relativePathSources() const
