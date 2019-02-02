@@ -148,6 +148,9 @@ public:
     void setLabeledDependencies();
     bool isManuallyLabeled() const { return _record._isManuallyLabeled; }
 
+    bool isThisAffected() const { return isModified() || isManuallyLabeled(); }
+    bool isAffected() const;
+
 public:
     ///---Debug
     void print(int indent = 0) const;
@@ -208,7 +211,8 @@ public:
         Filled,
         Filtered,
         CachesCalculated,
-        IncludesInstalled
+        IncludesInstalled,
+        Error
     };
 
     FileTree();
@@ -248,8 +252,10 @@ public:
     const SplittedPath &rootPath() const { return _rootPath; }
     void setRootPath(const SplittedPath &sp);
 
+    State state() const;
+    void setState(const State &state);
+
 public:
-    State _state;
     FileNode *_rootDirectoryNode;
     SplittedPath _projectDirectory;
 
@@ -295,6 +301,7 @@ private:
 
     SourceParser _srcParser;
     SplittedPath _relativePathSources;
+    State _state;
 };
 typedef std::shared_ptr< FileTree > FileTreePtr;
 

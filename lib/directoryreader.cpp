@@ -42,12 +42,12 @@ void DirectoryReader::readDirectory(FileTree &fileTree,
 {
     SplittedPath sp_base(directory_path.string(), SplittedPath::osSep());
 
-    fileTree.clean();
-    fileTree.setRootPath(sp_base);
     _currenDirectory = nullptr;
 
+    fileTree.clean();
+    fileTree.setRootPath(sp_base);
+
     readDirectoryRecursively(fileTree, directory_path, sp_base);
-    fileTree._state = FileTree::Filled;
 
     removeEmptyDirectories(fileTree);
     fileTree.calculateFileHashes();
@@ -73,13 +73,11 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
                 return;
             MY_ASSERT(_currenDirectory);
             _currenDirectory->addChild(
-                new FileNode(rel_path, FileRecord::RegularFile,
-                             fileTree));
+                new FileNode(rel_path, FileRecord::RegularFile, fileTree));
         }
         else if (is_directory(directory_path)) {
             FileNode *directoryNode =
-                new FileNode(rel_path, FileRecord::Directory,
-                             fileTree);
+                new FileNode(rel_path, FileRecord::Directory, fileTree);
             if (_currenDirectory == nullptr)
                 fileTree.setRootDirectoryNode(directoryNode);
             else
@@ -102,8 +100,10 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
     }
     catch (const boost::filesystem::filesystem_error &exc) {
         errors() << "Exception:" << exc.what();
+        fileTree.setState(FileTree::Error);
         return;
     }
+    fileTree.setState(FileTree::Filled);
 }
 
 void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)

@@ -39,7 +39,6 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
     if (file_tree_dump) {
         auto file_tree = LazyUT::GetFileTree(file_tree_dump);
 
-        tree._state = FileTree::Restored;
         SplittedPath spRootPath(file_tree->rootPath()->str(),
                                 SplittedPath::osSep());
         tree.setRootPath(spRootPath);
@@ -63,6 +62,7 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
             /// TODO install separators
         }
 
+        tree.setState(FileTree::Restored);
         delete file_tree_dump;
     }
 }

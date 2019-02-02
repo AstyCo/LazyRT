@@ -385,6 +385,24 @@ void FileNode::setLabeledDependencies()
                   FileNodeFunc::setLabeled);
 }
 
+bool FileNode::isAffected() const
+{
+    // if some dependency is affected then this is affected too
+    // (this uses affected)
+    for (auto &dep : _setDependencies) {
+        if (dep->isThisAffected())
+            return true;
+    }
+    // if some dependent by is affected then this is affected too
+    // (affected uses this)
+    for (auto &dep : _setDependentBy) {
+        if (dep->isThisAffected())
+            return true;
+    }
+
+    return false;
+}
+
 void FileNode::addDependencyPrivate(FileNode &file,
                                     FileNode::SetFileNode FileNode::*deps,
                                     const SetFileNode FileNode::*explicitDeps,
@@ -409,7 +427,7 @@ FileNode *FileNode::findChild(const HashedFileName &hfname) const
 }
 
 FileTree::FileTree()
-    : _state(Clean), _rootDirectoryNode(nullptr), _srcParser(*this)
+    : _rootDirectoryNode(nullptr), _srcParser(*this), _state(Clean)
 {
     _relativePathSources.setOsSeparator();
 }
@@ -556,6 +574,10 @@ void FileTree::setRootPath(const SplittedPath &sp)
     updateRelativePath();
 }
 
+FileTree::State FileTree::state() const { return _state; }
+
+void FileTree::setState(const State &state) { _state = state; }
+
 void FileTree::removeEmptyDirectories(FileNode *node)
 {
     if (!node)
@@ -627,9 +649,10 @@ void FileTree::compareModifiedFilesRecursive(FileNode *node,
             compareModifiedFilesRecursive(child, restored_child);
         }
         else {
-            if (clargs.verbal())
+            if (clargs.verbal()) {
                 std::cout << "this " << node->name() << " child "
                           << child->fname() << " not found" << std::endl;
+            }
             installModifiedFiles(child);
         }
     }
@@ -678,25 +701,13 @@ void FileTree::installImplementNodesRecursive(FileNode &node)
         installImplementNodesRecursive(*child);
 }
 
-static bool isAffected(const FileNode *file)
-{
-    if (file->isManuallyLabeled())
-        return true;
-    for (auto &dep : file->_setDependencies) {
-        if (dep->isModified()) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void FileTree::installAffectedFilesRecursive(FileNode *node)
 {
     if (str_equal(node->name(), "tests.cpp") ||
         str_equal(node->name(), "main.cpp") ||
         str_equal(node->name(), "tests.h"))
         std::cout << "interesting affected file" << std::endl;
-    if (isAffected(node)) {
+    if (node->isAffected()) {
         SplittedPath tmp = _relativePathSources;
         tmp.appendPath(node->path());
         tmp.setUnixSeparator();
@@ -770,12 +781,12 @@ std::__cxx11::string IncludeDirective::toPrint() const
 void FileTreeFunc::readDirectory(FileTree &tree, const std::string &dirPath,
                                  const std::string &ignore_substrings)
 {
-    SplittedPath spReplacedSep(dirPath, SplittedPath::unixSep());
-    spReplacedSep.setOsSeparator();
+    SplittedPath spOsSeparator(dirPath, SplittedPath::unixSep());
+    spOsSeparator.setOsSeparator();
+
     DirectoryReader dirReader;
     dirReader._ignore_substrings = split(ignore_substrings, ",");
-    ;
-    dirReader.readDirectory(tree, spReplacedSep.joint());
+    dirReader.readDirectory(tree, spOsSeparator.joint());
 }
 
 void FileTreeFunc::parsePhase(FileTree &tree,
@@ -783,14 +794,16 @@ void FileTreeFunc::parsePhase(FileTree &tree,
 {
     FileTree restoredTree;
     FileTreeFunc::deserialize(restoredTree, dumpFileName);
-    if (restoredTree._state == FileTree::Restored) {
+    if (restoredTree.state() == FileTree::Restored) {
         tree.parseModifiedFiles(restoredTree);
     }
     else {
+        // if deserialization failed just parse all
         tree.parseFiles();
     }
 }
 
+// This function checks whether set "dependencies" and set "dependent by" match
 static void testDeps(FileNode *fnode)
 {
     if (nullptr == fnode)
@@ -885,7 +898,7 @@ static FileNode *searchTestMain(FileTree &testTree)
 void FileTreeFunc::labelMainAffected(FileTree &testTree)
 {
     if (FileNode *testMainFile = searchTestMain(testTree))
-        testMainFile->setLabeledDependencies();
+        testMainFile->setLabeled();
 }
 
 static void writeModifiedR(const FileNode *file, FILE *fp)

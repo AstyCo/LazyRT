@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
                                         clargs.testIgnoreSubstrings()));
 
     trees.installIncludeSources();
-    trees.installExtraDependencies(clargs.deps());
+    trees.installExtraDependencies(clargs.deps()); // TODO: CHECK EXTRA_DEPS
 
     PROFILE(
         FileTreeFunc::parsePhase(trees.srcTree, clargs.srcsDumpIn().joint()));
@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
     if (!clargs.isNoMain())
         FileTreeFunc::labelMainAffected(trees.testTree);
 
+    // Create directories to put output files to
     boost::filesystem::create_directories(clargs.outDir().joint());
 
     FileTreeFunc::writeModified(trees.srcTree, clargs.srcsModified().joint());

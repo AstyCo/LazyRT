@@ -522,8 +522,8 @@ void SourceParser::parseFile(FileNode *node)
         return;
 
     std::string fname = node->fullPath().joint();
-    if (str_equal(node->name(), "main.cpp")
-            || str_equal(node->name(), "tests.cpp"))
+    if (str_equal(node->name(), "main.cpp") ||
+        str_equal(node->name(), "tests.cpp"))
         std::cout << "interesting file parsing" << std::endl;
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
@@ -810,10 +810,10 @@ void SourceParser::parseFile(FileNode *node)
         case NamespaceState: {
             int curNSSize = _currentNamespace.splitted().size();
             p = parseName(p, _currentNamespace);
-//            if (curNSSize < _currentNamespace.splitted().size()) {
+            //            if (curNSSize < _currentNamespace.splitted().size()) {
             ++nsbrackets;
             listNsbracketsAt.push_back(lcbrackets);
-//            }
+            //            }
 
             _state = NoSpecialState;
             break;

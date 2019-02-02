@@ -29,8 +29,6 @@ void FileTreeForest::installExtraDependencies(
     JsonReader jr;
     jr.read_extra_dependencies(extra_dependencies, extraDepsTree);
 
-    extraDepsTree._state = FileTree::Filled;
-
     extraDepsTree.removeEmptyDirectories();
     extraDepsTree.calculateFileHashes();
 }
