@@ -208,15 +208,15 @@ void printCharTree(const CharTreeNode *n, int indent = 1)
 static CharTreeNode initOverloadingOperators()
 {
     CharTreeNode root;
-    const char *const operators[] =
-        {
-            "+",      "-",        "*",  "/",  "%",  "^",   "&",   "|",
-            "~",      "!",        ",",  "=",  "<",  ">",   "<=",  ">=",
-            "++",     "--",       "<<", ">>", "==", "!=",  "&&",  "||",
-            "+=",     "-=",       "/=", "%=", "^=", "&=",  "|=",  "*=",
-            "<<=",    ">>=",      "[]", "()", "->", "->*", "new", "delete",
-            "new []", "delete []"}; // table is taken from
-                                    // https://www.tutorialspoint.com/cplusplus/cpp_overloading.htm
+    const char
+        *const operators[] =
+            {"+",     "-",       "*",  "/",  "%",  "^",   "&",   "|",
+             "~",     "!",       ",",  "=",  "<",  ">",   "<=",  ">=",
+             "++",    "--",      "<<", ">>", "==", "!=",  "&&",  "||",
+             "+=",    "-=",      "/=", "%=", "^=", "&=",  "|=",  "*=",
+             "<<=",   ">>=",     "[]", "()", "->", "->*", "new", "delete",
+             "new[]", "delete[]"}; // table is taken from
+                                   // https://www.tutorialspoint.com/cplusplus/cpp_overloading.htm
     for (auto &op : operators)
         root.insertRev(op);
 
@@ -277,6 +277,8 @@ int SourceParser::dealWithOperatorOverloadingR(
     CharTreeNode *node = &charTreeRevOverloadTokens;
     for (int d = 0; d < len; ++d) {
         const char ch = *(p - d);
+        if (isspace(ch))
+            continue;
         if (node = node->find(ch)) {
             if (!node->finite)
                 continue;

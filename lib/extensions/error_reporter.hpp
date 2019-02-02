@@ -20,6 +20,6 @@ public:
 
 ErrorStream errors();
 
-ErrorStream operator<<(ErrorStream(stream), const std::string &text);
+ErrorStream operator<<(ErrorStream stream, const std::string &text);
 
 #endif // ERROR_REPORTER_HPP
