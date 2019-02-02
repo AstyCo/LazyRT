@@ -637,9 +637,6 @@ void FileTree::compareModifiedFilesRecursive(FileNode *node,
         }
         else {
             // md5 hash sums don't match
-            if (clargs.verbal())
-                std::cout << node->name() << " md5 is the different"
-                          << std::endl;
             node->setModified();
         }
     }
@@ -703,10 +700,6 @@ void FileTree::installImplementNodesRecursive(FileNode &node)
 
 void FileTree::installAffectedFilesRecursive(FileNode *node)
 {
-    if (str_equal(node->name(), "tests.cpp") ||
-        str_equal(node->name(), "main.cpp") ||
-        str_equal(node->name(), "tests.h"))
-        std::cout << "interesting affected file" << std::endl;
     if (node->isAffected()) {
         SplittedPath tmp = _relativePathSources;
         tmp.appendPath(node->path());
@@ -852,10 +845,9 @@ void FileTreeFunc::writeAffected(const FileTree &tree,
 
 static bool containsMain(FileNode *file)
 {
-    static std::string mainPrototype = "main";
+    static auto mainPrototype = std::string("main");
+
     const auto &impls = file->record()._setImplements;
-    if (file->fullPath().joint().find("main") != static_cast< size_t >(-1))
-        std::cout << "main.cpp?" << std::endl;
     for (const auto &impl : impls) {
         if (impl.joint() == mainPrototype) {
             return true;
@@ -871,8 +863,6 @@ static void searchTestMainR(FileNode *file,
     if (vTestMainFiles.size() > 2)
         return;
     if (file->isRegularFile()) {
-        if (str_equal(file->name(), "main.cpp"))
-            std::cout << "main.cpp" << std::endl;
         if (containsMain(file))
             vTestMainFiles.push_back(file);
         return;
