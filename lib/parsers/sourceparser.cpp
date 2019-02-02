@@ -18,6 +18,8 @@
 #define OPERATOR_TOKEN "operator"
 #define TEMPLATE_TOKEN "template"
 
+#define NS_SCOPE_TOKEN "::"
+
 #define CMP_TOKEN(TOKEN_NAME) (!strncmp(p, TOKEN_NAME, sizeof(TOKEN_NAME) - 1))
 #define CHECK_TOKEN(TOKEN_NAME, STATE)                                         \
     if (CMP_TOKEN(TOKEN_NAME)) {                                               \
@@ -126,43 +128,32 @@ const char *SourceParser::parseWord(const char *p, int &wordLength) const
     return p;
 }
 
-struct CharTreeNode
+class CharTreeNode
 {
+public:
     typedef std::map< char, CharTreeNode * > LeafMap;
 
-    bool finite;
-    LeafMap leafs;
-
+public:
     CharTreeNode() : finite(false) {}
+
     ~CharTreeNode()
     {
         for (auto &n : leafs)
             delete n.second;
     }
 
-    void print(int indent = 1)
-    {
-        std::string strIndents = makeIndents(indent);
-
-        if (1 == indent)
-            std::cout << "CharTreeNode_ROOT" << std::endl;
-        for (auto &p : leafs) {
-            std::cout << strIndents << p.first << ' ' << p.second->finite
-                      << std::endl;
-            p.second->print(indent + 1);
-        }
-    }
-
-    void insertRev(const std::string &key)
+    void insert(const std::string &key)
     {
         CharTreeNode *node = this;
-        for (std::string::const_reverse_iterator it = key.rbegin();
-             it < key.rend(); ++it) {
-            node = node->insert(*it);
-        }
+        for (auto it = key.begin(); it < key.end(); ++it)
+            node = node->insertCh(*it);
 
-        if (!node->finite)
-            node->finite = true;
+        node->finite = true;
+    }
+    void insertRev(const std::string &key)
+    {
+        auto rev_key = std::string(key.rbegin(), key.rend());
+        insert(rev_key);
     }
 
     CharTreeNode *find(char ch) const
@@ -174,7 +165,7 @@ struct CharTreeNode
         return nullptr;
     }
 
-    CharTreeNode *insert(char ch)
+    CharTreeNode *insertCh(char ch)
     {
         if (auto node = find(ch)) {
             // found
@@ -185,7 +176,34 @@ struct CharTreeNode
         leafs.insert(std::make_pair(ch, leaf));
         return leaf;
     }
+
+public:
+    bool finite;
+    LeafMap leafs;
 };
+
+namespace Debug {
+
+void printCharTreeR(const CharTreeNode *n, int indent = 1)
+{
+    std::string strIndents = makeIndents(indent);
+
+    for (auto &p : n->leafs) {
+        std::cout << strIndents << p.first << ' ' << p.second->finite
+                  << std::endl;
+        printCharTreeR(p.second, indent + 1);
+    }
+}
+
+void printCharTree(const CharTreeNode *n, int indent = 1)
+{
+    std::string strIndents = makeIndents(indent);
+    std::cout << strIndents << "CharTreeNode_ROOT" << std::endl;
+
+    printCharTreeR(n, indent + 1);
+}
+
+} // namespace Debug
 
 static CharTreeNode initOverloadingOperators()
 {
@@ -229,8 +247,8 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
             operatorOverloading = false;
         }
         d += skipSpacesAndCommentsR(p - d, len - d);
-        if (!strncmp(p - d - 1, "::", 2)) {
-            d += 2;
+        if (!strncmp(p - d - 1, NS_SCOPE_TOKEN, 2)) {
+            d += sizeof(NS_SCOPE_TOKEN) - 1;
             d += skipSpacesAndCommentsR(p - d, len - d);
             if (!namespaceState)
                 namespaceState = true;
@@ -361,8 +379,8 @@ const char *SourceParser::parseName(const char *p, ScopedName &name) const
             break;
         nsname.push_back(std::string(p - wl, wl));
         p = skipSpacesAndComments(p);
-        if (!strncmp(p, "::", 2))
-            p += 2;
+        if (!strncmp(p, NS_SCOPE_TOKEN, 2))
+            p += sizeof(NS_SCOPE_TOKEN) - 1;
         else
             break;
     }
