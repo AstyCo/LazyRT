@@ -80,8 +80,8 @@ int main(int argc, char *argv[])
                                 clargs.testsAffected().joint());
 
     if (clargs.verbal()) {
-        //        filesystem.srcTree.print();
-        //        filesystem.testTree.print();
+        filesystem.srcTree.print();
+        filesystem.testTree.print();
 
         FileTreeFunc::printAffected(filesystem.srcTree);
         FileTreeFunc::printAffected(filesystem.testTree);

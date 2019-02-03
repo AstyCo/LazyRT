@@ -646,13 +646,21 @@ void SourceParser::parseFile(FileNode *node)
                     _funcName.joint();
                     if (!_funcName.empty() && _funcName != _currentNamespace) {
                         p = skipSpacesAndComments(p + 1);
-                        if (*p == '{' || CMP_TOKEN(CONST_TOKEN)) {
+
+                        static std::list< std::string > chl = initChl();
+                        std::list< std::string >::const_iterator it;
+                        const char *pLast = readUntilM(p, chl, it) - 1;
+                        switch (*pLast) {
+                        case '{':
                             // impl function/method
                             node->record()._setImplements.insert(_funcName);
-                        }
-                        else if (*p == ';') {
+                            break;
+                        case ';':
                             // global function decl
                             node->record()._setFuncDecl.insert(_funcName);
+                            break;
+                        default:
+                            break;
                         }
                         --p;
                         _funcName.clear();

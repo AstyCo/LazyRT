@@ -139,10 +139,11 @@ public:
     void swapParsedData(FileNode *file);
 
     void copy(FileNode *storedNode) { _record = storedNode->record(); }
+
     void setModified() { _record._isModified = true; }
     bool isModified() const { return _record._isModified; }
+
     void setLabeled() { _record._isManuallyLabeled = true; }
-    void setLabeledDependencies();
     bool isManuallyLabeled() const { return _record._isManuallyLabeled; }
 
     bool isThisAffected() const { return isModified() || isManuallyLabeled(); }

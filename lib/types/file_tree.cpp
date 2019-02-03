@@ -357,23 +357,17 @@ void FileNode::swapParsedData(FileNode *file)
     _record.swapParsedData(file->_record);
 }
 
-void FileNode::setLabeledDependencies()
-{
-    std::for_each(_setDependencies.begin(), _setDependencies.end(),
-                  FileNodeFunc::setLabeled);
-}
-
 bool FileNode::isAffected() const
 {
     // if some dependency is affected then this is affected too
     // (this uses affected)
-    for (auto &dep : _setDependencies) {
+    for (FileNode *dep : _setDependencies) {
         if (dep->isThisAffected())
             return true;
     }
     // if some dependent by is affected then this is affected too
     // (affected uses this)
-    for (auto &dep : _setDependentBy) {
+    for (FileNode *dep : _setDependentBy) {
         if (dep->isThisAffected())
             return true;
     }
