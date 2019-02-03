@@ -335,7 +335,7 @@ typedef SplittedString< HashedFileName > SplittedPath;
 
 // result.separator() is base.separator()
 SplittedPath relative_path(const SplittedPath &path_to_file,
-                           const SplittedPath &base);
+                           const SplittedPath &base, bool *error = nullptr);
 bool is_relative(const SplittedPath &path);
 SplittedPath absolute_path(const SplittedPath &path, const SplittedPath &base);
 

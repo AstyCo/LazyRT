@@ -59,16 +59,12 @@ public:
     bool _isModified;
     bool _isManuallyLabeled;
 
-    list< IncludeDirective > _listIncludes;
-
+    std::list< IncludeDirective > _listIncludes;
     std::set< ScopedName > _setImplements;
-
     std::set< ScopedName > _setClassDecl;
     std::set< ScopedName > _setFuncDecl;
-
     std::set< ScopedName > _setInheritances;
-
-    list< ScopedName > _listUsingNamespace;
+    std::list< ScopedName > _listUsingNamespace;
 
     // Analyze stage
     std::set< ScopedName > _setFuncImplFiles;
@@ -202,6 +198,7 @@ inline void setLabeled(FileNode *f)
 
 } // namespace FileNodeFunc
 
+class FileSystem;
 class FileTree
 {
 public:
@@ -241,25 +238,24 @@ public:
 
     void setRootDirectoryNode(FileNode *node);
 
-    const SplittedPath &projectDirectory() const { return _projectDirectory; }
+    const SplittedPath &projectDirectory() const;
     void setProjectDirectory(const SplittedPath &path);
 
-    const SplittedPath &relativePathSources() const
-    {
-        return _relativePathSources;
-    }
+    const SplittedPath &relativePathSources() const;
 
-    const SplittedPath &rootPath() const { return _rootPath; }
+    const SplittedPath &rootPath() const;
     void setRootPath(const SplittedPath &sp);
 
     State state() const;
     void setState(const State &state);
 
+    void setFileSystem(FileSystem *fs);
+
 public:
     FileNode *_rootDirectoryNode;
     SplittedPath _projectDirectory;
 
-    std::list< FileNode * > _includePaths;
+    std::list< SplittedPath > _includePaths;
 
     std::list< SplittedPath > _affectedFiles;
 
@@ -276,6 +272,9 @@ public:
     void installImplementNodesRecursive(FileNode &node);
 
     void installAffectedFilesRecursive(FileNode *node);
+
+    void analyzeNodes();
+    void propagateDeps();
 
     template < typename TFunc >
     void recursiveCall(FileNode &node, TFunc f)
@@ -297,12 +296,29 @@ private:
     void updateRelativePath();
 
 private:
+    FileSystem *_filesystem;
     SplittedPath _rootPath;
 
     SourceParser _srcParser;
-    SplittedPath _relativePathSources;
+    SplittedPath _relativeBasePath;
     State _state;
 };
+
+// + INLINE FUNCTIONS
+inline const SplittedPath &FileTree::projectDirectory() const
+{
+    return _projectDirectory;
+}
+
+inline const SplittedPath &FileTree::relativePathSources() const
+{
+    return _relativeBasePath;
+}
+
+inline const SplittedPath &FileTree::rootPath() const { return _rootPath; }
+
+// - INLINE FUNCTIONS
+
 typedef std::shared_ptr< FileTree > FileTreePtr;
 
 namespace FileTreeFunc {
@@ -315,10 +331,6 @@ void readDirectory(FileTree &tree, const std::string &dirPath,
 // Then it parses modified files, or just restores information
 // from dump for non-modified files.
 void parsePhase(FileTree &tree, const std::string &dumpFileName);
-
-//  Installs all the dependencies against FileNode's according
-// to the data, gathered on parsing phase.
-void analyzePhase(FileTree &tree);
 
 //  Firstly searchs for single .cpp with main() implementation
 //  If such file founded, then installs affected flag on it, and

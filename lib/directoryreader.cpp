@@ -59,7 +59,7 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
 {
     try {
         if (isIgnored(path.string()))
-            return; // skip directory if it is ignored
+            return; // skip file/directory by --ignore flag
 
         if (!exists(path)) {
             errors() << path.string() << "does not exist\n";

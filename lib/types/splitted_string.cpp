@@ -56,8 +56,16 @@ HashedFileName::HashedFileName(const std::__cxx11::string &str)
 {
 }
 
+static SplittedPath return_and_set_error(bool *error)
+{
+    MY_ASSERT(error != nullptr);
+    if (error != nullptr)
+        *error = true;
+    return SplittedPath();
+}
+
 SplittedPath relative_path(const SplittedPath &path_to_file,
-                           const SplittedPath &base)
+                           const SplittedPath &base, bool *error)
 {
     const auto &splitted_file = path_to_file.splitted();
     const auto &splitted_base = base.splitted();
@@ -68,7 +76,8 @@ SplittedPath relative_path(const SplittedPath &path_to_file,
     auto it_base = splitted_base.cbegin();
     auto it_base_end = splitted_base.cend();
 
-    MY_ASSERT(splitted_base.size() <= splitted_file.size());
+    if (splitted_base.size() > splitted_file.size())
+        return return_and_set_error(error);
 
     SplittedPath result;
     result.setSeparator(base.separator());
@@ -79,9 +88,7 @@ SplittedPath relative_path(const SplittedPath &path_to_file,
             ++it_file;
             continue;
         }
-        MY_ASSERT(false);
-        result.append(std::string("."));
-        return result;
+        return return_and_set_error(error);
     }
     while (it_file != it_file_end) {
         result.append(*it_file);

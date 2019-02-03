@@ -3,6 +3,8 @@
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
 
+#include "types/file_system.hpp"
+
 #include "command_line_args.hpp"
 #include "directoryreader.hpp"
 #include "dependency_analyzer.hpp"
@@ -141,7 +143,7 @@ void FileNode::print(int indent) const
 {
     std::string strIndents = makeIndents(indent);
 
-    std::cout << strIndents << _record._path.joint();
+    std::cout << strIndents << "file:" << _record._path.joint();
     if (_record._type == FileRecord::RegularFile)
         std::cout << "\thex:[" << _record.hashHex() << "]";
     std::cout << std::endl;
@@ -268,15 +270,14 @@ void FileNode::printInheritsFiles(int indent) const
 
 void FileNode::installDepsPrivate(
     FileNode::SetFileNode FileNode::*deps,
-    const FileNode::SetFileNode FileNode::*explicitDeps,
-    /*const FileNode::ListFileNode FileNode::*impls, */ bool FileNode::*called)
+    const FileNode::SetFileNode FileNode::*explicitDeps, bool FileNode::*called)
 {
     this->*called = true;
 
     // File allways depends on himself
     (this->*deps).insert(this);
 
-    for (auto node_ptr : (this->*explicitDeps))
+    for (FileNode *node_ptr : (this->*explicitDeps))
         addDependencyPrivate(*node_ptr, deps, explicitDeps, called);
 }
 
@@ -320,7 +321,6 @@ void FileNode::installInheritances(const FileTree &fileTree)
 void FileNode::installImplements(const FileTree &fileTree)
 {
     for (auto &file_path : _record._setImplementFiles) {
-
         if (FileNode *implementedFile = fileTree.searchInRoot(file_path))
             installExplicitDepBy(implementedFile);
     }
@@ -408,13 +408,13 @@ void FileNode::addDependencyPrivate(FileNode &file,
                                     const SetFileNode FileNode::*explicitDeps,
                                     bool FileNode::*called)
 {
+    const auto &fileDeps = file.*deps;
+
     // install dependencies of dependency first
     if (!(file.*called))
         file.installDepsPrivate(deps, explicitDeps, called);
 
-    const auto &otherFileDependencies = file.*deps;
-    (this->*deps)
-        .insert(otherFileDependencies.begin(), otherFileDependencies.end());
+    (this->*deps).insert(fileDeps.begin(), fileDeps.end());
 }
 
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
@@ -427,9 +427,10 @@ FileNode *FileNode::findChild(const HashedFileName &hfname) const
 }
 
 FileTree::FileTree()
-    : _rootDirectoryNode(nullptr), _srcParser(*this), _state(Clean)
+    : _rootDirectoryNode(nullptr), _srcParser(*this), _filesystem(nullptr),
+      _state(Clean)
 {
-    _relativePathSources.setUnixSeparator();
+    _relativeBasePath.setUnixSeparator();
 }
 
 void FileTree::clean()
@@ -550,12 +551,7 @@ FileNode *FileTree::addFile(const SplittedPath &path)
 
 void FileTree::setRootDirectoryNode(FileNode *node)
 {
-    if (_rootDirectoryNode) {
-        _includePaths.remove(_rootDirectoryNode);
-        delete _rootDirectoryNode;
-    }
-    if (node)
-        _includePaths.push_back(node);
+    delete _rootDirectoryNode;
 
     _rootDirectoryNode = node;
 }
@@ -577,6 +573,12 @@ void FileTree::setRootPath(const SplittedPath &sp)
 FileTree::State FileTree::state() const { return _state; }
 
 void FileTree::setState(const State &state) { _state = state; }
+
+void FileTree::setFileSystem(FileSystem *fs)
+{
+    MY_ASSERT(_filesystem == nullptr);
+    _filesystem = fs;
+}
 
 void FileTree::removeEmptyDirectories(FileNode *node)
 {
@@ -701,7 +703,7 @@ void FileTree::installImplementNodesRecursive(FileNode &node)
 void FileTree::installAffectedFilesRecursive(FileNode *node)
 {
     if (node->isAffected()) {
-        SplittedPath tmp = _relativePathSources;
+        SplittedPath tmp = _relativeBasePath;
         tmp.appendPath(node->path());
 
         tmp.setOsSeparator();
@@ -709,6 +711,22 @@ void FileTree::installAffectedFilesRecursive(FileNode *node)
     }
     for (auto child : node->childs())
         installAffectedFilesRecursive(child);
+}
+
+void FileTree::analyzeNodes()
+{
+    DependencyAnalyzer dep;
+    dep.analyze(_rootDirectoryNode);
+
+    installImplementNodes();
+    installIncludeNodes();
+    installInheritanceNodes();
+}
+
+void FileTree::propagateDeps()
+{
+    installDependencies();
+    installDependentBy();
 }
 
 FileNode *FileTree::searchIncludedFile(const IncludeDirective &id,
@@ -741,12 +759,8 @@ FileNode *FileTree::searchInCurrentDir(const SplittedPath &path,
 
 FileNode *FileTree::searchInIncludePaths(const SplittedPath &path) const
 {
-    for (auto includePath : _includePaths) {
-        if (FileNode *includeFile = searchInCurrentDir(path, includePath))
-            return includeFile;
-    }
-    // not found
-    return nullptr;
+    MY_ASSERT(_filesystem);
+    return _filesystem->searchInIncludepaths(path, _includePaths);
 }
 
 FileNode *FileTree::searchInRoot(const SplittedPath &path) const
@@ -757,7 +771,7 @@ FileNode *FileTree::searchInRoot(const SplittedPath &path) const
 void FileTree::updateRelativePath()
 {
     if (!_projectDirectory.empty() && !_rootPath.empty())
-        _relativePathSources = relative_path(_rootPath, _projectDirectory);
+        _relativeBasePath = relative_path(_rootPath, _projectDirectory);
 }
 
 std::__cxx11::string IncludeDirective::toPrint() const
@@ -794,31 +808,6 @@ void FileTreeFunc::parsePhase(FileTree &tree,
         // if deserialization failed just parse all
         tree.parseFiles();
     }
-}
-
-// This function checks whether set "dependencies" and set "dependent by" match
-static void testDeps(FileNode *fnode)
-{
-    if (nullptr == fnode)
-        return;
-    for (auto &file : fnode->_setDependencies) {
-        MY_ASSERT(file->_setDependentBy.find(fnode) !=
-                  file->_setDependentBy.end());
-    }
-}
-
-void FileTreeFunc::analyzePhase(FileTree &tree)
-{
-    DependencyAnalyzer dep;
-    dep.setRoot(tree._rootDirectoryNode);
-
-    tree.installImplementNodes();
-    tree.installIncludeNodes();
-    tree.installInheritanceNodes();
-
-    tree.installDependencies();
-
-    DEBUG(tree.installDependentBy(); testDeps(tree._rootDirectoryNode));
 }
 
 void FileTreeFunc::printAffected(const FileTree &tree)

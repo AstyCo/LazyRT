@@ -542,9 +542,6 @@ void SourceParser::parseFile(FileNode *node)
         return;
 
     std::string fname = node->fullPath().joint();
-    if (str_equal(node->name(), "main.cpp") ||
-        str_equal(node->name(), "tests.cpp"))
-        std::cout << "interesting file parsing" << std::endl;
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
     if (!data) {

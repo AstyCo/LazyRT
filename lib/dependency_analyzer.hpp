@@ -39,7 +39,7 @@ class DependencyAnalyzer
 public:
     DependencyAnalyzer();
 
-    void setRoot(FileNode *fnode);
+    void analyze(FileNode *fnode);
 
 public:
     /// DEBUG
@@ -67,7 +67,7 @@ private:
 
     void readDecls(FileNode *fnode);
 
-    void analyze(FileNode *fnode);
+    void analyzeDecls(FileNode *fnode);
 
     HashedStringNode _rootClassDecls;
     HashedStringNode _rootFuncDecls;

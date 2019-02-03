@@ -84,13 +84,13 @@ DependencyAnalyzer::DependencyAnalyzer()
 {
 }
 
-void DependencyAnalyzer::setRoot(FileNode *fnode)
+void DependencyAnalyzer::analyze(FileNode *fnode)
 {
     if (!fnode)
         return;
 
     readDecls(fnode);
-    analyze(fnode);
+    analyzeDecls(fnode);
 }
 
 void DependencyAnalyzer::print()
@@ -235,7 +235,7 @@ void DependencyAnalyzer::readDecls(FileNode *fnode)
         readDecls(chnode);
 }
 
-void DependencyAnalyzer::analyze(FileNode *fnode)
+void DependencyAnalyzer::analyzeDecls(FileNode *fnode)
 {
     auto &impls = fnode->record()._setImplements;
     auto &inheritances = fnode->record()._setInheritances;
@@ -247,5 +247,5 @@ void DependencyAnalyzer::analyze(FileNode *fnode)
         analyzeInheritance(inh, fnode);
 
     for (const auto &chnode : fnode->childs())
-        analyze(chnode);
+        analyzeDecls(chnode);
 }

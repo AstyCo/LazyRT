@@ -1,7 +1,7 @@
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
 #include "command_line_args.hpp"
-#include "types/file_tree_forest.hpp"
+#include "types/file_system.hpp"
 
 #include <boost/filesystem.hpp>
 
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 
     START_PROFILE;
 
-    FileTreeForest trees;
+    FileSystem trees;
     trees.setProjectDirectory(clargs.proDir());
 
     PROFILE(FileTreeFunc::readDirectory(trees.srcTree, clargs.srcDir().joint(),
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     PROFILE(FileTreeFunc::readDirectory(
         trees.testTree, clargs.testDir().joint(), clargs.ignoredSubstrings()));
 
-    trees.installIncludeSources();
+    trees.installIncludeProjectDir();
     trees.installExtraDependencies(clargs.deps()); // TODO: CHECK EXTRA_DEPS
 
     PROFILE(
@@ -55,8 +55,7 @@ int main(int argc, char *argv[])
     PROFILE(
         FileTreeFunc::parsePhase(trees.testTree, clargs.testsDumpIn().joint()));
 
-    PROFILE(FileTreeFunc::analyzePhase(trees.srcTree));
-    PROFILE(FileTreeFunc::analyzePhase(trees.testTree));
+    PROFILE(trees.analyzePhase());
 
     if (!clargs.isNoMain())
         FileTreeFunc::labelMainAffected(trees.testTree);
@@ -73,6 +72,9 @@ int main(int argc, char *argv[])
     FileTreeFunc::writeAffected(trees.testTree, clargs.testsAffected().joint());
 
     if (clargs.verbal()) {
+        trees.srcTree.print();
+        trees.testTree.print();
+
         FileTreeFunc::printAffected(trees.srcTree);
         FileTreeFunc::printAffected(trees.testTree);
         trees.srcTree.printModified(clargs.srcBase());
