@@ -37,6 +37,7 @@ public:
     int retCode() const { return _retCode; }
 
     const std::string &ignoredSubstrings() const { return _ignoredSubstrings; }
+    std::vector< SplittedPath > includePaths() const;
 
     const SplittedPath &srcBase() const { return _srcBase; }
     const SplittedPath &testBase() const { return _testBase; }
@@ -52,6 +53,7 @@ private:
     std::string _exts;
 
     std::string _ignoredSubstrings;
+    std::string _includePaths;
 
     SplittedPath _srcBase;
     SplittedPath _testBase;

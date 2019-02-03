@@ -39,55 +39,63 @@ int main(int argc, char *argv[])
 
     START_PROFILE;
 
-    FileSystem trees;
-    trees.setProjectDirectory(clargs.proDir());
+    FileSystem filesystem;
+    filesystem.setProjectDirectory(clargs.proDir());
+    filesystem.setIncludePaths(clargs.includePaths());
 
-    PROFILE(FileTreeFunc::readDirectory(trees.srcTree, clargs.srcDir().joint(),
+    PROFILE(FileTreeFunc::readDirectory(filesystem.srcTree,
+                                        clargs.srcDir().joint(),
                                         clargs.ignoredSubstrings()));
-    PROFILE(FileTreeFunc::readDirectory(
-        trees.testTree, clargs.testDir().joint(), clargs.ignoredSubstrings()));
+    PROFILE(FileTreeFunc::readDirectory(filesystem.testTree,
+                                        clargs.testDir().joint(),
+                                        clargs.ignoredSubstrings()));
 
-    trees.installIncludeProjectDir();
-    trees.installExtraDependencies(clargs.deps()); // TODO: CHECK EXTRA_DEPS
+    filesystem.installIncludeProjectDir();
+    filesystem.installExtraDependencies(
+        clargs.deps()); // TODO: CHECK EXTRA_DEPS
 
-    PROFILE(
-        FileTreeFunc::parsePhase(trees.srcTree, clargs.srcsDumpIn().joint()));
-    PROFILE(
-        FileTreeFunc::parsePhase(trees.testTree, clargs.testsDumpIn().joint()));
+    PROFILE(FileTreeFunc::parsePhase(filesystem.srcTree,
+                                     clargs.srcsDumpIn().joint()));
+    PROFILE(FileTreeFunc::parsePhase(filesystem.testTree,
+                                     clargs.testsDumpIn().joint()));
 
-    PROFILE(trees.analyzePhase());
+    PROFILE(filesystem.analyzePhase());
 
     if (!clargs.isNoMain())
-        FileTreeFunc::labelMainAffected(trees.testTree);
+        FileTreeFunc::labelMainAffected(filesystem.testTree);
 
     // Create directories to put output files to
     boost::filesystem::create_directories(clargs.outDir().joint());
 
-    FileTreeFunc::writeModified(trees.srcTree, clargs.srcsModified().joint());
-    FileTreeFunc::writeModified(trees.testTree, clargs.testsModified().joint());
+    FileTreeFunc::writeModified(filesystem.srcTree,
+                                clargs.srcsModified().joint());
+    FileTreeFunc::writeModified(filesystem.testTree,
+                                clargs.testsModified().joint());
 
-    trees.installAffectedFiles();
+    filesystem.installAffectedFiles();
 
-    FileTreeFunc::writeAffected(trees.srcTree, clargs.srcsAffected().joint());
-    FileTreeFunc::writeAffected(trees.testTree, clargs.testsAffected().joint());
+    FileTreeFunc::writeAffected(filesystem.srcTree,
+                                clargs.srcsAffected().joint());
+    FileTreeFunc::writeAffected(filesystem.testTree,
+                                clargs.testsAffected().joint());
 
     if (clargs.verbal()) {
-        trees.srcTree.print();
-        trees.testTree.print();
+        //        filesystem.srcTree.print();
+        //        filesystem.testTree.print();
 
-        FileTreeFunc::printAffected(trees.srcTree);
-        FileTreeFunc::printAffected(trees.testTree);
-        trees.srcTree.printModified(clargs.srcBase());
-        trees.testTree.printModified(clargs.testBase());
+        FileTreeFunc::printAffected(filesystem.srcTree);
+        FileTreeFunc::printAffected(filesystem.testTree);
+        filesystem.srcTree.printModified(clargs.srcBase());
+        filesystem.testTree.printModified(clargs.testBase());
 
         std::cout << "write lazyut files to " << clargs.outDir().joint()
                   << std::endl;
     }
 
-    PROFILE(
-        FileTreeFunc::serialize(trees.srcTree, clargs.srcsDumpOut().joint()));
-    PROFILE(
-        FileTreeFunc::serialize(trees.testTree, clargs.testsDumpOut().joint()));
+    PROFILE(FileTreeFunc::serialize(filesystem.srcTree,
+                                    clargs.srcsDumpOut().joint()));
+    PROFILE(FileTreeFunc::serialize(filesystem.testTree,
+                                    clargs.testsDumpOut().joint()));
 
     return 0;
 }

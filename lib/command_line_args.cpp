@@ -63,6 +63,11 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
                    "Directory relative to which the project source files list "
                    "is displayed");
 
+    app.add_option("--include-paths", _includePaths,
+                   "Extra include paths both for source and test, "
+                   "relative to project directory,"
+                   "separated by comma (,)");
+
     app.add_flag("-m,--no-main", _isNoMain,
                  "Don't keep test source file with main() implementation");
     app.add_flag("-v,--verbal", _verbal, "Verbal mode");
@@ -131,4 +136,16 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
         _testBase = _proDirectory;
     _status = Success;
     _retCode = 0;
+}
+
+std::vector< SplittedPath > CommandLineArgs::includePaths() const
+{
+    std::vector< SplittedPath > result;
+    auto splitted = split(_includePaths, ",");
+
+    for (const auto &path : splitted) {
+        result.push_back(_proDirectory +
+                         SplittedPath(path, SplittedPath::unixSep()));
+    }
+    return result;
 }

@@ -8,6 +8,9 @@ FileSystem::FileSystem()
     _trees.push_back(&testTree);
     _trees.push_back(&extraDepsTree);
 
+    _treesToAnalyze.push_back(&srcTree);
+    _treesToAnalyze.push_back(&testTree);
+
     for (FileTree *pTree : _trees)
         pTree->setFileSystem(this);
 }
@@ -16,6 +19,16 @@ void FileSystem::setProjectDirectory(const SplittedPath &path)
 {
     for (FileTree *p : _trees)
         p->setProjectDirectory(path);
+}
+
+void FileSystem::setIncludePaths(
+    const std::vector< SplittedPath > &includePaths)
+{
+    for (const auto &path : includePaths) {
+        for (FileTree *pTree : _trees) {
+            pTree->_includePaths.push_back(path);
+        }
+    }
 }
 
 void FileSystem::installIncludeProjectDir()
@@ -49,8 +62,13 @@ static void test_dependency_dependentyBy_match(FileNode *fnode)
     if (fnode == nullptr)
         return;
     for (FileNode *file : fnode->_setDependencies) {
-        MY_ASSERT(file->_setDependentBy.find(fnode) !=
-                  file->_setDependentBy.end());
+        if (file->_setDependentBy.find(fnode) == file->_setDependentBy.end()) {
+            std::cerr << "ERROR: FILE " << file->fullPath().joint() << " FNODE "
+                      << fnode->fullPath().joint() << std::endl;
+            file->_fileTree.print();
+            fnode->_fileTree.print();
+            MY_ASSERT(false);
+        }
     }
 
     for (FileNode *child : fnode->childs())
@@ -116,12 +134,10 @@ void test_analyse_phase(FileSystem &trees)
 
 void FileSystem::analyzePhase()
 {
-    std::array< FileTree *, 2 > treesToAnalyze = {&srcTree, &testTree};
-
-    for (auto pTree : treesToAnalyze)
+    for (auto pTree : _treesToAnalyze)
         pTree->analyzeNodes();
-    for (auto pTree : treesToAnalyze)
-        pTree->propagateDeps();
+
+    propagateDeps();
 
     DEBUG(Debug::test_analyse_phase(*this));
 }
@@ -153,4 +169,19 @@ FileNode *FileSystem::search(const SplittedPath &fullpath)
             return file;
     }
     return nullptr;
+}
+
+void FileSystem::clearVisitedLabels()
+{
+    for (FileTree *pTree : _treesToAnalyze)
+        pTree->clearVisitedR();
+}
+
+void FileSystem::propagateDeps()
+{
+    for (FileTree *pTree : _treesToAnalyze)
+        pTree->installDependencies();
+
+    for (FileTree *pTree : _treesToAnalyze)
+        pTree->installDependentBy();
 }

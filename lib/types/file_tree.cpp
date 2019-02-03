@@ -81,8 +81,8 @@ void FileRecord::swapParsedData(FileRecord &record)
 }
 
 FileNode::FileNode(const SplittedPath &path, FileRecord::Type type,
-                   const FileTree &fileTree)
-    : _record(path, type), _parent(nullptr), _installDependenciesCalled(false),
+                   FileTree &fileTree)
+    : _record(path, type), _parent(nullptr), _visited(false),
       _fileTree(fileTree)
 {
 }
@@ -268,19 +268,6 @@ void FileNode::printInheritsFiles(int indent) const
                   << std::endl;
 }
 
-void FileNode::installDepsPrivate(
-    FileNode::SetFileNode FileNode::*deps,
-    const FileNode::SetFileNode FileNode::*explicitDeps, bool FileNode::*called)
-{
-    this->*called = true;
-
-    // File allways depends on himself
-    (this->*deps).insert(this);
-
-    for (FileNode *node_ptr : (this->*explicitDeps))
-        addDependencyPrivate(*node_ptr, deps, explicitDeps, called);
-}
-
 bool FileNode::hasRegularFiles() const
 {
     if (_record._type == FileRecord::RegularFile)
@@ -329,16 +316,16 @@ void FileNode::installImplements(const FileTree &fileTree)
 void FileNode::installDependencies()
 {
     installDepsPrivate(&FileNode::_setDependencies,
-                       &FileNode::_setExplicitDependencies,
-                       &FileNode::_installDependenciesCalled);
+                       &FileNode::_setExplicitDependencies);
 }
 
 void FileNode::installDependentBy()
 {
     installDepsPrivate(&FileNode::_setDependentBy,
-                       &FileNode::_setExplicitDependendentBy,
-                       &FileNode::_installDependentByCalled);
+                       &FileNode::_setExplicitDependendentBy);
 }
+
+void FileNode::clearVisited() { _visited = false; }
 
 FileNode *FileNode::search(const SplittedPath &path)
 {
@@ -353,29 +340,20 @@ FileNode *FileNode::search(const SplittedPath &path)
 
 void FileNode::installExplicitDep(FileNode *includedNode)
 {
-    if (!includedNode) {
-        MY_ASSERT(false);
-        return;
-    }
+    MY_ASSERT(includedNode);
     _setExplicitDependencies.insert(includedNode);
     includedNode->_setExplicitDependendentBy.insert(this);
 }
 
 void FileNode::installExplicitDepBy(FileNode *implementedNode)
 {
-    if (!implementedNode) {
-        MY_ASSERT(false);
-        return;
-    }
+    MY_ASSERT(implementedNode);
     implementedNode->installExplicitDep(this);
 }
 
 void FileNode::swapParsedData(FileNode *file)
 {
-    if (!file) {
-        MY_ASSERT(false);
-        return;
-    }
+    MY_ASSERT(file); // TODO use this instead of copy
     _record.swapParsedData(file->_record);
 }
 
@@ -403,18 +381,46 @@ bool FileNode::isAffected() const
     return false;
 }
 
-void FileNode::addDependencyPrivate(FileNode &file,
-                                    FileNode::SetFileNode FileNode::*deps,
-                                    const SetFileNode FileNode::*explicitDeps,
-                                    bool FileNode::*called)
+void FileNode::installDepsPrivate(
+    FileNode::SetFileNode FileNode::*getSetDeps,
+    const FileNode::SetFileNode FileNode::*getSetExplicitDeps)
 {
-    const auto &fileDeps = file.*deps;
+    _fileTree._filesystem->clearVisitedLabels();
 
-    // install dependencies of dependency first
-    if (!(file.*called))
-        file.installDepsPrivate(deps, explicitDeps, called);
+    installDepsPrivateR(this, getSetDeps, getSetExplicitDeps);
 
-    (this->*deps).insert(fileDeps.begin(), fileDeps.end());
+    // File allways depends on himself
+    (this->*getSetDeps).insert(this);
+}
+
+template < typename T >
+static void append(T &lhs, const T &rhs)
+{
+    lhs.insert(rhs.begin(), rhs.end());
+}
+
+void FileNode::installDepsPrivateR(
+    FileNode *node, FileNode::SetFileNode FileNode::*getSetDeps,
+    const FileNode::SetFileNode FileNode::*getSetExplicitDeps)
+{
+    if (node->_visited)
+        return;
+    node->_visited = true;
+
+    SetFileNode &deps = this->*getSetDeps;
+    const SetFileNode &nodeDeps = node->*getSetDeps;
+
+    const SetFileNode &nodeExplicitDeps = node->*getSetExplicitDeps;
+
+    if (!nodeDeps.empty()) {
+        append(deps, nodeDeps);
+        return;
+    }
+
+    append(deps, nodeExplicitDeps);
+
+    for (FileNode *explDepsNode : nodeExplicitDeps)
+        installDepsPrivateR(explDepsNode, getSetDeps, getSetExplicitDeps);
 }
 
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
@@ -482,6 +488,12 @@ void FileTree::installImplementNodes()
 {
     if (_rootDirectoryNode)
         installImplementNodesRecursive(*_rootDirectoryNode);
+}
+
+void FileTree::clearVisitedR()
+{
+    if (_rootDirectoryNode)
+        recursiveCall(*_rootDirectoryNode, &FileNode::clearVisited);
 }
 
 void FileTree::installDependencies()

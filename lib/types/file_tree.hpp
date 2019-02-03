@@ -91,7 +91,7 @@ public:
 
 public:
     explicit FileNode(const SplittedPath &path, FileRecord::Type type,
-                      const FileTree &fileTree);
+                      FileTree &fileTree);
     virtual ~FileNode();
 
     FileNode *findChild(const HashedFileName &hfname) const;
@@ -129,6 +129,7 @@ public:
 
     void installDependencies();
     void installDependentBy();
+    void clearVisited();
 
     FileNode *search(const SplittedPath &path);
 
@@ -163,12 +164,10 @@ public:
     void printInheritsFiles(int indent = 0) const;
     ///
 private:
-    void addDependencyPrivate(FileNode &file, SetFileNode FileNode::*deps,
-                              const SetFileNode FileNode::*explicitDeps,
-                              bool FileNode::*called);
-    void installDepsPrivate(SetFileNode FileNode::*deps,
-                            const SetFileNode FileNode::*explicitDeps,
-                            bool FileNode::*called);
+    void installDepsPrivate(SetFileNode FileNode::*getSetDeps,
+                            const SetFileNode FileNode::*getSetExplicitDeps);
+    void installDepsPrivateR(FileNode *node, SetFileNode FileNode::*getSetDeps,
+                             const SetFileNode FileNode::*getSetExplicitDeps);
 
     FileNode *_parent;
     ListFileNode _childs;
@@ -181,11 +180,10 @@ public:
     SetFileNode _setDependencies;
     SetFileNode _setDependentBy;
 
-private:
-    bool _installDependenciesCalled;
-    bool _installDependentByCalled;
+    FileTree &_fileTree;
 
-    const FileTree &_fileTree;
+private:
+    bool _visited;
 };
 
 namespace FileNodeFunc {
@@ -222,6 +220,7 @@ public:
     void installInheritanceNodes();
     void installImplementNodes();
 
+    void clearVisitedR();
     void installDependencies();
     void installDependentBy();
 
@@ -259,6 +258,8 @@ public:
 
     std::list< SplittedPath > _affectedFiles;
 
+    FileSystem *_filesystem;
+
 public:
     void removeEmptyDirectories(FileNode *node);
     void calculateFileHashes(FileNode *node);
@@ -280,7 +281,7 @@ public:
     void recursiveCall(FileNode &node, TFunc f)
     {
         (node.*f)();
-        for (auto &child : node.childs())
+        for (FileNode *child : node.childs())
             recursiveCall(*child, f);
     }
 
@@ -296,7 +297,6 @@ private:
     void updateRelativePath();
 
 private:
-    FileSystem *_filesystem;
     SplittedPath _rootPath;
 
     SourceParser _srcParser;
