@@ -43,10 +43,9 @@ int main(int argc, char *argv[])
     trees.setProjectDirectory(clargs.proDir());
 
     PROFILE(FileTreeFunc::readDirectory(trees.srcTree, clargs.srcDir().joint(),
-                                        clargs.srcIgnoreSubstrings()));
-    PROFILE(FileTreeFunc::readDirectory(trees.testTree,
-                                        clargs.testDir().joint(),
-                                        clargs.testIgnoreSubstrings()));
+                                        clargs.ignoredSubstrings()));
+    PROFILE(FileTreeFunc::readDirectory(
+        trees.testTree, clargs.testDir().joint(), clargs.ignoredSubstrings()));
 
     trees.installIncludeSources();
     trees.installExtraDependencies(clargs.deps()); // TODO: CHECK EXTRA_DEPS

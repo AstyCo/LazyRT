@@ -36,11 +36,11 @@ public:
     int status() const { return _status; }
     int retCode() const { return _retCode; }
 
-    const std::string &testIgnoreSubstrings() const { return _testIgnoreSubstrings;}
-    const std::string &srcIgnoreSubstrings() const { return _srcIgnoreSubstrings;}
+    const std::string &ignoredSubstrings() const { return _ignoredSubstrings; }
 
-    const SplittedPath &srcBase() const { return _srcBase;}
-    const SplittedPath &testBase() const { return _testBase;}
+    const SplittedPath &srcBase() const { return _srcBase; }
+    const SplittedPath &testBase() const { return _testBase; }
+
 private:
     SplittedPath _proDirectory;
     SplittedPath _srcDirectory;
@@ -51,8 +51,7 @@ private:
 
     std::string _exts;
 
-    std::string _srcIgnoreSubstrings;
-    std::string _testIgnoreSubstrings;
+    std::string _ignoredSubstrings;
 
     SplittedPath _srcBase;
     SplittedPath _testBase;

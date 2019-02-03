@@ -54,28 +54,28 @@ void DirectoryReader::readDirectory(FileTree &fileTree,
 }
 
 void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
-                                               const BoostPath &directory_path,
+                                               const BoostPath &path,
                                                const SplittedPath &sp_base)
 {
     try {
-        if (isIgnored(directory_path.string()))
-            return;
-        if (!exists(directory_path)) {
-            errors() << directory_path.string() << "does not exist\n";
+        if (isIgnored(path.string()))
+            return; // skip directory if it is ignored
+
+        if (!exists(path)) {
+            errors() << path.string() << "does not exist\n";
             return;
         }
 
-        SplittedPath spDirectoryPath(directory_path.string(),
-                                     SplittedPath::osSep());
+        SplittedPath spDirectoryPath(path.string(), SplittedPath::osSep());
         SplittedPath rel_path = relative_path(spDirectoryPath, sp_base);
-        if (is_regular_file(directory_path)) {
-            if (!isSourceFile(directory_path))
+        if (is_regular_file(path)) {
+            if (!isSourceFile(path))
                 return;
             MY_ASSERT(_currenDirectory);
             _currenDirectory->addChild(
                 new FileNode(rel_path, FileRecord::RegularFile, fileTree));
         }
-        else if (is_directory(directory_path)) {
+        else if (is_directory(path)) {
             FileNode *directoryNode =
                 new FileNode(rel_path, FileRecord::Directory, fileTree);
             if (_currenDirectory == nullptr)
@@ -83,7 +83,7 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
             else
                 _currenDirectory->addChild(directoryNode);
 
-            directory_iterator it(directory_path);
+            directory_iterator it(path);
             directory_iterator end;
             while (it != end) {
                 _currenDirectory = directoryNode;
@@ -94,7 +94,7 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
 
         else {
             errors()
-                << directory_path.string()
+                << path.string()
                 << "exists, but is neither a regular file nor a directory\n";
         }
     }
@@ -122,8 +122,13 @@ bool DirectoryReader::isSourceFile(const path &file_path) const
 bool DirectoryReader::isIgnored(const std::__cxx11::string &path) const
 {
     // check if path is ignored
+    SplittedPath spUnixSep(path, SplittedPath::osSep());
+    spUnixSep.setUnixSeparator();
+
+    const std::string &pathUnixSep = spUnixSep.joint();
+
     for (auto &ignore_substring : _ignore_substrings) {
-        if (path.find(ignore_substring) != std::string::npos)
+        if (pathUnixSep.find(ignore_substring) != std::string::npos)
             return true;
     }
     // not found

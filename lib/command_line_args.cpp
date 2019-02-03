@@ -53,17 +53,15 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     app.add_option("-e,--extensions", exts,
                    "Source files extensions, separated by comma (,)");
 
-    app.add_option("--src-ignore", _srcIgnoreSubstrings,
-                   "Substrings of the ignored paths, separated by comma (,) "
-                   "for project source files");
-    app.add_option("--test-ignore", _testIgnoreSubstrings,
-                   "Substrings of the ignored paths, separated by comma (,) "
-                   "for test source files");
+    app.add_option("--ignore", _ignoredSubstrings,
+                   "Substrings of the ignored paths, separated by comma (,) ");
 
-    app.add_option("--test-base", testBase,
-                   "Directory relative to which the test source files list is displayed");
+    app.add_option(
+        "--test-base", testBase,
+        "Directory relative to which the test source files list is displayed");
     app.add_option("--src-base", srcBase,
-                   "Directory relative to which the project source files list is displayed");
+                   "Directory relative to which the project source files list "
+                   "is displayed");
 
     app.add_flag("-m,--no-main", _isNoMain,
                  "Don't keep test source file with main() implementation");

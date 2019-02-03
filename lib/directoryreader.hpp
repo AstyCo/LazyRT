@@ -20,8 +20,7 @@ public:
     static std::vector< std::string > _ignore_substrings;
 
 private:
-    void readDirectoryRecursively(FileTree &fileTree,
-                                  const BoostPath &directory_path,
+    void readDirectoryRecursively(FileTree &fileTree, const BoostPath &path,
                                   const SplittedPath &sp_base);
     void removeEmptyDirectories(FileTree &fileTree);
 
