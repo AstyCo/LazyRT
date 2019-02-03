@@ -148,6 +148,8 @@ public:
         clearJoint();
     }
 
+    const std::string &separator() const { return _separator; }
+
     static const std::string &namespaceSep()
     {
         static std::string sep("::");
@@ -230,8 +232,8 @@ private:
         if (_joint.empty())
             return;
         size_t pos = 0, sepPos;
-        while ((sepPos = _joint.find(_separator, pos))
-               != static_cast<size_t>(-1)) {
+        while ((sepPos = _joint.find(_separator, pos)) !=
+               static_cast< size_t >(-1)) {
             _splitted.push_back(_joint.substr(pos, sepPos - pos));
 
             pos = sepPos + _separatorSize;
@@ -265,19 +267,19 @@ private:
     void removeHomeDirSign()
     {
         size_t pos;
-        while ((pos = _joint.find('~'))
-               != static_cast<size_t>(-1)) {
+        while ((pos = _joint.find('~')) != static_cast< size_t >(-1)) {
             _joint.replace(pos, 1, std::string(get_home_dir()));
         }
     }
 
     void removeTrailingSeparators()
     {
-        while (_joint.find(_separator, _joint.size() - _separator.size())
-               != static_cast<size_t>(-1)) {
+        while (_joint.find(_separator, _joint.size() - _separator.size()) !=
+               static_cast< size_t >(-1)) {
             _joint.resize(_joint.size() - _separator.size());
         }
     }
+
 private:
     mutable bool _isJointValid;
     mutable bool _isSplittedValid;
@@ -331,8 +333,9 @@ public:
 typedef SplittedString< HashedFileName > ScopedName;
 typedef SplittedString< HashedFileName > SplittedPath;
 
-SplittedPath my_relative(const SplittedPath &path_to_file,
-                         const SplittedPath &base);
+// result.separator() is base.separator()
+SplittedPath relative_path(const SplittedPath &path_to_file,
+                           const SplittedPath &base);
 bool is_relative(const SplittedPath &path);
 SplittedPath absolute_path(const SplittedPath &path, const SplittedPath &base);
 

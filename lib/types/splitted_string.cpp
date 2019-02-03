@@ -56,8 +56,8 @@ HashedFileName::HashedFileName(const std::__cxx11::string &str)
 {
 }
 
-SplittedPath my_relative(const SplittedPath &path_to_file,
-                         const SplittedPath &base)
+SplittedPath relative_path(const SplittedPath &path_to_file,
+                           const SplittedPath &base)
 {
     const auto &splitted_file = path_to_file.splitted();
     const auto &splitted_base = base.splitted();
@@ -71,7 +71,8 @@ SplittedPath my_relative(const SplittedPath &path_to_file,
     MY_ASSERT(splitted_base.size() <= splitted_file.size());
 
     SplittedPath result;
-    result.setOsSeparator();
+    result.setSeparator(base.separator());
+
     while (it_base != it_base_end) {
         if (*it_base == *it_file) {
             ++it_base;

@@ -67,7 +67,7 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
 
         SplittedPath spDirectoryPath(directory_path.string(),
                                      SplittedPath::osSep());
-        SplittedPath rel_path = my_relative(spDirectoryPath, sp_base);
+        SplittedPath rel_path = relative_path(spDirectoryPath, sp_base);
         if (is_regular_file(directory_path)) {
             if (!isSourceFile(directory_path))
                 return;

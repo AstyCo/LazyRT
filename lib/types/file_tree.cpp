@@ -23,7 +23,7 @@ FileRecord::FileRecord(const SplittedPath &path, Type type)
     : _path(path), _type(type), _isModified(false), _isManuallyLabeled(false),
       _isHashValid(false)
 {
-    _path.setOsSeparator();
+    _path.setUnixSeparator();
 }
 
 void FileRecord::calculateHash(const SplittedPath &dir_base)
@@ -134,7 +134,7 @@ SplittedPath FileNode::fullPath() const
 
 std::string FileNode::relativeName(const SplittedPath &base) const
 {
-    return my_relative(fullPath(), base).joint();
+    return relative_path(fullPath(), base).joint();
 }
 
 void FileNode::print(int indent) const
@@ -429,7 +429,7 @@ FileNode *FileNode::findChild(const HashedFileName &hfname) const
 FileTree::FileTree()
     : _rootDirectoryNode(nullptr), _srcParser(*this), _state(Clean)
 {
-    _relativePathSources.setOsSeparator();
+    _relativePathSources.setUnixSeparator();
 }
 
 void FileTree::clean()
@@ -563,14 +563,14 @@ void FileTree::setRootDirectoryNode(FileNode *node)
 void FileTree::setProjectDirectory(const SplittedPath &path)
 {
     _projectDirectory = path;
-    _projectDirectory.setOsSeparator();
+    _projectDirectory.setUnixSeparator();
     updateRelativePath();
 }
 
 void FileTree::setRootPath(const SplittedPath &sp)
 {
     _rootPath = sp;
-    _rootPath.setOsSeparator();
+    _rootPath.setUnixSeparator();
     updateRelativePath();
 }
 
@@ -703,8 +703,8 @@ void FileTree::installAffectedFilesRecursive(FileNode *node)
     if (node->isAffected()) {
         SplittedPath tmp = _relativePathSources;
         tmp.appendPath(node->path());
-        tmp.setUnixSeparator();
 
+        tmp.setOsSeparator();
         _affectedFiles.push_back(tmp);
     }
     for (auto child : node->childs())
@@ -757,7 +757,7 @@ FileNode *FileTree::searchInRoot(const SplittedPath &path) const
 void FileTree::updateRelativePath()
 {
     if (!_projectDirectory.empty() && !_rootPath.empty())
-        _relativePathSources = my_relative(_rootPath, _projectDirectory);
+        _relativePathSources = relative_path(_rootPath, _projectDirectory);
 }
 
 std::__cxx11::string IncludeDirective::toPrint() const
