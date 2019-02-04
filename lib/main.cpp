@@ -40,18 +40,21 @@ int main(int argc, char *argv[])
     START_PROFILE;
 
     FileTree rootTree;
-    rootTree.setRootPath(clargs.proDir());
+    rootTree.setRootPath(clargs.rootDirectory());
+
+    PROFILE(rootTree.readSources(clargs.srcDirectories(),
+                                 clargs.ignoredSubstrings()));
 
     FileSystem filesystem;
-    filesystem.setProjectDirectory(clargs.proDir());
+    filesystem.setProjectDirectory(clargs.rootDirectory());
     filesystem.setIncludePaths(clargs.includePaths());
 
-    PROFILE(FileTreeFunc::readDirectory(filesystem.srcTree,
-                                        clargs.srcDir().joint(),
-                                        clargs.ignoredSubstrings()));
-    PROFILE(FileTreeFunc::readDirectory(filesystem.testTree,
-                                        clargs.testDir().joint(),
-                                        clargs.ignoredSubstrings()));
+    //    PROFILE(FileTreeFunc::readDirectory(filesystem.srcTree,
+    //                                        clargs.srcDir().joint(),
+    //                                        clargs.ignoredSubstrings()));
+    //    PROFILE(FileTreeFunc::readDirectory(filesystem.testTree,
+    //                                        clargs.testDir().joint(),
+    //                                        clargs.ignoredSubstrings()));
 
     filesystem.installIncludeProjectDir();
     filesystem.installExtraDependencies(

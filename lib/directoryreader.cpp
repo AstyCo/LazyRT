@@ -53,6 +53,28 @@ void DirectoryReader::readDirectory(FileTree &fileTree,
     fileTree.calculateFileHashes();
 }
 
+bool DirectoryReader::exists(const SplittedPath &sp) const
+{
+    SplittedPath spOsSep = sp;
+    spOsSep.setOsSeparator();
+
+    BoostPath bp(spOsSep.joint());
+    return boost::filesystem::exists(bp);
+}
+
+bool DirectoryReader::readSources(FileTree &fileTree,
+                                  const SplittedPath &relPath)
+{
+    const SplittedPath &root = fileTree.rootPath();
+    SplittedPath fullpath = root + relPath;
+    if (!exists(fullpath))
+        return false; // skipped
+    if (isIgnored(fullpath))
+        return false;
+
+    FileNode *srcRoot = fileTree.addFile(relPath); /// TODO
+}
+
 void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
                                                const BoostPath &path,
                                                const SplittedPath &sp_base)
@@ -61,7 +83,7 @@ void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
         if (isIgnored(path.string()))
             return; // skip file/directory by --ignore flag
 
-        if (!exists(path)) {
+        if (!boost::filesystem::exists(path)) {
             errors() << path.string() << "does not exist\n";
             return;
         }

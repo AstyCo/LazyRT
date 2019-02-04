@@ -19,6 +19,10 @@ public:
     static std::vector< std::string > _sourceFileExtensions;
     static std::vector< std::string > _ignore_substrings;
 
+    bool exists(const SplittedPath &sp) const;
+
+    bool readSources(FileTree &fileTree, const SplittedPath &relPath);
+
 private:
     void readDirectoryRecursively(FileTree &fileTree, const BoostPath &path,
                                   const SplittedPath &sp_base);

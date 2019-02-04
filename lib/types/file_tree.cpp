@@ -543,9 +543,9 @@ void FileTree::printModified(const SplittedPath &base) const
     _rootDirectoryNode->printModified(0, true, base);
 }
 
-FileNode *FileTree::addFile(const SplittedPath &path)
+FileNode *FileTree::addFile(const SplittedPath &relPath)
 {
-    const std::vector< HashedFileName > &splittedPath = path.splitted();
+    const std::vector< HashedFileName > &splittedPath = relPath.splitted();
     if (!_rootDirectoryNode) {
         setRootDirectoryNode(
             new FileNode(SplittedPath(".", SplittedPath::unixSep()),
@@ -592,6 +592,14 @@ void FileTree::setFileSystem(FileSystem *fs)
 {
     MY_ASSERT(_filesystem == nullptr);
     _filesystem = fs;
+}
+
+void FileTree::readSources(const std::vector< SplittedPath > &relPaths,
+                           const std::vector< std::string > &ignoreSubstrings)
+{
+    addFile(relPaths);
+    DirectoryReader dr;
+    dr.readDirectory();
 }
 
 void FileTree::removeEmptyDirectories(FileNode *node)

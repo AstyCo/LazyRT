@@ -13,9 +13,11 @@ public:
 
     void parseArguments(int argc, char *argv[]);
 
-    const SplittedPath &proDir() const { return _proDirectory; }
-    const SplittedPath &srcDir() const { return _srcDirectory; }
-    const SplittedPath &testDir() const { return _testDirectory; }
+    const SplittedPath &rootDirectory() const { return _rootDirectory; }
+
+    std::vector< SplittedPath > srcDirectories() const;
+    std::vector< SplittedPath > testDirectories() const;
+
     const SplittedPath &outDir() const { return _outDirectory; }
     const SplittedPath &inDir() const { return _inDirectory; }
     const std::string &deps() const { return _extraDependencies; }
@@ -36,16 +38,18 @@ public:
     int status() const { return _status; }
     int retCode() const { return _retCode; }
 
-    const std::string &ignoredSubstrings() const { return _ignoredSubstrings; }
+    std::vector< std::string > ignoredSubstrings() const;
     std::vector< SplittedPath > includePaths() const;
 
     const SplittedPath &srcBase() const { return _srcBase; }
     const SplittedPath &testBase() const { return _testBase; }
 
+    static std::vector< SplittedPath > splittedPaths(const std::string &str);
+
 private:
-    SplittedPath _proDirectory;
-    SplittedPath _srcDirectory;
-    SplittedPath _testDirectory;
+    SplittedPath _rootDirectory;
+    std::string _srcDirectories;
+    std::string _testDirectories;
     SplittedPath _outDirectory;
     SplittedPath _inDirectory;
     std::string _extraDependencies;

@@ -231,7 +231,7 @@ public:
     void printModified(const SplittedPath &base) const;
     ///
 
-    FileNode *addFile(const SplittedPath &path);
+    FileNode *addFile(const SplittedPath &relPath);
 
     void setRootDirectoryNode(FileNode *node);
 
@@ -247,6 +247,9 @@ public:
     void setState(const State &state);
 
     void setFileSystem(FileSystem *fs);
+
+    void readSources(const std::vector< SplittedPath > &relPaths,
+                     const std::vector< std::string > &ignoreSubstrings);
 
 public:
     FileNode *_rootDirectoryNode;

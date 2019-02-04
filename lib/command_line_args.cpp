@@ -24,9 +24,7 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
         "Description:\n\t"
         "LazyUT detects tests, affected by the changes in the code.\n"};
 
-    std::string proDirectory;
-    std::string srcDirectory;
-    std::string testDirectory;
+    std::string rootDir;
     std::string outDirectory;
     std::string inDirectory;
 
@@ -37,16 +35,21 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     std::string extra_dependencies;
 
     // required arguments
-    app.add_option("-s,--srcdir", srcDirectory,
-                   "Directory with library source files")
+    app.add_option("-r,--root", rootDir,
+                   "File tree Root directory, every listed file should be "
+                   "relative to this")
         ->required();
-    app.add_option("-t,--testdir", testDirectory,
-                   "Directory with tests source files")
+    app.add_option("-s,--src-dirs", _srcDirectories,
+                   "Directories with source files, separated by comma (,),"
+                   "relative to Root")
+        ->required();
+    app.add_option("-t,--test-dirs", _testDirectories,
+                   "Directories with test files, separated by comma (,),"
+                   "relative to Root")
         ->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
 
     // optional arguments
-    app.add_option("-p,--prodir", proDirectory, "Project root directory");
     app.add_option("-d,--deps", extra_dependencies,
                    "Path to the JSON file with extra dependencies");
     app.add_option("-i,--indir", inDirectory, "Input directory");
@@ -58,10 +61,10 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
 
     app.add_option(
         "--test-base", testBase,
-        "Directory relative to which the test source files list is displayed");
+        "Directory relative to which the test source files are displayed");
     app.add_option("--src-base", srcBase,
-                   "Directory relative to which the project source files list "
-                   "is displayed");
+                   "Directory relative to which the project source files "
+                   "are displayed");
 
     app.add_option("--include-paths", _includePaths,
                    "Extra include paths both for source and test, "
@@ -114,12 +117,8 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     _totalAffected = _outDirectory;
     _totalAffected.append(std::string(_totalAffectedFileName));
 
-    _proDirectory = SplittedPath(proDirectory, SplittedPath::unixSep());
-    _srcDirectory = absolute_path(
-        SplittedPath(srcDirectory, SplittedPath::unixSep()), _proDirectory);
+    _rootDirectory = SplittedPath(rootDir, SplittedPath::unixSep());
 
-    _testDirectory = absolute_path(
-        SplittedPath(testDirectory, SplittedPath::unixSep()), _proDirectory);
     _srcsModified = _outDirectory;
     _srcsModified.append(std::string(_srcsModifiedFileName));
     _testsModified = _outDirectory;
@@ -128,24 +127,46 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     if (!srcBase.empty())
         _srcBase = SplittedPath(srcBase, SplittedPath::unixSep());
     else
-        _srcBase = _proDirectory;
+        _srcBase = _rootDirectory;
 
     if (!testBase.empty())
         _testBase = SplittedPath(testBase, SplittedPath::unixSep());
     else
-        _testBase = _proDirectory;
+        _testBase = _rootDirectory;
     _status = Success;
     _retCode = 0;
 }
 
+std::vector< SplittedPath > CommandLineArgs::srcDirectories() const
+{
+    return splittedPaths(_srcDirectories);
+}
+
+std::vector< SplittedPath > CommandLineArgs::testDirectories() const
+{
+    return splittedPaths(_testDirectories);
+}
+
 std::vector< SplittedPath > CommandLineArgs::includePaths() const
 {
-    std::vector< SplittedPath > result;
-    auto splitted = split(_includePaths, ",");
+    return splittedPaths(_includePaths);
+}
 
-    for (const auto &path : splitted) {
-        result.push_back(_proDirectory +
-                         SplittedPath(path, SplittedPath::unixSep()));
-    }
+std::vector< std::string > CommandLineArgs::ignoredSubstrings() const
+{
+    return split(_ignoredSubstrings, ",");
+}
+
+std::vector< SplittedPath >
+CommandLineArgs::splittedPaths(const std::string &str)
+{
+    auto strVector = split(str, ",");
+    std::vector< SplittedPath > result;
+    result.reserve(strVector.size());
+
+    std::transform(strVector.begin(), strVector.end(),
+                   std::back_inserter(result), [](const std::string &s) {
+                       return SplittedPath(s, SplittedPath::unixSep());
+                   });
     return result;
 }
