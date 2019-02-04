@@ -137,8 +137,6 @@ public:
 
     void swapParsedData(FileNode *file);
 
-    void copy(FileNode *storedNode) { _record = storedNode->record(); }
-
     void setModified() { _record._isModified = true; }
     bool isModified() const { return _record._isModified; }
 

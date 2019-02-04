@@ -39,6 +39,9 @@ int main(int argc, char *argv[])
 
     START_PROFILE;
 
+    FileTree rootTree;
+    rootTree.setRootPath(clargs.proDir());
+
     FileSystem filesystem;
     filesystem.setProjectDirectory(clargs.proDir());
     filesystem.setIncludePaths(clargs.includePaths());

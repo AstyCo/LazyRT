@@ -73,10 +73,9 @@ void FileRecord::swapParsedData(FileRecord &record)
 {
     _listIncludes.swap(record._listIncludes);
     _setImplements.swap(record._setImplements);
-
     _setClassDecl.swap(record._setClassDecl);
     _setFuncDecl.swap(record._setFuncDecl);
-
+    _setInheritances.swap(record._setInheritances);
     _listUsingNamespace.swap(record._listUsingNamespace);
 }
 
@@ -362,7 +361,7 @@ void FileNode::installExplicitDepBy(FileNode *implementedNode)
 
 void FileNode::swapParsedData(FileNode *file)
 {
-    MY_ASSERT(file); /// TODO: use this instead of copy
+    MY_ASSERT(file);
     _record.swapParsedData(file->_record);
 }
 
@@ -650,7 +649,7 @@ void FileTree::compareModifiedFilesRecursive(FileNode *node,
             compareHashArrays(node->record()._hashArray,
                               restored_node->record()._hashArray)) {
             // md5 hash sums match
-            node->copy(restored_node);
+            node->swapParsedData(restored_node);
         }
         else {
             // md5 hash sums don't match
