@@ -89,7 +89,7 @@ FileNode::FileNode(const SplittedPath &path, FileRecord::Type type,
 
 FileNode::~FileNode()
 {
-    list< FileNode * >::iterator it = _childs.begin();
+    auto it = _childs.begin();
     while (it != _childs.end()) {
         delete *it;
         ++it;
@@ -121,10 +121,19 @@ FileNode *FileNode::findOrNewChild(const HashedFileName &hfname,
     return newChild;
 }
 
+static void remove_one(std::vector< FileNode * > &container, FileNode *value)
+{
+    auto it = std::find(container.begin(), container.end(), value);
+    if (it == container.end())
+        return;
+    container.erase(it);
+}
+
 void FileNode::removeChild(FileNode *child)
 {
     child->setParent(nullptr);
-    _childs.remove(child);
+
+    remove_one(_childs, child);
 }
 
 void FileNode::setParent(FileNode *parent) { _parent = parent; }
@@ -157,7 +166,7 @@ void FileNode::print(int indent) const
     printFuncImpls(indent);
     printClassImpls(indent);
 
-    list< FileNode * >::const_iterator it = _childs.begin();
+    auto it = _childs.begin();
     while (it != _childs.end()) {
         (*it)->print(indent + 1);
         ++it;
@@ -230,7 +239,7 @@ void FileNode::printDependencies(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &file : _setDependencies) {
+    for (auto &&file : _setDependencies) {
         if (file == this)
             continue; // don't print the file itself
         std::cout << strIndents << string("dependecy: ") << file->name()
@@ -242,7 +251,7 @@ void FileNode::printDependentBy(int indent) const
 {
     std::string strIndents = makeIndents(indent, 2);
 
-    for (auto &file : _setDependentBy) {
+    for (auto &&file : _setDependentBy) {
         if (file == this)
             continue; // don't print the file itself
         std::cout << strIndents << string("dependent by: ") << file->name()
@@ -353,7 +362,7 @@ void FileNode::installExplicitDepBy(FileNode *implementedNode)
 
 void FileNode::swapParsedData(FileNode *file)
 {
-    MY_ASSERT(file); // TODO use this instead of copy
+    MY_ASSERT(file); /// TODO: use this instead of copy
     _record.swapParsedData(file->_record);
 }
 
@@ -361,13 +370,13 @@ bool FileNode::isAffected() const
 {
     // if some dependency is affected then this is affected too
     // (this uses affected)
-    for (FileNode *dep : _setDependencies) {
+    for (auto &&dep : _setDependencies) {
         if (dep->isThisAffected())
             return true;
     }
     // if some dependent by is affected then this is affected too
     // (affected uses this)
-    for (FileNode *dep : _setDependentBy) {
+    for (auto &&dep : _setDependentBy) {
         if (dep->isThisAffected())
             return true;
     }
@@ -413,7 +422,7 @@ void FileNode::installDepsPrivateR(
 
     append(deps, nodeExplicitDeps);
 
-    for (FileNode *explDepsNode : nodeExplicitDeps)
+    for (auto &&explDepsNode : nodeExplicitDeps)
         installDepsPrivateR(explDepsNode, getSetDeps, getSetExplicitDeps);
 }
 
@@ -537,7 +546,7 @@ void FileTree::printModified(const SplittedPath &base) const
 
 FileNode *FileTree::addFile(const SplittedPath &path)
 {
-    const std::list< HashedFileName > &splittedPath = path.splitted();
+    const std::vector< HashedFileName > &splittedPath = path.splitted();
     if (!_rootDirectoryNode) {
         setRootDirectoryNode(
             new FileNode(SplittedPath(".", SplittedPath::unixSep()),
@@ -688,21 +697,21 @@ void FileTree::parseFilesRecursive(FileNode *node)
 void FileTree::installIncludeNodesRecursive(FileNode &node)
 {
     node.installIncludes(*this);
-    for (auto &child : node.childs())
+    for (auto &&child : node.childs())
         installIncludeNodesRecursive(*child);
 }
 
 void FileTree::installInheritanceNodesRecursive(FileNode &node)
 {
     node.installInheritances(*this);
-    for (auto &child : node.childs())
+    for (auto &&child : node.childs())
         installInheritanceNodesRecursive(*child);
 }
 
 void FileTree::installImplementNodesRecursive(FileNode &node)
 {
     node.installImplements(*this);
-    for (auto &child : node.childs())
+    for (auto &&child : node.childs())
         installImplementNodesRecursive(*child);
 }
 

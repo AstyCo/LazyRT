@@ -40,7 +40,7 @@ std::string numberToString(T Number)
 
 inline bool str_contains(const std::string &str, const std::string &substr)
 {
-    return str.find(substr) != static_cast<size_t>(-1);
+    return str.find(substr) != static_cast< size_t >(-1);
 }
 
 inline bool str_equal(const std::string &str, const std::string &substr)

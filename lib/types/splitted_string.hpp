@@ -15,7 +15,7 @@ class SplittedString
 {
 public:
     typedef THashedString HashedType;
-    typedef std::list< THashedString > SplittedType;
+    typedef std::vector< THashedString > SplittedType;
 
 public:
     SplittedString() { init(); }
@@ -40,7 +40,7 @@ public:
         if (!_isSplittedValid)
             _isSplittedValid = true;
 
-        _splitted.push_front(s);
+        _splitted.insert(_splitted.begin(), s);
     }
 
     void append(const THashedString &s)
@@ -76,7 +76,7 @@ public:
 
     bool empty() const { return !_isSplittedValid && !_isJointValid; }
 
-    const std::list< THashedString > &splitted() const
+    const std::vector< THashedString > &splitted() const
     {
         if (!_isSplittedValid)
             split();

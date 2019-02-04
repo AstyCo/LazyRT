@@ -11,7 +11,6 @@
 #include <list>
 #include <set>
 
-using std::list;
 using std::string;
 
 typedef boost::filesystem::path BoostPath;
@@ -59,12 +58,12 @@ public:
     bool _isModified;
     bool _isManuallyLabeled;
 
-    std::list< IncludeDirective > _listIncludes;
+    std::vector< IncludeDirective > _listIncludes;
     std::set< ScopedName > _setImplements;
     std::set< ScopedName > _setClassDecl;
     std::set< ScopedName > _setFuncDecl;
     std::set< ScopedName > _setInheritances;
-    std::list< ScopedName > _listUsingNamespace;
+    std::vector< ScopedName > _listUsingNamespace;
 
     // Analyze stage
     std::set< ScopedName > _setFuncImplFiles;
@@ -81,7 +80,7 @@ class FileTree;
 class FileNode
 {
 public:
-    typedef std::list< FileNode * > ListFileNode;
+    typedef std::vector< FileNode * > ListFileNode;
     typedef std::set< FileNode * > SetFileNode;
     typedef ListFileNode::iterator FileNodeIterator;
     typedef ListFileNode::const_iterator FileNodeConstIterator;
@@ -106,8 +105,8 @@ public:
     FileNode *parent() const { return _parent; }
     void setParent(FileNode *parent);
 
-    list< FileNode * > &childs() { return _childs; }
-    const list< FileNode * > &childs() const { return _childs; }
+    std::vector< FileNode * > &childs() { return _childs; }
+    const std::vector< FileNode * > &childs() const { return _childs; }
 
     const SplittedPath &path() const { return _record._path; }
     const SplittedPath::HashedType &fname() const { return path().last(); }
@@ -255,9 +254,9 @@ public:
     FileNode *_rootDirectoryNode;
     SplittedPath _projectDirectory;
 
-    std::list< SplittedPath > _includePaths;
+    std::vector< SplittedPath > _includePaths;
 
-    std::list< SplittedPath > _affectedFiles;
+    std::vector< SplittedPath > _affectedFiles;
 
     FileSystem *_filesystem;
 
@@ -282,7 +281,7 @@ public:
     void recursiveCall(FileNode &node, TFunc f)
     {
         (node.*f)();
-        for (FileNode *child : node.childs())
+        for (auto &&child : node.childs())
             recursiveCall(*child, f);
     }
 

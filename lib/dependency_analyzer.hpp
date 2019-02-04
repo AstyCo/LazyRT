@@ -8,7 +8,7 @@
 struct HashedStringNode
 {
     typedef FileNode *FileNodePtr;
-    typedef std::list< FileNodePtr > ExtraData;
+    typedef std::vector< FileNodePtr > ExtraData;
     typedef ScopedName TSplittedString;
     typedef std::map< HashedString::HashType, HashedStringNode * > MapLeafs;
 

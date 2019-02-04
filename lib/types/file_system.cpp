@@ -61,7 +61,7 @@ static void test_dependency_dependentyBy_match(FileNode *fnode)
 {
     if (fnode == nullptr)
         return;
-    for (FileNode *file : fnode->_setDependencies) {
+    for (auto &&file : fnode->_setDependencies) {
         if (file->_setDependentBy.find(fnode) == file->_setDependentBy.end()) {
             std::cerr << "ERROR: FILE " << file->fullPath().joint() << " FNODE "
                       << fnode->fullPath().joint() << std::endl;
@@ -71,7 +71,7 @@ static void test_dependency_dependentyBy_match(FileNode *fnode)
         }
     }
 
-    for (FileNode *child : fnode->childs())
+    for (auto &&child : fnode->childs())
         test_dependency_dependentyBy_match(child);
 }
 
@@ -82,7 +82,7 @@ test_dependencies_recursion_h(FileNode *depNode,
 {
     MY_ASSERT(depNode);
 
-    for (FileNode *dep : depNode->_setDependencies) {
+    for (auto &&dep : depNode->_setDependencies) {
         MY_ASSERT(totalDependencies.find(dep) != totalDependencies.end());
 
         // test is recursive also
@@ -102,10 +102,10 @@ static void test_dependencies_recursion(FileNode *fnode)
     std::set< FileNode * > testedNodes;
     testedNodes.insert(fnode);
 
-    for (FileNode *file : fnode->_setDependencies)
+    for (auto &&file : fnode->_setDependencies)
         test_dependencies_recursion_h(file, deps, testedNodes);
 
-    for (FileNode *child : fnode->childs())
+    for (auto &&child : fnode->childs())
         test_dependencies_recursion(child);
 }
 
@@ -142,9 +142,8 @@ void FileSystem::analyzePhase()
     DEBUG(Debug::test_analyse_phase(*this));
 }
 
-FileNode *
-FileSystem::searchInIncludepaths(const SplittedPath &path,
-                                 const std::list< SplittedPath > &includePaths)
+FileNode *FileSystem::searchInIncludepaths(
+    const SplittedPath &path, const std::vector< SplittedPath > &includePaths)
 {
     for (auto includePath : includePaths) {
         SplittedPath fullpath = includePath + path;

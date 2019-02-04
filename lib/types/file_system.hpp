@@ -21,7 +21,7 @@ public:
 
     FileNode *
     searchInIncludepaths(const SplittedPath &path,
-                         const std::list< SplittedPath > &includePaths);
+                         const std::vector< SplittedPath > &includePaths);
     FileNode *search(const SplittedPath &fullpath);
 
     void clearVisitedLabels();
@@ -30,7 +30,7 @@ public:
     FileTree testTree;
     FileTree extraDepsTree;
 
-    std::list< FileTree * > _trees;
+    std::vector< FileTree * > _trees;
     std::vector< FileTree * > _treesToAnalyze;
 
 private:

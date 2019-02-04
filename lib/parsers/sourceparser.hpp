@@ -25,14 +25,14 @@ public:
 
     int parseNameR(const char *p, int len, ScopedName &name) const;
     int dealWithOperatorOverloadingR(const char *p, int len,
-                                     std::list< std::string > &nsname) const;
+                                     std::vector< std::string > &nsname) const;
     int parseWordR(const char *p, int len) const;
     bool checkIfFunctionHeadR(const char *p, int len) const;
 
     const char *readUntil(const char *p, const char *substr) const;
-    const char *readUntilM(const char *p,
-                           const std::list< std::string > &substrings,
-                           std::list< std::string >::const_iterator &it) const;
+    const char *
+    readUntilM(const char *p, const std::vector< std::string > &substrings,
+               std::vector< std::string >::const_iterator &it) const;
 
 private:
     const FileTree &_fileTree;
@@ -65,7 +65,7 @@ private:
     SpecialState _state;
 
     ScopedName _currentNamespace;
-    std::list< ScopedName > _listUsingNamespace;
+    std::vector< ScopedName > _listUsingNamespace;
 
     ScopedName _funcName;
     ScopedName _classNameDecl;

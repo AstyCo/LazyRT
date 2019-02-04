@@ -230,7 +230,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
     MY_ASSERT(p);
     int d = 0;
     d += skipSpacesAndCommentsR(p, len);
-    std::list< std::string > nsname;
+    std::vector< std::string > nsname;
     d += dealWithOperatorOverloadingR(p - d, len - d, nsname);
     bool operatorOverloading = !nsname.empty();
     bool namespaceState = false;
@@ -241,7 +241,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
             if (0 == wl)
                 break;
             d += wl;
-            nsname.push_front(std::string(p - d + 1, wl));
+            nsname.insert(nsname.begin(), std::string(p - d + 1, wl));
         }
         else {
             operatorOverloading = false;
@@ -272,7 +272,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
 }
 
 int SourceParser::dealWithOperatorOverloadingR(
-    const char *p, int len, std::list< std::__cxx11::string > &nsname) const
+    const char *p, int len, std::vector< std::string > &nsname) const
 {
     CharTreeNode *node = &charTreeRevOverloadTokens;
     for (int d = 0; d < len; ++d) {
@@ -347,8 +347,8 @@ const char *SourceParser::readUntil(const char *p, const char *substr) const
 
 const char *
 SourceParser::readUntilM(const char *p,
-                         const std::list< std::string > &substrings,
-                         std::list< std::string >::const_iterator &it) const
+                         const std::vector< std::string > &substrings,
+                         std::vector< std::string >::const_iterator &it) const
 {
     if (*p == '\n')
         --_line;
@@ -372,7 +372,7 @@ SourceParser::readUntilM(const char *p,
 const char *SourceParser::parseName(const char *p, ScopedName &name) const
 {
     MY_ASSERT(p);
-    std::list< std::string > nsname;
+    std::vector< std::string > nsname;
     for (;;) {
         int wl;
         p = skipSpacesAndComments(p);
@@ -518,18 +518,18 @@ const char *SourceParser::skipLine(const char *p) const
     return p;
 }
 
-static std::list< std::string > initChl()
+static std::vector< std::string > initChl()
 {
-    std::list< std::string > chl;
+    std::vector< std::string > chl;
     chl.push_back(std::string(";"));
     chl.push_back(std::string("{"));
 
     return chl;
 }
 
-static std::list< std::string > initInheritanceChl()
+static std::vector< std::string > initInheritanceChl()
 {
-    std::list< std::string > chl;
+    std::vector< std::string > chl;
     chl.push_back(":");
     chl.push_back("{");
 
@@ -553,8 +553,8 @@ void SourceParser::parseFile(FileNode *node)
     int lbrackets = 0;
     int lcbrackets = 0;
     int nsbrackets = 0;
-    std::list< int > listNsbracketsAt;
-    std::list< int > listClassDeclAt;
+    std::vector< int > listNsbracketsAt;
+    std::vector< int > listClassDeclAt;
 
     _line = 1;
     _currentFile = node;
@@ -647,8 +647,8 @@ void SourceParser::parseFile(FileNode *node)
                     if (!_funcName.empty() && _funcName != _currentNamespace) {
                         p = skipSpacesAndComments(p + 1);
 
-                        static std::list< std::string > chl = initChl();
-                        std::list< std::string >::const_iterator it;
+                        static std::vector< std::string > chl = initChl();
+                        std::vector< std::string >::const_iterator it;
                         const char *pLast = readUntilM(p, chl, it) - 1;
                         switch (*pLast) {
                         case '{':
@@ -750,8 +750,8 @@ void SourceParser::parseFile(FileNode *node)
             ScopedName className = _currentNamespace;
             p = parseName(p, className);
 
-            static std::list< std::string > chl = initChl();
-            std::list< std::string >::const_iterator it;
+            static std::vector< std::string > chl = initChl();
+            std::vector< std::string >::const_iterator it;
             const char *pLast = readUntilM(p, chl, it);
 
             if (it == chl.end()) {
@@ -806,9 +806,9 @@ void SourceParser::parseFile(FileNode *node)
                         }
                         else {
                             baseClassName.clear();
-                            static const std::list< std::string > chl =
+                            static const std::vector< std::string > chl =
                                 initInheritanceChl();
-                            std::list< std::string >::const_iterator it;
+                            std::vector< std::string >::const_iterator it;
                             const char *p = parseName(pInh, baseClassName);
                             if (std::find(chl.cbegin(), chl.cend(),
                                           std::string(*p, 1)) == chl.cend())

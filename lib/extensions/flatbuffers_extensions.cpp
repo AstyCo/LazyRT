@@ -11,9 +11,9 @@ void FileTreeFunc::copyVector(const FT &flatVector, T &v)
 typedef flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > >
     FB_VectorOfStrings;
 template void
-FileTreeFunc::copyVector< FB_VectorOfStrings, std::list< IncludeDirective > >(
+FileTreeFunc::copyVector< FB_VectorOfStrings, std::vector< IncludeDirective > >(
     const flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > > &,
-    std::list< IncludeDirective > &);
+    std::vector< IncludeDirective > &);
 
 template < typename TContainer >
 void FileTreeFunc::copyListSplitted(const LazyUT::ListSplitted &fv,
@@ -70,7 +70,7 @@ void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
 static flatbuffers::Offset<
     flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > > >
 CreateVectorOfStrings(flatbuffers::FlatBufferBuilder &builder,
-                      const std::list< IncludeDirective > &l)
+                      const std::vector< IncludeDirective > &l)
 {
     std::vector< flatbuffers::Offset< flatbuffers::String > > offsets(l.size());
     auto it = l.cbegin();

@@ -75,7 +75,7 @@ void HashedStringNode::insert(
     for (const auto &s : splittedString.splitted())
         current_node = current_node->findOrNew(s);
 
-    current_node->data.push_front(fnode);
+    current_node->data.push_back(fnode);
 }
 
 DependencyAnalyzer::DependencyAnalyzer()
@@ -197,7 +197,7 @@ void DependencyAnalyzer::addFunctionImpl(FileNode *implNode,
                                          HashedStringNode *hsnode)
 {
     auto &listNodes = hsnode->data;
-    for (auto &node : listNodes) {
+    for (auto &&node : listNodes) {
         implNode->record()._setImplementFiles.insert(node->path());
         implNode->record()._setFuncImplFiles.insert(node->path());
     }
@@ -207,7 +207,7 @@ void DependencyAnalyzer::addClassImpl(FileNode *implNode,
                                       HashedStringNode *hsnode)
 {
     auto &listNodes = hsnode->data;
-    for (auto &node : listNodes) {
+    for (auto &&node : listNodes) {
         implNode->record()._setImplementFiles.insert(node->path());
         implNode->record()._setClassImplFiles.insert(node->path());
     }
@@ -217,7 +217,7 @@ void DependencyAnalyzer::addClassInheritance(FileNode *implNode,
                                              HashedStringNode *hsnode)
 {
     auto &listNodes = hsnode->data;
-    for (auto &node : listNodes)
+    for (auto &&node : listNodes)
         implNode->record()._setBaseClassFiles.insert(node->path());
 }
 
@@ -246,6 +246,6 @@ void DependencyAnalyzer::analyzeDecls(FileNode *fnode)
     for (const auto &inh : inheritances)
         analyzeInheritance(inh, fnode);
 
-    for (const auto &chnode : fnode->childs())
+    for (auto &&chnode : fnode->childs())
         analyzeDecls(chnode);
 }
