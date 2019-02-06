@@ -57,18 +57,8 @@ double getCpuTime();
 std::pair< char *, long > readBinaryFile(const char *fname);
 std::pair< char *, long > readFile(const char *fname, const char *mode);
 
-template < typename T >
-void writeBinaryFile(const char *fname, T *data, size_t length)
-{
-    FILE *pFile = fopen(fname, "wb");
-    if (!pFile) {
-        errors() << "ERROR: Write:: Failed to open file" << std::string(fname);
-        return;
-    }
-
-    fwrite(data, sizeof(T), length, pFile);
-    fclose(pFile);
-}
+void writeBinaryFile(const char *fname, const void *data, size_t type_size,
+                     size_t length);
 
 class Profiler
 {
@@ -85,14 +75,7 @@ public:
 
 std::vector< char > strToVChar(const std::string &str);
 
-inline char osSeparator()
-{
-#ifdef _WIN32
-    return '\\';
-#else
-    return '/';
-#endif
-}
+char osSeparator();
 
 long long file_size(const char *fname);
 

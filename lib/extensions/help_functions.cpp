@@ -130,3 +130,25 @@ std::vector< std::string > split(const std::string &str,
     } while (pos < str.length() && prev < str.length());
     return tokens;
 }
+
+char osSeparator()
+{
+#ifdef _WIN32
+    return '\\';
+#else
+    return '/';
+#endif
+}
+
+void writeBinaryFile(const char *fname, const void *data, size_t type_size,
+                     size_t length)
+{
+    FILE *pFile = fopen(fname, "wb");
+    if (!pFile) {
+        errors() << "ERROR: Write:: Failed to open file" << std::string(fname);
+        return;
+    }
+
+    fwrite(data, type_size, length, pFile);
+    fclose(pFile);
+}

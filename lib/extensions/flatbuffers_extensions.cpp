@@ -154,5 +154,6 @@ void FileTreeFunc::serialize(const FileTree &tree, const SplittedPath &sp)
     builder.Finish(fbs_file_tree);
     uint8_t *data = builder.GetBufferPointer();
     MY_ASSERT(data != nullptr);
-    writeBinaryFile(sp.jointOs().c_str(), data, builder.GetSize());
+    writeBinaryFile(sp.jointOs().c_str(), data, sizeof(*data),
+                    builder.GetSize());
 }
