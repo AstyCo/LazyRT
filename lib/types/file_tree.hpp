@@ -13,7 +13,7 @@
 
 using std::string;
 
-typedef boost::filesystem::path BoostPath;
+using BoostPath = boost::filesystem::path;
 
 struct IncludeDirective
 {
@@ -359,6 +359,6 @@ inline const SplittedPath &FileTree::rootPath() const { return _rootPath; }
 
 // - INLINE FUNCTIONS
 
-typedef std::shared_ptr< FileTree > FileTreePtr;
+using FileTreePtr = std::shared_ptr< FileTree >;
 
 #endif // FILE_TREE_HPP

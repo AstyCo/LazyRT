@@ -131,7 +131,7 @@ const char *SourceParser::parseWord(const char *p, int &wordLength) const
 class CharTreeNode
 {
 public:
-    typedef std::map< char, CharTreeNode * > LeafMap;
+    using LeafMap = std::map< char, CharTreeNode * >;
 
 public:
     CharTreeNode() : finite(false) {}

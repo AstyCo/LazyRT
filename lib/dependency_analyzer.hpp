@@ -7,10 +7,10 @@
 
 struct HashedStringNode
 {
-    typedef FileNode *FileNodePtr;
-    typedef std::vector< FileNodePtr > ExtraData;
-    typedef ScopedName TSplittedString;
-    typedef std::map< HashedString::HashType, HashedStringNode * > MapLeafs;
+    using FileNodePtr = FileNode *;
+    using ExtraData = std::vector< FileNodePtr >;
+    using TSplittedString = ScopedName;
+    using MapLeafs = std::map< HashedString::HashType, HashedStringNode * >;
 
     HashedString hs;
     MapLeafs childs;

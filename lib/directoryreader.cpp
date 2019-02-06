@@ -9,7 +9,7 @@
 
 std::vector< std::string > initSourceFileExtensions()
 {
-    typedef const char CharArray[5];
+    using CharArray = const char[5];
     const CharArray exts_c[] = {".c", ".cpp", ".cc", ".C", ".cxx", ".c++",
                                 ".h", ".hpp", ".hh", ".H", ".hxx", ".h++"};
     int size = sizeof(exts_c) / sizeof(CharArray);

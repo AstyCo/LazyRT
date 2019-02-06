@@ -315,7 +315,7 @@ protected:
 class HashedString : public std::string
 {
 public:
-    typedef MurmurHashType HashType;
+    using HashType = MurmurHashType;
 
 public:
     HashedString(const std::string &str);
@@ -348,8 +348,8 @@ public:
     static const MurmurHashType _hashDotDot;
 };
 
-typedef SplittedString< HashedFileName > ScopedName;
-typedef SplittedString< HashedFileName > SplittedPath;
+using ScopedName = SplittedString< HashedFileName >;
+using SplittedPath = SplittedString< HashedFileName >;
 
 // result.separator() is base.separator()
 SplittedPath relative_path(const SplittedPath &path_to_file,

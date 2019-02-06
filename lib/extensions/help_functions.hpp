@@ -48,7 +48,7 @@ inline bool str_equal(const std::string &str, const std::string &substr)
     return str == substr;
 }
 
-typedef unsigned int MurmurHashType;
+using MurmurHashType = unsigned int;
 MurmurHashType MurmurHash2(const void *key, int len, unsigned int seed = 0);
 
 double getWallTime();

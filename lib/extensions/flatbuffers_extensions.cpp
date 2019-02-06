@@ -8,8 +8,8 @@ void FileTreeFunc::copyVector(const FT &flatVector, T &v)
         [](const flatbuffers::String *value) { return value->str(); });
 }
 
-typedef flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > >
-    FB_VectorOfStrings;
+using FB_VectorOfStrings =
+    flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > >;
 template void
 FileTreeFunc::copyVector< FB_VectorOfStrings, std::vector< IncludeDirective > >(
     const flatbuffers::Vector< flatbuffers::Offset< flatbuffers::String > > &,
@@ -28,7 +28,7 @@ void FileTreeFunc::copyListSplitted(const LazyUT::ListSplitted &fv,
                    });
 }
 
-typedef std::set< ScopedName > SetScopedName;
+using SetScopedName = std::set< ScopedName >;
 template void
 FileTreeFunc::copyListSplitted< SetScopedName >(const LazyUT::ListSplitted &fv,
                                                 SetScopedName &v);

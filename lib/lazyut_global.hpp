@@ -3,6 +3,6 @@
 
 #define DEBUG(x) x
 
-typedef unsigned char uchar;
+using uchar = unsigned char;
 
 #endif // LAZYUT_GLOBAL_HPP
