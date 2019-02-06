@@ -40,7 +40,7 @@ std::pair< char *, long > readFile(const char *fname, const char *mode)
     return std::make_pair(data, read_count);
 }
 
-std::vector< char > strToVChar(const std::__cxx11::string &str)
+std::vector< char > strToVChar(const std::string &str)
 {
     std::vector< char > result;
     std::copy(str.begin(), str.end(), std::back_inserter(result));
@@ -114,8 +114,8 @@ std::string makeIndents(int indent, int extra_spaces)
     return strIndents;
 }
 
-std::vector< std::__cxx11::string > split(const std::__cxx11::string &str,
-                                          const std::__cxx11::string &delim)
+std::vector< std::string > split(const std::string &str,
+                                 const std::string &delim)
 {
     std::vector< std::string > tokens;
     size_t prev = 0, pos = 0;

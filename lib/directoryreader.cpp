@@ -102,7 +102,7 @@ bool DirectoryReader::isIgnored(const SplittedPath &sp) const
     return false;
 }
 
-bool DirectoryReader::isIgnoredOsSep(const std::__cxx11::string &path) const
+bool DirectoryReader::isIgnoredOsSep(const std::string &path) const
 {
     // check if path is ignored
     return isIgnored(SplittedPath(path, SplittedPath::osSep()));

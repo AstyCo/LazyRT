@@ -126,7 +126,7 @@ void FileRecord::setHash(const unsigned char *hash)
     _isHashValid = true;
 }
 
-std::__cxx11::string FileRecord::hashHex() const
+std::string FileRecord::hashHex() const
 {
     if (!_isHashValid)
         return std::string();
@@ -1020,7 +1020,7 @@ void FileTree::updateRoot()
                                       FileRecord::Directory, *this);
 }
 
-std::__cxx11::string IncludeDirective::toPrint() const
+std::string IncludeDirective::toPrint() const
 {
     switch (type) {
     case Quotes:
