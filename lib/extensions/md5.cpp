@@ -358,13 +358,13 @@ std::string MD5::hexdigest() const
 
 const MD5::HashArray &MD5::result() const
 {
-    MY_ASSERT(finalized);
+    assert(finalized);
     return digest;
 }
 
 void MD5::copyResultTo(MD5::HashArray &array) const
 {
-    MY_ASSERT(finalized);
+    assert(finalized);
     if (!finalized)
         return;
     for (int i = 0; i < 16; ++i)

@@ -13,12 +13,6 @@
 #include <sys/stat.h>
 #endif
 
-void Asserter(const char *file, int line)
-{
-    std::cerr << "ASSERT at FILE:" << file << " LINE:" << line << std::endl;
-    exit(1);
-}
-
 std::pair< char *, long > readBinaryFile(const char *fname)
 {
     return readFile(fname, "rb");
@@ -69,7 +63,7 @@ void Profiler::step(const std::string &eventName)
 
 void Profiler::finish(const std::string &eventName)
 {
-    MY_ASSERT(_started);
+    assert(_started);
     step(eventName);
     _started = false;
 }
@@ -96,7 +90,7 @@ long long file_size(const char *fname)
 
     if (stat(fname, &statbuf) == -1) {
         /* check the value of errno */
-        MY_ASSERT(false);
+        assert(false);
         return 0;
     }
     return statbuf.st_size;

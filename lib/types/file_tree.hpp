@@ -206,7 +206,7 @@ namespace FileNodeFunc {
 
 inline void setLabeled(FileNode *f)
 {
-    MY_ASSERT(f);
+    assert(f);
     f->setLabeled();
 }
 

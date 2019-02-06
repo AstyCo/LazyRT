@@ -35,7 +35,7 @@ bool DirectoryReader::exists(const SplittedPath &sp) const
 void DirectoryReader::readSources(const SplittedPath &relPath,
                                   FileTree &filetree)
 {
-    MY_ASSERT(filetree.rootNode());
+    assert(filetree.rootNode());
     readSources(relPath, filetree.rootNode());
 }
 
@@ -68,7 +68,7 @@ void DirectoryReader::readSources(const SplittedPath &relPath, FileNode *parent)
     }
     FileNode *child =
         parent->findOrNewChild(splitted.front(), getFileType(fullpath));
-    MY_ASSERT(child);
+    assert(child);
     if (child->isRegularFile() && isSourceFile(fullpath))
         child->setSourceFile();
 
@@ -84,7 +84,7 @@ void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)
 
 bool DirectoryReader::isSourceFile(const SplittedPath &sp) const
 {
-    MY_ASSERT(boost::filesystem::is_regular_file(sp.jointOs()));
+    assert(boost::filesystem::is_regular_file(sp.jointOs()));
     return std::find(_sourceFileExtensions.begin(), _sourceFileExtensions.end(),
                      boost::filesystem::extension(sp.jointOs()).c_str()) !=
            _sourceFileExtensions.end();

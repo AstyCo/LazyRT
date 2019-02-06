@@ -40,7 +40,7 @@ static bool is_identifier_ch(const char c)
 
 const char *SourceParser::skipSpaces(const char *line) const
 {
-    MY_ASSERT(line);
+    assert(line);
     for (; *line; ++line) {
         if (!isspace(*line))
             return line;
@@ -50,7 +50,7 @@ const char *SourceParser::skipSpaces(const char *line) const
 
 const char *SourceParser::skipSpacesAndComments(const char *line) const
 {
-    MY_ASSERT(line);
+    assert(line);
     bool commentState = false;
     for (; *line; ++line) {
         COUNT_LINES(if (*line == '\n') {
@@ -85,7 +85,7 @@ const char *SourceParser::skipSpacesAndComments(const char *line) const
 
 int SourceParser::skipSpacesAndCommentsR(const char *line, int len) const
 {
-    MY_ASSERT(line);
+    assert(line);
     bool commentState = false;
 
     const int len1 = len - 1;
@@ -227,7 +227,7 @@ static CharTreeNode charTreeRevOverloadTokens = initOverloadingOperators();
 
 int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
 {
-    MY_ASSERT(p);
+    assert(p);
     int d = 0;
     d += skipSpacesAndCommentsR(p, len);
     std::vector< std::string > nsname;
@@ -371,7 +371,7 @@ SourceParser::readUntilM(const char *p,
 
 const char *SourceParser::parseName(const char *p, ScopedName &name) const
 {
-    MY_ASSERT(p);
+    assert(p);
     std::vector< std::string > nsname;
     for (;;) {
         int wl;
@@ -564,7 +564,7 @@ void SourceParser::parseFile(FileNode *node)
     _listUsingNamespace.clear();
 
     for (const char *p = data; p - data < file_size;) {
-        MY_ASSERTF(0 != *p);
+        ASSERT_F(0 != *p);
         VERBAL_1(std::cout << "ch '" << *p << "' state "
                            << stateToString(_state) << std::endl;);
         COUNT_LINES(if (*p == '\n') {
@@ -587,7 +587,7 @@ void SourceParser::parseFile(FileNode *node)
                 ++lcbrackets;
                 break;
             case '}':
-                MY_ASSERTF(lcbrackets > 0);
+                ASSERT_F(lcbrackets > 0);
                 --lcbrackets;
                 if (!listNsbracketsAt.empty() &&
                     (lcbrackets == listNsbracketsAt.back())) {
@@ -597,7 +597,7 @@ void SourceParser::parseFile(FileNode *node)
                 }
                 if (!listClassDeclAt.empty() &&
                     (lcbrackets == listClassDeclAt.back())) {
-                    MY_ASSERTF(!_classNameDecl.empty());
+                    ASSERT_F(!_classNameDecl.empty());
                     if (!_classNameDecl.empty()) {
                         listClassDeclAt.pop_back();
                         p = skipSpacesAndComments(p + 1);
@@ -642,7 +642,7 @@ void SourceParser::parseFile(FileNode *node)
                 case ')':
                     if (--lbrackets > 0)
                         break;
-                    MY_ASSERT(lbrackets >= 0);
+                    assert(lbrackets >= 0);
                     _funcName.joint();
                     if (!_funcName.empty() && _funcName != _currentNamespace) {
                         p = skipSpacesAndComments(p + 1);
@@ -712,12 +712,12 @@ void SourceParser::parseFile(FileNode *node)
             }
             else {
                 std::cout << std::string(p) << std::endl;
-                MY_ASSERT(false)
+                assert(false);
             }
             ++p;
             const char *end_of_filename =
                 (char *)memchr(p, pairChar, strlen(p));
-            MY_ASSERT(end_of_filename);
+            assert(end_of_filename);
             COUNT_LINES(for (const char *s = p; s < end_of_filename; ++s) {
                 if (*s == '\n') {
                     VERBAL_1(std::cout << _line << " ++_line '"
@@ -755,7 +755,7 @@ void SourceParser::parseFile(FileNode *node)
             const char *pLast = readUntilM(p, chl, it);
 
             if (it == chl.end()) {
-                MY_ASSERT(false);
+                assert(false);
             }
             else {
                 const char ch = *it->c_str();

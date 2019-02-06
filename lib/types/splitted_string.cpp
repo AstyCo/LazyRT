@@ -26,7 +26,7 @@ const char *get_home_dir()
     if ((homedir = getenv("HOME")) == NULL) {
         static char path[MAX_PATH];
         if (SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, path) != S_OK) {
-            MY_ASSERT(false);
+            assert(false);
             return NULL;
         }
         homedir = path;
@@ -54,7 +54,7 @@ HashedFileName::HashedFileName(const std::string &str) : HashedString(str) {}
 
 static SplittedPath return_and_set_error(bool *error)
 {
-    MY_ASSERT(error != nullptr);
+    assert(error != nullptr);
     if (error != nullptr)
         *error = true;
     return SplittedPath();
@@ -150,7 +150,7 @@ template < typename THashedString >
 void SplittedString< THashedString >::appendPath(
     const SplittedString< THashedString > &extra_path)
 {
-    MY_ASSERT(_separator == extra_path._separator);
+    assert(_separator == extra_path._separator);
     if (joint().empty())
         _joint = extra_path.joint();
     else if (!extra_path.joint().empty())
@@ -324,7 +324,7 @@ void SplittedString< THashedString >::clearJoint()
 template < typename THashedString >
 void SplittedString< THashedString >::join() const
 {
-    MY_ASSERT(!_isJointValid);
+    assert(!_isJointValid);
     size_t totalSize = 0;
     if (!_splitted.empty()) {
         for (THashedString &sw : _splitted)
@@ -357,7 +357,7 @@ void SplittedString< THashedString >::clearSplitted()
 template < typename THashedString >
 void SplittedString< THashedString >::split() const
 {
-    MY_ASSERT(!_isSplittedValid);
+    assert(!_isSplittedValid);
     _isSplittedValid = true;
     if (_joint.empty())
         return;

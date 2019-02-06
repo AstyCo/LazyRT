@@ -179,7 +179,7 @@ DependencyAnalyzer::findScopedPrivate(const ScopedName &impl, FileNode *fnode,
         size = splitted.size() - 1;
         break;
     default:
-        MY_ASSERT(false);
+        assert(false);
         return nullptr;
     }
 

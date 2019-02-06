@@ -140,7 +140,7 @@ pushFiles(flatbuffers::FlatBufferBuilder &builder,
 
 void FileTreeFunc::serialize(const FileTree &tree, const SplittedPath &sp)
 {
-    MY_ASSERT(tree.rootNode());
+    assert(tree.rootNode());
     // store to binary file
     flatbuffers::FlatBufferBuilder builder(1024);
 
@@ -153,7 +153,7 @@ void FileTreeFunc::serialize(const FileTree &tree, const SplittedPath &sp)
 
     builder.Finish(fbs_file_tree);
     uint8_t *data = builder.GetBufferPointer();
-    MY_ASSERT(data != nullptr);
+    assert(data != nullptr);
     writeBinaryFile(sp.jointOs().c_str(), data, sizeof(*data),
                     builder.GetSize());
 }

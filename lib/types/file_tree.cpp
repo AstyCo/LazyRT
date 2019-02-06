@@ -32,7 +32,7 @@ static void test_dependency_dependentyBy_match(FileNode *fnode)
                       << fnode->fullPath().joint() << std::endl;
             file->_fileTree.print();
             fnode->_fileTree.print();
-            MY_ASSERT(false);
+            assert(false);
         }
     }
 
@@ -45,10 +45,10 @@ test_dependencies_recursion_h(FileNode *depNode,
                               const std::set< FileNode * > &totalDependencies,
                               std::set< FileNode * > &testedNodes)
 {
-    MY_ASSERT(depNode);
+    assert(depNode);
 
     for (auto &&dep : depNode->_setDependencies) {
-        MY_ASSERT(totalDependencies.find(dep) != totalDependencies.end());
+        assert(totalDependencies.find(dep) != totalDependencies.end());
 
         // test is recursive also
         if (testedNodes.find(dep) == testedNodes.end()) {
@@ -61,7 +61,7 @@ test_dependencies_recursion_h(FileNode *depNode,
 // Checks whether dependency set contains the dependencies of dependencies
 static void test_dependencies_recursion(FileNode *fnode)
 {
-    MY_ASSERT(fnode);
+    assert(fnode);
     const auto &deps = fnode->_setDependencies;
 
     std::set< FileNode * > testedNodes;
@@ -109,7 +109,7 @@ void FileRecord::calculateHash(const SplittedPath &dir_base)
                  (dir_base + _path).c_str());
         errors() << std::string(buff);
 
-        //        MY_ASSERT(false);
+        //        assert(false);
         return;
     }
     MD5 md5((unsigned char *)data, data_pair.second);
@@ -120,7 +120,7 @@ void FileRecord::calculateHash(const SplittedPath &dir_base)
 
 void FileRecord::setHash(const unsigned char *hash)
 {
-    MY_ASSERT(!_isHashValid);
+    assert(!_isHashValid);
 
     copyHashArray(_hashArray, hash);
     _isHashValid = true;
@@ -167,7 +167,7 @@ FileNode::~FileNode()
 
 void FileNode::addChild(FileNode *child)
 {
-    MY_ASSERT(child->parent() == nullptr);
+    assert(child->parent() == nullptr);
 
     child->setParent(this);
     _childs.push_back(child);
@@ -404,20 +404,20 @@ FileNode *FileNode::search(const SplittedPath &path)
 
 void FileNode::installExplicitDep(FileNode *includedNode)
 {
-    MY_ASSERT(includedNode);
+    assert(includedNode);
     _setExplicitDependencies.insert(includedNode);
     includedNode->_setExplicitDependendentBy.insert(this);
 }
 
 void FileNode::installExplicitDepBy(FileNode *implementedNode)
 {
-    MY_ASSERT(implementedNode);
+    assert(implementedNode);
     implementedNode->installExplicitDep(this);
 }
 
 void FileNode::swapParsedData(FileNode *file)
 {
-    MY_ASSERT(file);
+    assert(file);
     _record.swapParsedData(file->_record);
 }
 
@@ -508,21 +508,21 @@ void FileTree::clean()
 
 void FileTree::removeEmptyDirectories()
 {
-    MY_ASSERT(_state == Filled);
+    assert(_state == Filled);
     removeEmptyDirectories(_rootDirectoryNode);
     _state = Filtered;
 }
 
 void FileTree::calculateFileHashes()
 {
-    MY_ASSERT(_state == Filtered);
+    assert(_state == Filtered);
     calculateFileHashes(_rootDirectoryNode);
     _state = CachesCalculated;
 }
 
 void FileTree::parseFiles()
 {
-    MY_ASSERT(_state == CachesCalculated);
+    assert(_state == CachesCalculated);
     if (_rootDirectoryNode) {
         parseFilesRecursive(_rootDirectoryNode);
         installModifiedFiles(_rootDirectoryNode);
@@ -567,14 +567,14 @@ void FileTree::installDependentBy()
 
 void FileTree::installAffectedFiles()
 {
-    MY_ASSERT(_affectedFiles.empty());
+    assert(_affectedFiles.empty());
     if (_rootDirectoryNode)
         installAffectedFilesRecursive(_rootDirectoryNode);
 }
 
 void FileTree::parseModifiedFiles(const FileTree &restored_file_tree)
 {
-    MY_ASSERT(_state == CachesCalculated);
+    assert(_state == CachesCalculated);
     compareModifiedFilesRecursive(_rootDirectoryNode,
                                   restored_file_tree._rootDirectoryNode);
     parseModifiedFilesRecursive(_rootDirectoryNode);
@@ -594,13 +594,13 @@ FileNode *FileTree::addFile(const SplittedPath &relPath)
 {
     const std::vector< HashedFileName > &splittedPath = relPath.splitted();
     FileNode *currentNode = _rootDirectoryNode;
-    MY_ASSERT(_rootDirectoryNode);
+    assert(_rootDirectoryNode);
     for (const HashedFileName &fname : splittedPath) {
         FileRecord::Type type =
             ((fname == splittedPath.back()) ? FileRecord::RegularFile
                                             : FileRecord::Directory);
         currentNode = currentNode->findOrNewChild(fname, type);
-        MY_ASSERT(currentNode);
+        assert(currentNode);
     }
     return currentNode;
 }
@@ -974,7 +974,7 @@ void FileTree::recursiveCall(FileNode &node, FileNode::VoidProcedurePtr f)
 FileNode *FileTree::searchIncludedFile(const IncludeDirective &id,
                                        FileNode *node) const
 {
-    MY_ASSERT(node);
+    assert(node);
     const SplittedPath path(id.filename, SplittedPath::unixSep());
     if (id.isQuotes()) {
         // start from current dir
@@ -993,7 +993,7 @@ FileNode *FileTree::searchIncludedFile(const IncludeDirective &id,
 FileNode *FileTree::searchInCurrentDir(const SplittedPath &path,
                                        FileNode *dir) const
 {
-    MY_ASSERT(dir && dir->isDirectory());
+    assert(dir && dir->isDirectory());
     if (!dir)
         return nullptr;
     return dir->search(path);

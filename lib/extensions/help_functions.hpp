@@ -7,28 +7,22 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <cassert>
 
 #define MY_PRINTEXT(x)                                                         \
     std::cout << #x << " EXT_FILE : " << _currentFile->name()                  \
               << " LINE: " << _line << std::endl
-#define MY_ASSERT(x)                                                           \
-    if (!(x))                                                                  \
-        Asserter(__FILE__, __LINE__);
-#define MY_ASSERTF(x)                                                          \
+#define ASSERT_F(x)                                                            \
     if (!(x)) {                                                                \
-        std::cerr << "ASSERT at FILE:" << __FILE__ << " LINE:" << __LINE__     \
-                  << std::endl;                                                \
         std::cerr << "EXT_FILE : " << _currentFile->name()                     \
                   << " LINE: " << _line << std::endl;                          \
-        exit(1);                                                               \
+        assert(x);                                                             \
     }
 
 #define VERBAL_0(x)
 #define VERBAL_1(x)
 
-#define COUNT_LINES(x) x
-
-void Asserter(const char *file, int line);
+#define COUNT_LINES(x)
 
 template < typename T >
 std::string numberToString(T Number)
