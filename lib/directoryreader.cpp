@@ -7,8 +7,6 @@
 #include <string.h>
 #include <fcntl.h>
 
-using namespace boost::filesystem;
-
 std::vector< std::string > initSourceFileExtensions()
 {
     typedef const char CharArray[5];
@@ -29,103 +27,54 @@ std::vector< std::string > DirectoryReader::_sourceFileExtensions =
 std::vector< std::string > DirectoryReader::_ignore_substrings =
     std::vector< std::string >();
 
-DirectoryReader::DirectoryReader() {}
-
-void DirectoryReader::readDirectory(FileTree &fileTree,
-                                    const char *directory_path)
-{
-    readDirectory(fileTree, BoostPath(directory_path));
-}
-
-void DirectoryReader::readDirectory(FileTree &fileTree,
-                                    const BoostPath &directory_path)
-{
-    SplittedPath sp_base(directory_path.string(), SplittedPath::osSep());
-
-    _currenDirectory = nullptr;
-
-    fileTree.clean();
-    fileTree.setRootPath(sp_base);
-
-    readDirectoryRecursively(fileTree, directory_path, sp_base);
-
-    removeEmptyDirectories(fileTree);
-    fileTree.calculateFileHashes();
-}
-
 bool DirectoryReader::exists(const SplittedPath &sp) const
 {
-    SplittedPath spOsSep = sp;
-    spOsSep.setOsSeparator();
-
-    BoostPath bp(spOsSep.joint());
-    return boost::filesystem::exists(bp);
+    return boost::filesystem::exists(sp.jointOs());
 }
 
-bool DirectoryReader::readSources(FileTree &fileTree,
-                                  const SplittedPath &relPath)
+void DirectoryReader::readSources(const SplittedPath &relPath,
+                                  FileTree &filetree)
 {
-    const SplittedPath &root = fileTree.rootPath();
-    SplittedPath fullpath = root + relPath;
-    if (!exists(fullpath))
-        return false; // skipped
+    MY_ASSERT(filetree.rootNode());
+    readSources(relPath, filetree.rootNode());
+}
+
+void DirectoryReader::readSources(const SplittedPath &relPath, FileNode *parent)
+{
+    SplittedPath fullpath = parent->fullPath() + relPath;
     if (isIgnored(fullpath))
-        return false;
-
-    FileNode *srcRoot = fileTree.addFile(relPath); /// TODO
-}
-
-void DirectoryReader::readDirectoryRecursively(FileTree &fileTree,
-                                               const BoostPath &path,
-                                               const SplittedPath &sp_base)
-{
-    try {
-        if (isIgnored(path.string()))
-            return; // skip file/directory by --ignore flag
-
-        if (!boost::filesystem::exists(path)) {
-            errors() << path.string() << "does not exist\n";
-            return;
-        }
-
-        SplittedPath spDirectoryPath(path.string(), SplittedPath::osSep());
-        SplittedPath rel_path = relative_path(spDirectoryPath, sp_base);
-        if (is_regular_file(path)) {
-            if (!isSourceFile(path))
-                return;
-            MY_ASSERT(_currenDirectory);
-            _currenDirectory->addChild(
-                new FileNode(rel_path, FileRecord::RegularFile, fileTree));
-        }
-        else if (is_directory(path)) {
-            FileNode *directoryNode =
-                new FileNode(rel_path, FileRecord::Directory, fileTree);
-            if (_currenDirectory == nullptr)
-                fileTree.setRootDirectoryNode(directoryNode);
-            else
-                _currenDirectory->addChild(directoryNode);
-
-            directory_iterator it(path);
-            directory_iterator end;
-            while (it != end) {
-                _currenDirectory = directoryNode;
-                readDirectoryRecursively(fileTree, *it, sp_base);
-                ++it;
-            }
-        }
-
-        else {
-            errors()
-                << path.string()
-                << "exists, but is neither a regular file nor a directory\n";
-        }
-    }
-    catch (const boost::filesystem::filesystem_error &exc) {
-        errors() << "Exception:" << exc.what();
-        fileTree.setState(FileTree::Error);
+        return;
+    if (!exists(fullpath)) {
+        errors() << "warning: file " << fullpath.joint() << " doesn't exists";
         return;
     }
-    fileTree.setState(FileTree::Filled);
+    const auto &splitted = relPath.splitted();
+    if (splitted.empty()) {
+        boost::filesystem::path dirPath = parent->fullPath().jointOs();
+        if (!boost::filesystem::is_directory(dirPath))
+            return;
+        boost::filesystem::directory_iterator it(dirPath);
+        boost::filesystem::directory_iterator end;
+        while (it != end) {
+            std::string filePath = (*it).path().string();
+            SplittedPath spInnerFile(filePath, SplittedPath::osSep());
+            SplittedPath spRelative(spInnerFile.last(),
+                                    SplittedPath::unixSep());
+
+            readSources(spRelative, parent);
+            ++it;
+        }
+        return;
+    }
+    FileNode *child =
+        parent->findOrNewChild(splitted.front(), getFileType(fullpath));
+    MY_ASSERT(child);
+    if (child->isRegularFile() && isSourceFile(fullpath))
+        child->setSourceFile();
+
+    SplittedPath nextRelPath = relPath;
+    nextRelPath.removeFirst();
+    readSources(nextRelPath, child);
 }
 
 void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)
@@ -133,21 +82,17 @@ void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)
     fileTree.removeEmptyDirectories();
 }
 
-bool DirectoryReader::isSourceFile(const path &file_path) const
+bool DirectoryReader::isSourceFile(const SplittedPath &sp) const
 {
-    MY_ASSERT(boost::filesystem::is_regular_file(file_path));
+    MY_ASSERT(boost::filesystem::is_regular_file(sp.jointOs()));
     return std::find(_sourceFileExtensions.begin(), _sourceFileExtensions.end(),
-                     boost::filesystem::extension(file_path).c_str()) !=
+                     boost::filesystem::extension(sp.jointOs()).c_str()) !=
            _sourceFileExtensions.end();
 }
 
-bool DirectoryReader::isIgnored(const std::__cxx11::string &path) const
+bool DirectoryReader::isIgnored(const SplittedPath &sp) const
 {
-    // check if path is ignored
-    SplittedPath spUnixSep(path, SplittedPath::osSep());
-    spUnixSep.setUnixSeparator();
-
-    const std::string &pathUnixSep = spUnixSep.joint();
+    auto pathUnixSep = sp.jointUnix();
 
     for (auto &ignore_substring : _ignore_substrings) {
         if (pathUnixSep.find(ignore_substring) != std::string::npos)
@@ -155,4 +100,17 @@ bool DirectoryReader::isIgnored(const std::__cxx11::string &path) const
     }
     // not found
     return false;
+}
+
+bool DirectoryReader::isIgnoredOsSep(const std::__cxx11::string &path) const
+{
+    // check if path is ignored
+    return isIgnored(SplittedPath(path, SplittedPath::osSep()));
+}
+
+FileRecord::Type DirectoryReader::getFileType(const SplittedPath &sp) const
+{
+    if (boost::filesystem::is_directory(sp.jointOs()))
+        return FileRecord::Directory;
+    return FileRecord::RegularFile;
 }

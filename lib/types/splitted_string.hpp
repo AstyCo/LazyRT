@@ -14,8 +14,9 @@ template < typename THashedString >
 class SplittedString
 {
 public:
-    typedef THashedString HashedType;
-    typedef std::vector< THashedString > SplittedType;
+    using Type = SplittedString< THashedString >;
+    using HashedType = THashedString;
+    using SplittedType = std::vector< THashedString >;
 
 public:
     SplittedString() { init(); }
@@ -59,10 +60,8 @@ public:
         MY_ASSERT(_separator == extra_path._separator);
         if (joint().empty())
             _joint = extra_path.joint();
-        else if (extra_path.joint().empty())
-            _joint = _joint;
-        else
-            _joint = _joint + _separator + extra_path._joint;
+        else if (!extra_path.joint().empty())
+            _joint += _separator + extra_path._joint;
         clearSplitted();
     }
 
@@ -71,6 +70,14 @@ public:
         if (splitted().empty())
             return;
         _splitted.pop_back();
+        clearJoint();
+    }
+
+    void removeFirst()
+    {
+        if (splitted().empty())
+            return;
+        _splitted.erase(_splitted.begin());
         clearJoint();
     }
 
@@ -178,6 +185,17 @@ public:
         clearJoint();
         clearSplitted();
     }
+
+public:
+    // Common methods
+    std::string jointSep(const std::string &separator) const
+    {
+        auto tmp = *this;
+        tmp.setSeparator(separator);
+        return tmp.joint();
+    }
+    std::string jointUnix() const { return jointSep(unixSep()); }
+    std::string jointOs() const { return jointSep(osSep()); }
 
 private:
     const THashedString &emptyString() const

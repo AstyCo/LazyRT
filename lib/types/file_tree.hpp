@@ -55,9 +55,6 @@ public:
     void swapParsedData(FileRecord &record);
 
     // Parse stage
-    bool _isModified;
-    bool _isManuallyLabeled;
-
     std::vector< IncludeDirective > _listIncludes;
     std::set< ScopedName > _setImplements;
     std::set< ScopedName > _setClassDecl;
@@ -80,13 +77,23 @@ class FileTree;
 class FileNode
 {
 public:
-    typedef std::vector< FileNode * > ListFileNode;
-    typedef std::set< FileNode * > SetFileNode;
-    typedef ListFileNode::iterator FileNodeIterator;
-    typedef ListFileNode::const_iterator FileNodeConstIterator;
+    enum Flags {
+        Nothing = 0x0,
+        Modified = 0x1,
+        Labeled = 0x2,
+        SourceFile = 0x4,
+        TestFile = 0x8
+    };
+    using FlagsType = uint8_t;
 
-    typedef void (FileNode::*VoidProcedure)(void);
-    typedef void (FileNode::*CFileTreeProcedure)(const FileTree &);
+    using ListFileNode = std::vector< FileNode * >;
+    using SetFileNode = std::set< FileNode * >;
+    using FileNodeIterator = ListFileNode::iterator;
+    using FileNodeConstIterator = ListFileNode::const_iterator;
+
+    using VoidProcedurePtr = void (FileNode::*)(void);
+    using BoolProcedureCPtr = bool (FileNode::*)(void) const;
+    using CFileTreeProcedure = void (FileNode::*)(const FileTree &);
 
 public:
     explicit FileNode(const SplittedPath &path, FileRecord::Type type,
@@ -137,20 +144,30 @@ public:
 
     void swapParsedData(FileNode *file);
 
-    void setModified() { _record._isModified = true; }
-    bool isModified() const { return _record._isModified; }
+    void setModified() { _flags |= Flags::Modified; }
+    bool isModified() const { return _flags & Flags::Modified; }
 
-    void setLabeled() { _record._isManuallyLabeled = true; }
-    bool isManuallyLabeled() const { return _record._isManuallyLabeled; }
+    void setLabeled() { _flags |= Flags::Labeled; }
+    bool isManuallyLabeled() const { return _flags & Flags::Labeled; }
+
+    void setSourceFile() { _flags |= Flags::SourceFile; }
+    bool isSourceFile() const { return _flags & Flags::SourceFile; }
+
+    void setTestFile() { _flags |= Flags::TestFile; }
+    bool isTestFile() const { return _flags & Flags::TestFile; }
 
     bool isThisAffected() const { return isModified() || isManuallyLabeled(); }
     bool isAffected() const;
 
+    FlagsType flags() const { return _flags; }
+    bool checkFlags(FlagsType fls) const { return _flags & fls; }
+
+    bool isAffectedSource() const { return isAffected() && !isTestFile(); }
+    bool isAffectedTest() const { return isAffected() && isTestFile(); }
+
 public:
     ///---Debug
     void print(int indent = 0) const;
-    void printModified(int indent, bool modified,
-                       const SplittedPath &base) const;
     void printDecls(int indent = 0) const;
     void printImpls(int indent = 0) const;
     void printImplFiles(int indent = 0) const;
@@ -182,6 +199,7 @@ public:
 
 private:
     bool _visited;
+    FlagsType _flags;
 };
 
 namespace FileNodeFunc {
@@ -194,7 +212,7 @@ inline void setLabeled(FileNode *f)
 
 } // namespace FileNodeFunc
 
-class FileSystem;
+class CommandLineArgs;
 class FileTree
 {
 public:
@@ -228,12 +246,10 @@ public:
 
     ///---Debug
     void print() const;
-    void printModified(const SplittedPath &base) const;
     ///
 
+    FileNode *rootNode() const { return _rootDirectoryNode; }
     FileNode *addFile(const SplittedPath &relPath);
-
-    void setRootDirectoryNode(FileNode *node);
 
     const SplittedPath &projectDirectory() const;
     void setProjectDirectory(const SplittedPath &path);
@@ -246,20 +262,45 @@ public:
     State state() const;
     void setState(const State &state);
 
-    void setFileSystem(FileSystem *fs);
+    void readFiles(const CommandLineArgs &clargs);
+    void parsePhase(const SplittedPath &spFtreeDump);
+    void writeAffectedFiles(const CommandLineArgs &clargs);
+    void labelTestMain();
 
     void readSources(const std::vector< SplittedPath > &relPaths,
                      const std::vector< std::string > &ignoreSubstrings);
+    void readTests(const std::vector< SplittedPath > &relPaths,
+                   const std::vector< std::string > &ignoreSubstrings);
+
+    void labelTests(const std::vector< SplittedPath > &relPaths);
+    void labelTest(const SplittedPath &relPath);
+
+    void analyzePhase();
+
+    void printPaths(std::ostream &os,
+                    const std::vector< SplittedPath > &paths) const;
+    void writePaths(const SplittedPath &path,
+                    const std::vector< SplittedPath > &paths) const;
+
+    void writeFiles(const SplittedPath &path,
+                    FileNode::BoolProcedureCPtr checkSatisfy) const;
+    void writeFiles(std::ostream &os,
+                    FileNode::BoolProcedureCPtr checkSatisfy) const;
 
 public:
-    FileNode *_rootDirectoryNode;
     SplittedPath _projectDirectory;
 
-    std::vector< SplittedPath > _includePaths;
+    void addIncludePaths(const std::vector< SplittedPath > &paths);
 
-    std::vector< SplittedPath > _affectedFiles;
+    void addIncludePath(const SplittedPath &path);
 
-    FileSystem *_filesystem;
+    const std::vector< FileNode * > &includePaths() const
+    {
+        return _includePaths;
+    }
+
+    std::vector< SplittedPath > affectedFiles(const SplittedPath &spBase,
+                                              FileNode::FlagsType flags) const;
 
 public:
     void removeEmptyDirectories(FileNode *node);
@@ -278,13 +319,7 @@ public:
     void analyzeNodes();
     void propagateDeps();
 
-    template < typename TFunc >
-    void recursiveCall(FileNode &node, TFunc f)
-    {
-        (node.*f)();
-        for (auto &&child : node.childs())
-            recursiveCall(*child, f);
-    }
+    void recursiveCall(FileNode &node, FileNode::VoidProcedurePtr f);
 
     FileNode *searchIncludedFile(const IncludeDirective &id,
                                  FileNode *node) const;
@@ -295,9 +330,13 @@ public:
     FileNode *searchInRoot(const SplittedPath &path) const;
 
 private:
-    void updateRelativePath();
+    void updateRoot();
 
 private:
+    FileNode *_rootDirectoryNode;
+    std::vector< FileNode * > _includePaths;
+    std::vector< FileNode * > _affectedFiles;
+
     SplittedPath _rootPath;
 
     SourceParser _srcParser;
@@ -321,32 +360,5 @@ inline const SplittedPath &FileTree::rootPath() const { return _rootPath; }
 // - INLINE FUNCTIONS
 
 typedef std::shared_ptr< FileTree > FileTreePtr;
-
-namespace FileTreeFunc {
-
-//  Reads directory and initializes tree structure of FileTree instance
-void readDirectory(FileTree &tree, const std::string &dirPath,
-                   const std::string &ignore_substrings);
-
-//  Reads dump file, and checks for modified source/header files.
-// Then it parses modified files, or just restores information
-// from dump for non-modified files.
-void parsePhase(FileTree &tree, const std::string &dumpFileName);
-
-//  Firstly searchs for single .cpp with main() implementation
-//  If such file founded, then installs affected flag on it, and
-// its dependencies
-void labelMainAffected(FileTree &testTree);
-
-//  Prints list of files, affected by modifications to stdout.
-void printAffected(const FileTree &tree);
-
-//  Prints list of modified files;
-void writeModified(const FileTree &tree, const std::__cxx11::string &filename);
-
-//  Prints list of files, affected by modifications to specific file.
-void writeAffected(const FileTree &tree, const std::string &filename);
-
-} // namespace FileTreeFunc
 
 #endif // FILE_TREE_HPP

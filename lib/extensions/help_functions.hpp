@@ -79,7 +79,7 @@ class Profiler
 public:
     Profiler(bool verbal = true);
     void start();
-    void step(const std::string &eventName);
+    void step(const std::string &eventName = std::string());
     void finish(const std::string &eventName);
 };
 

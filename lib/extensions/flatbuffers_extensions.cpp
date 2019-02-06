@@ -33,9 +33,9 @@ template void
 FileTreeFunc::copyListSplitted< SetScopedName >(const LazyUT::ListSplitted &fv,
                                                 SetScopedName &v);
 
-void FileTreeFunc::deserialize(FileTree &tree, const std::string &fname)
+void FileTreeFunc::deserialize(FileTree &tree, const SplittedPath &sp)
 {
-    char *file_tree_dump = readBinaryFile(fname.c_str()).first;
+    char *file_tree_dump = readBinaryFile(sp.jointOs().c_str()).first;
     if (file_tree_dump) {
         auto file_tree = LazyUT::GetFileTree(file_tree_dump);
 
@@ -138,15 +138,14 @@ pushFiles(flatbuffers::FlatBufferBuilder &builder,
     }
 }
 
-void FileTreeFunc::serialize(const FileTree &tree,
-                             const std::__cxx11::string &fileName)
+void FileTreeFunc::serialize(const FileTree &tree, const SplittedPath &sp)
 {
+    MY_ASSERT(tree.rootNode());
     // store to binary file
     flatbuffers::FlatBufferBuilder builder(1024);
 
     std::vector< flatbuffers::Offset< LazyUT::FileRecord > > fileRecords;
-    if (tree._rootDirectoryNode)
-        pushFiles(builder, fileRecords, tree._rootDirectoryNode);
+    pushFiles(builder, fileRecords, tree.rootNode());
 
     auto fbs_file_tree = LazyUT::CreateFileTree(
         builder, builder.CreateString(tree.rootPath().joint()),
@@ -155,5 +154,5 @@ void FileTreeFunc::serialize(const FileTree &tree,
     builder.Finish(fbs_file_tree);
     uint8_t *data = builder.GetBufferPointer();
     MY_ASSERT(data != nullptr);
-    writeBinaryFile(fileName.c_str(), data, builder.GetSize());
+    writeBinaryFile(sp.jointOs().c_str(), data, builder.GetSize());
 }

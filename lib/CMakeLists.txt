@@ -80,7 +80,6 @@ set(HEADERS
     extensions/flatbuffers_extensions.hpp
     types/file_tree.hpp
     types/splitted_string.hpp
-    types/file_system.hpp
     parsers/sourceparser.hpp
     directoryreader.hpp
     dependency_analyzer.hpp
@@ -115,7 +114,6 @@ set(SRCS
     extensions/flatbuffers_extensions.cpp
     types/file_tree.cpp
     types/splitted_string.cpp
-    types/file_system.cpp
     )
 
 ##

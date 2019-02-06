@@ -1,35 +1,15 @@
 #include "extensions/help_functions.hpp"
+
 #include "extensions/flatbuffers_extensions.hpp"
 #include "command_line_args.hpp"
-#include "types/file_system.hpp"
-
-#include <boost/filesystem.hpp>
 
 #include <iostream>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #define PROFILE(x)                                                             \
+    prf.step();                                                                \
     x;                                                                         \
     prf.step(#x)
 #define START_PROFILE Profiler prf(clargs.verbal());
-
-enum LazyUTErrors { WRONG_CMD_LINE_OPTIONS = 1 };
-
-static void concatFiles(const std::string &fin1, const std::string &fin2,
-                        const std::string &fout)
-{
-    std::ifstream if_a(fin1, std::ios_base::binary);
-    std::ifstream if_b(fin2, std::ios_base::binary);
-    std::ofstream of_c(fout, std::ios_base::binary);
-
-    of_c << if_a.rdbuf() << if_b.rdbuf();
-}
 
 int main(int argc, char *argv[])
 {
@@ -42,66 +22,35 @@ int main(int argc, char *argv[])
     FileTree rootTree;
     rootTree.setRootPath(clargs.rootDirectory());
 
-    PROFILE(rootTree.readSources(clargs.srcDirectories(),
-                                 clargs.ignoredSubstrings()));
+    PROFILE(rootTree.readFiles(clargs));
 
-    FileSystem filesystem;
-    filesystem.setProjectDirectory(clargs.rootDirectory());
-    filesystem.setIncludePaths(clargs.includePaths());
+    rootTree.addIncludePaths(clargs.includePaths());
 
-    //    PROFILE(FileTreeFunc::readDirectory(filesystem.srcTree,
-    //                                        clargs.srcDir().joint(),
-    //                                        clargs.ignoredSubstrings()));
-    //    PROFILE(FileTreeFunc::readDirectory(filesystem.testTree,
-    //                                        clargs.testDir().joint(),
-    //                                        clargs.ignoredSubstrings()));
+    /// TODO: CHECK EXTRA_DEPS
 
-    filesystem.installIncludeProjectDir();
-    filesystem.installExtraDependencies(
-        clargs.deps()); /// TODO: CHECK EXTRA_DEPS
+    PROFILE(rootTree.parsePhase(clargs.ftreeDumpIn()));
 
-    PROFILE(FileTreeFunc::parsePhase(filesystem.srcTree,
-                                     clargs.srcsDumpIn().joint()));
-    PROFILE(FileTreeFunc::parsePhase(filesystem.testTree,
-                                     clargs.testsDumpIn().joint()));
-
-    PROFILE(filesystem.analyzePhase());
+    PROFILE(rootTree.analyzePhase());
 
     if (!clargs.isNoMain())
-        FileTreeFunc::labelMainAffected(filesystem.testTree);
+        rootTree.labelTestMain();
 
-    // Create directories to put output files to
-    boost::filesystem::create_directories(clargs.outDir().joint());
-
-    FileTreeFunc::writeModified(filesystem.srcTree,
-                                clargs.srcsModified().joint());
-    FileTreeFunc::writeModified(filesystem.testTree,
-                                clargs.testsModified().joint());
-
-    filesystem.installAffectedFiles();
-
-    FileTreeFunc::writeAffected(filesystem.srcTree,
-                                clargs.srcsAffected().joint());
-    FileTreeFunc::writeAffected(filesystem.testTree,
-                                clargs.testsAffected().joint());
+    rootTree.writeAffectedFiles(clargs);
 
     if (clargs.verbal()) {
-        filesystem.srcTree.print();
-        filesystem.testTree.print();
-
-        FileTreeFunc::printAffected(filesystem.srcTree);
-        FileTreeFunc::printAffected(filesystem.testTree);
-        filesystem.srcTree.printModified(clargs.srcBase());
-        filesystem.testTree.printModified(clargs.testBase());
+        rootTree.print();
+        std::cout << "AFFECTED SOURCES" << std::endl;
+        rootTree.writeFiles(std::cout, &FileNode::isAffectedSource);
+        std::cout << "AFFECTED TESTS" << std::endl;
+        rootTree.writeFiles(std::cout, &FileNode::isAffectedTest);
+        std::cout << "MODIFIED" << std::endl;
+        rootTree.writeFiles(std::cout, &FileNode::isModified);
 
         std::cout << "write lazyut files to " << clargs.outDir().joint()
                   << std::endl;
     }
 
-    PROFILE(FileTreeFunc::serialize(filesystem.srcTree,
-                                    clargs.srcsDumpOut().joint()));
-    PROFILE(FileTreeFunc::serialize(filesystem.testTree,
-                                    clargs.testsDumpOut().joint()));
+    PROFILE(FileTreeFunc::serialize(rootTree, clargs.ftreeDumpOut()));
 
     return 0;
 }

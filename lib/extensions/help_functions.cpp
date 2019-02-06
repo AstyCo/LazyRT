@@ -57,10 +57,10 @@ void Profiler::start()
 
 void Profiler::step(const std::string &eventName)
 {
-    if (!_started || eventName.empty())
+    if (!_started)
         return;
     double newTime = getCpuTime();
-    if (_verbal)
+    if (_verbal && !eventName.empty())
         std::cout << eventName << " CPU time: " << newTime - _startTime
                   << std::endl;
 

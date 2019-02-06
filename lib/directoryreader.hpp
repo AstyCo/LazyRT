@@ -11,28 +11,22 @@
 class DirectoryReader
 {
 public:
-    DirectoryReader();
-
-    void readDirectory(FileTree &fileTree, const char *directory_path);
-    void readDirectory(FileTree &fileTree, const BoostPath &directory_path);
-
     static std::vector< std::string > _sourceFileExtensions;
     static std::vector< std::string > _ignore_substrings;
 
     bool exists(const SplittedPath &sp) const;
 
-    bool readSources(FileTree &fileTree, const SplittedPath &relPath);
+    void readSources(const SplittedPath &relPath, FileNode *parent);
+    void readSources(const SplittedPath &relPath, FileTree &filetree);
 
 private:
-    void readDirectoryRecursively(FileTree &fileTree, const BoostPath &path,
-                                  const SplittedPath &sp_base);
     void removeEmptyDirectories(FileTree &fileTree);
 
-    bool isSourceFile(const boost::filesystem::path &file_path) const;
-    bool isIgnored(const std::string &path) const;
+    bool isSourceFile(const SplittedPath &sp) const; /// TODO use
+    bool isIgnored(const SplittedPath &sp) const;
+    bool isIgnoredOsSep(const std::string &path) const;
 
-private:
-    FileNode *_currenDirectory;
+    FileRecord::Type getFileType(const SplittedPath &sp) const;
 };
 
 #endif // DIRECTORY_READER_HPP

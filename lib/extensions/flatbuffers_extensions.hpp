@@ -7,8 +7,8 @@
 
 namespace FileTreeFunc {
 
-void deserialize(FileTree &tree, const std::string &fileName);
-void serialize(const FileTree &tree, const std::string &fileName);
+void deserialize(FileTree &tree, const SplittedPath &sp);
+void serialize(const FileTree &tree, const SplittedPath &fileName);
 
 template < typename FT, typename T >
 void copyVector(const FT &flatVector, T &v);

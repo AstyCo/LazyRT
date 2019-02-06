@@ -3,13 +3,10 @@
 
 #include "external/CLI11/CLI11.hpp"
 
-std::string CommandLineArgs::_srcsFileTreeName = "srcs_file_tree.bin";
-std::string CommandLineArgs::_testsFileTreeName = "tests_file_tree.bin";
+std::string CommandLineArgs::_rootFTreeFilename = "file_tree.bin";
 std::string CommandLineArgs::_srcsAffectedFileName = "srcs_affected.txt";
 std::string CommandLineArgs::_testsAffectedFileName = "tests_affected.txt";
 std::string CommandLineArgs::_totalAffectedFileName = "total_affected.txt";
-std::string CommandLineArgs::_srcsModifiedFileName = "src_modified.txt";
-std::string CommandLineArgs::_testsModifiedFileName = "test_modified.txt";
 
 CommandLineArgs clargs;
 
@@ -96,17 +93,11 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     if (_outDirectory.empty())
         _outDirectory = _inDirectory;
 
-    _srcsDumpIn = _inDirectory;
-    _srcsDumpIn.append(std::string(_srcsFileTreeName));
+    _ftreeDumpIn = _inDirectory;
+    _ftreeDumpIn.append(std::string(_rootFTreeFilename));
 
-    _testsDumpIn = _inDirectory;
-    _testsDumpIn.append(std::string(_testsFileTreeName));
-
-    _srcsDumpOut = _outDirectory;
-    _srcsDumpOut.append(std::string(_srcsFileTreeName));
-
-    _testsDumpOut = _outDirectory;
-    _testsDumpOut.append(std::string(_testsFileTreeName));
+    _ftreeDumpOut = _outDirectory;
+    _ftreeDumpOut.append(std::string(_rootFTreeFilename));
 
     _srcsAffected = _outDirectory;
     _srcsAffected.append(std::string(_srcsAffectedFileName));
@@ -118,11 +109,6 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     _totalAffected.append(std::string(_totalAffectedFileName));
 
     _rootDirectory = SplittedPath(rootDir, SplittedPath::unixSep());
-
-    _srcsModified = _outDirectory;
-    _srcsModified.append(std::string(_srcsModifiedFileName));
-    _testsModified = _outDirectory;
-    _testsModified.append(std::string(_testsModifiedFileName));
 
     if (!srcBase.empty())
         _srcBase = SplittedPath(srcBase, SplittedPath::unixSep());

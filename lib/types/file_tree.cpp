@@ -3,8 +3,6 @@
 #include "extensions/help_functions.hpp"
 #include "extensions/flatbuffers_extensions.hpp"
 
-#include "types/file_system.hpp"
-
 #include "command_line_args.hpp"
 #include "directoryreader.hpp"
 #include "dependency_analyzer.hpp"
@@ -21,9 +19,81 @@
 #include <string.h>
 #include <fcntl.h>
 
+namespace Debug {
+
+// This function checks whether set "dependencies" and set "dependent by" match
+static void test_dependency_dependentyBy_match(FileNode *fnode)
+{
+    if (fnode == nullptr)
+        return;
+    for (auto &&file : fnode->_setDependencies) {
+        if (file->_setDependentBy.find(fnode) == file->_setDependentBy.end()) {
+            std::cerr << "ERROR: FILE " << file->fullPath().joint() << " FNODE "
+                      << fnode->fullPath().joint() << std::endl;
+            file->_fileTree.print();
+            fnode->_fileTree.print();
+            MY_ASSERT(false);
+        }
+    }
+
+    for (auto &&child : fnode->childs())
+        test_dependency_dependentyBy_match(child);
+}
+
+static void
+test_dependencies_recursion_h(FileNode *depNode,
+                              const std::set< FileNode * > &totalDependencies,
+                              std::set< FileNode * > &testedNodes)
+{
+    MY_ASSERT(depNode);
+
+    for (auto &&dep : depNode->_setDependencies) {
+        MY_ASSERT(totalDependencies.find(dep) != totalDependencies.end());
+
+        // test is recursive also
+        if (testedNodes.find(dep) == testedNodes.end()) {
+            testedNodes.insert(dep);
+            test_dependencies_recursion_h(dep, totalDependencies, testedNodes);
+        }
+    }
+}
+
+// Checks whether dependency set contains the dependencies of dependencies
+static void test_dependencies_recursion(FileNode *fnode)
+{
+    MY_ASSERT(fnode);
+    const auto &deps = fnode->_setDependencies;
+
+    std::set< FileNode * > testedNodes;
+    testedNodes.insert(fnode);
+
+    for (auto &&file : fnode->_setDependencies)
+        test_dependencies_recursion_h(file, deps, testedNodes);
+
+    for (auto &&child : fnode->childs())
+        test_dependencies_recursion(child);
+}
+
+static void test_dependencies_recursion(FileTree &ftree)
+{
+    test_dependencies_recursion(ftree.rootNode());
+}
+
+static void test_dependency_dependentyBy_match(FileTree &ftree)
+{
+    test_dependency_dependentyBy_match(ftree.rootNode());
+}
+
+void test_analyse_phase(FileTree &tree)
+{
+    Debug::test_dependency_dependentyBy_match(tree);
+    Debug::test_dependencies_recursion(tree);
+}
+
+} // namespace Debug
+
 FileRecord::FileRecord(const SplittedPath &path, Type type)
-    : _path(path), _type(type), _isModified(false), _isManuallyLabeled(false),
-      _isHashValid(false)
+    : _path(path), _type(type), _isHashValid(false)
 {
     _path.setUnixSeparator();
 }
@@ -82,7 +152,7 @@ void FileRecord::swapParsedData(FileRecord &record)
 FileNode::FileNode(const SplittedPath &path, FileRecord::Type type,
                    FileTree &fileTree)
     : _record(path, type), _parent(nullptr), _visited(false),
-      _fileTree(fileTree)
+      _fileTree(fileTree), _flags(Flags::Nothing)
 {
 }
 
@@ -170,20 +240,6 @@ void FileNode::print(int indent) const
         (*it)->print(indent + 1);
         ++it;
     }
-}
-
-void FileNode::printModified(int indent, bool modified,
-                             const SplittedPath &base) const
-{
-    std::string strIndents = makeIndents(indent, 2);
-
-    if (isRegularFile() && (isModified() == modified)) {
-        std::cout << strIndents << (modified ? " + " : " - ")
-                  << relativeName(base) << std::endl;
-    }
-
-    for (auto f : _childs)
-        f->printModified(indent + 1, modified, base);
 }
 
 void FileNode::printDecls(int indent) const
@@ -387,7 +443,7 @@ void FileNode::installDepsPrivate(
     FileNode::SetFileNode FileNode::*getSetDeps,
     const FileNode::SetFileNode FileNode::*getSetExplicitDeps)
 {
-    _fileTree._filesystem->clearVisitedLabels();
+    _fileTree.clearVisitedR();
 
     installDepsPrivateR(this, getSetDeps, getSetExplicitDeps);
 
@@ -431,24 +487,23 @@ FileNode *FileNode::findChild(const HashedFileName &hfname) const
         if (child->fname() == hfname)
             return child;
     }
+    if (hfname.isDotDot())
+        return _parent;
+    if (hfname.isDot())
+        return const_cast< FileNode * >(this);
     return nullptr;
 }
 
-FileTree::FileTree()
-    : _rootDirectoryNode(nullptr), _srcParser(*this), _filesystem(nullptr),
-      _state(Clean)
+FileTree::FileTree() : _rootDirectoryNode(nullptr), _srcParser(*this)
 {
-    _relativeBasePath.setUnixSeparator();
+    clean();
 }
 
 void FileTree::clean()
 {
-    if (_rootDirectoryNode)
-        delete _rootDirectoryNode;
-
     _state = Clean;
     _rootPath = SplittedPath();
-    setRootDirectoryNode(nullptr);
+    updateRoot();
 }
 
 void FileTree::removeEmptyDirectories()
@@ -535,22 +590,9 @@ void FileTree::print() const
     }
 }
 
-void FileTree::printModified(const SplittedPath &base) const
-{
-    if (nullptr == _rootDirectoryNode)
-        return;
-    std::cout << "MODIFIED FILES " << _rootPath.joint() << std::endl;
-    _rootDirectoryNode->printModified(0, true, base);
-}
-
 FileNode *FileTree::addFile(const SplittedPath &relPath)
 {
     const std::vector< HashedFileName > &splittedPath = relPath.splitted();
-    if (!_rootDirectoryNode) {
-        setRootDirectoryNode(
-            new FileNode(SplittedPath(".", SplittedPath::unixSep()),
-                         FileRecord::Directory, *this));
-    }
     FileNode *currentNode = _rootDirectoryNode;
     MY_ASSERT(_rootDirectoryNode);
     for (const HashedFileName &fname : splittedPath) {
@@ -563,43 +605,218 @@ FileNode *FileTree::addFile(const SplittedPath &relPath)
     return currentNode;
 }
 
-void FileTree::setRootDirectoryNode(FileNode *node)
-{
-    delete _rootDirectoryNode;
-
-    _rootDirectoryNode = node;
-}
-
 void FileTree::setProjectDirectory(const SplittedPath &path)
 {
     _projectDirectory = path;
     _projectDirectory.setUnixSeparator();
-    updateRelativePath();
 }
 
 void FileTree::setRootPath(const SplittedPath &sp)
 {
     _rootPath = sp;
     _rootPath.setUnixSeparator();
-    updateRelativePath();
+    updateRoot();
 }
 
 FileTree::State FileTree::state() const { return _state; }
 
 void FileTree::setState(const State &state) { _state = state; }
 
-void FileTree::setFileSystem(FileSystem *fs)
+void FileTree::readFiles(const CommandLineArgs &clargs)
 {
-    MY_ASSERT(_filesystem == nullptr);
-    _filesystem = fs;
+    readSources(clargs.srcDirectories(), clargs.ignoredSubstrings());
+    readTests(clargs.testDirectories(), clargs.ignoredSubstrings());
+    _state = Filled;
+
+    removeEmptyDirectories();
+    calculateFileHashes();
+}
+
+void FileTree::parsePhase(const SplittedPath &spFtreeDump)
+{
+    FileTree restoredTree;
+    FileTreeFunc::deserialize(restoredTree, spFtreeDump);
+    if (restoredTree.state() == FileTree::Restored) {
+        parseModifiedFiles(restoredTree);
+    }
+    else {
+        // if deserialization failed just parse all
+        parseFiles();
+    }
+}
+
+void FileTree::writeAffectedFiles(const CommandLineArgs &clargs)
+{
+    // Create directories to put output files to
+    boost::filesystem::create_directories(clargs.outDir().joint());
+
+    installAffectedFiles();
+
+    writeFiles(clargs.srcsAffected(), &FileNode::isAffectedSource);
+    writeFiles(clargs.testsAffected(), &FileNode::isAffectedTest);
+}
+
+static bool containsMain(FileNode *file)
+{
+    static auto mainPrototype = std::string("main");
+
+    const auto &impls = file->record()._setImplements;
+    for (const auto &impl : impls) {
+        if (impl.joint() == mainPrototype) {
+            return true;
+        }
+    }
+    // doesn't contain
+    return false;
+}
+
+static void searchTestMainR(FileNode *file,
+                            std::vector< FileNode * > &vTestMainFiles)
+{
+    if (vTestMainFiles.size() > 2)
+        return;
+    if (file->isRegularFile()) {
+        if (containsMain(file) && file->isTestFile())
+            vTestMainFiles.push_back(file);
+    }
+    else { // directory
+        for (auto childFile : file->childs())
+            searchTestMainR(childFile, vTestMainFiles);
+    }
+}
+
+static std::vector< FileNode * > searchTestMain(FileTree &testTree)
+{
+    std::vector< FileNode * > vTestMainFiles;
+    vTestMainFiles.reserve(2);
+    searchTestMainR(testTree.rootNode(), vTestMainFiles);
+    return vTestMainFiles;
+}
+
+void FileTree::labelTestMain()
+{
+    auto filesWithMain = searchTestMain(*this);
+    for (FileNode *fileWithMain : filesWithMain)
+        fileWithMain->setLabeled();
 }
 
 void FileTree::readSources(const std::vector< SplittedPath > &relPaths,
                            const std::vector< std::string > &ignoreSubstrings)
 {
-    addFile(relPaths);
     DirectoryReader dr;
-    dr.readDirectory();
+    dr._ignore_substrings = ignoreSubstrings;
+
+    for (const SplittedPath &relPath : relPaths)
+        dr.readSources(relPath, *this);
+}
+
+void FileTree::readTests(const std::vector< SplittedPath > &relPaths,
+                         const std::vector< std::string > &ignoreSubstrings)
+{
+    readSources(relPaths, ignoreSubstrings);
+    labelTests(relPaths);
+}
+
+void FileTree::labelTests(const std::vector< SplittedPath > &relPaths)
+{
+    for (const SplittedPath &relPath : relPaths)
+        labelTest(relPath);
+}
+
+void FileTree::labelTest(const SplittedPath &relPath)
+{
+    FileNode *node = _rootDirectoryNode->search(relPath);
+    if (!node) {
+        errors() << "warning: node for path" << relPath.joint()
+                 << "doesn't exists -> skipping labeling test file";
+        return;
+    }
+    recursiveCall(*node, &FileNode::setTestFile);
+}
+
+void FileTree::analyzePhase()
+{
+    analyzeNodes();
+    propagateDeps();
+
+    DEBUG(Debug::test_analyse_phase(*this));
+}
+
+void FileTree::printPaths(std::ostream &os,
+                          const std::vector< SplittedPath > &paths) const
+{
+    for (const SplittedPath &p : paths)
+        os << p.jointUnix().c_str() << std::endl;
+}
+
+void FileTree::writePaths(const SplittedPath &path,
+                          const std::vector< SplittedPath > &paths) const
+{
+    /* open the file for writing*/
+    std::ofstream ofs;
+    ofs.open(path.jointOs(), std::ios_base::out);
+    if (ofs.is_open())
+        printPaths(ofs, paths);
+}
+
+static void pushFiles(const FileNode *file,
+                      FileNode::BoolProcedureCPtr checkSatisfy,
+                      std::vector< SplittedPath > &outFiles)
+{
+    if (file == nullptr)
+        return;
+
+    if ((file->*checkSatisfy)())
+        outFiles.push_back(file->path());
+
+    for (auto child : file->childs())
+        pushFiles(child, checkSatisfy, outFiles);
+}
+
+void FileTree::writeFiles(const SplittedPath &path,
+                          FileNode::BoolProcedureCPtr checkSatisfy) const
+{
+    std::vector< SplittedPath > outFiles;
+    pushFiles(_rootDirectoryNode, checkSatisfy, outFiles);
+    writePaths(path, outFiles);
+}
+
+void FileTree::writeFiles(std::ostream &os,
+                          FileNode::BoolProcedureCPtr checkSatisfy) const
+{
+    std::vector< SplittedPath > outFiles;
+    pushFiles(_rootDirectoryNode, checkSatisfy, outFiles);
+    printPaths(os, outFiles);
+}
+
+void FileTree::addIncludePaths(const std::vector< SplittedPath > &paths)
+{
+    for (const SplittedPath &path : paths)
+        addIncludePath(path);
+
+    if (paths.empty()) // if flags is not set search in project directory
+        addIncludePath(SplittedPath("", SplittedPath::unixSep()));
+}
+
+void FileTree::addIncludePath(const SplittedPath &path)
+{
+    if (FileNode *node = rootNode()->search(path))
+        _includePaths.push_back(node);
+    else
+        errors() << "warning: include path" << path.joint() << "not found";
+}
+
+std::vector< SplittedPath >
+FileTree::affectedFiles(const SplittedPath &spBase,
+                        FileNode::FlagsType flags) const
+{
+    std::vector< SplittedPath > result;
+    for (FileNode *node : _affectedFiles) {
+        if (!node->checkFlags(flags))
+            continue;
+        result.push_back(relative_path(node->path(), spBase));
+    }
+    return result;
 }
 
 void FileTree::removeEmptyDirectories(FileNode *node)
@@ -724,13 +941,9 @@ void FileTree::installImplementNodesRecursive(FileNode &node)
 
 void FileTree::installAffectedFilesRecursive(FileNode *node)
 {
-    if (node->isAffected()) {
-        SplittedPath tmp = _relativeBasePath;
-        tmp.appendPath(node->path());
+    if (node->isAffected())
+        _affectedFiles.push_back(node);
 
-        tmp.setOsSeparator();
-        _affectedFiles.push_back(tmp);
-    }
     for (auto child : node->childs())
         installAffectedFilesRecursive(child);
 }
@@ -749,6 +962,13 @@ void FileTree::propagateDeps()
 {
     installDependencies();
     installDependentBy();
+}
+
+void FileTree::recursiveCall(FileNode &node, FileNode::VoidProcedurePtr f)
+{
+    (node.*f)();
+    for (auto &&child : node.childs())
+        recursiveCall(*child, f);
 }
 
 FileNode *FileTree::searchIncludedFile(const IncludeDirective &id,
@@ -781,8 +1001,11 @@ FileNode *FileTree::searchInCurrentDir(const SplittedPath &path,
 
 FileNode *FileTree::searchInIncludePaths(const SplittedPath &path) const
 {
-    MY_ASSERT(_filesystem);
-    return _filesystem->searchInIncludepaths(path, _includePaths);
+    for (FileNode *node : _includePaths) {
+        if (FileNode *foundNode = node->search(path))
+            return foundNode;
+    }
+    return nullptr;
 }
 
 FileNode *FileTree::searchInRoot(const SplittedPath &path) const
@@ -790,10 +1013,11 @@ FileNode *FileTree::searchInRoot(const SplittedPath &path) const
     return searchInCurrentDir(path, _rootDirectoryNode);
 }
 
-void FileTree::updateRelativePath()
+void FileTree::updateRoot()
 {
-    if (!_projectDirectory.empty() && !_rootPath.empty())
-        _relativeBasePath = relative_path(_rootPath, _projectDirectory);
+    delete _rootDirectoryNode;
+    _rootDirectoryNode = new FileNode(SplittedPath("", SplittedPath::unixSep()),
+                                      FileRecord::Directory, *this);
 }
 
 std::__cxx11::string IncludeDirective::toPrint() const
@@ -805,124 +1029,4 @@ std::__cxx11::string IncludeDirective::toPrint() const
         return '<' + filename + '>';
     }
     return std::string();
-}
-
-void FileTreeFunc::readDirectory(FileTree &tree, const std::string &dirPath,
-                                 const std::string &ignore_substrings)
-{
-    SplittedPath spOsSeparator(dirPath, SplittedPath::unixSep());
-    spOsSeparator.setOsSeparator();
-
-    DirectoryReader dirReader;
-    dirReader._ignore_substrings = split(ignore_substrings, ",");
-    dirReader.readDirectory(tree, spOsSeparator.joint());
-}
-
-void FileTreeFunc::parsePhase(FileTree &tree,
-                              const std::__cxx11::string &dumpFileName)
-{
-    FileTree restoredTree;
-    FileTreeFunc::deserialize(restoredTree, dumpFileName);
-    if (restoredTree.state() == FileTree::Restored) {
-        tree.parseModifiedFiles(restoredTree);
-    }
-    else {
-        // if deserialization failed just parse all
-        tree.parseFiles();
-    }
-}
-
-void FileTreeFunc::printAffected(const FileTree &tree)
-{
-    std::cout << "FileTreeFunc::printAffected " << tree.rootPath().joint()
-              << std::endl;
-
-    std::string strIndents = makeIndents(0, 2);
-    for (const auto &sp : tree._affectedFiles)
-        std::cout << strIndents << sp.joint() << std::endl;
-}
-
-void FileTreeFunc::writeAffected(const FileTree &tree,
-                                 const std::__cxx11::string &filename)
-{
-    /* open the file for writing*/
-    if (FILE *fp = fopen(filename.c_str(), "w")) {
-        for (const auto &sp : tree._affectedFiles)
-            fprintf(fp, "%s\n", sp.joint().c_str());
-        /* close the file*/
-        fclose(fp);
-    }
-}
-
-static bool containsMain(FileNode *file)
-{
-    static auto mainPrototype = std::string("main");
-
-    const auto &impls = file->record()._setImplements;
-    for (const auto &impl : impls) {
-        if (impl.joint() == mainPrototype) {
-            return true;
-        }
-    }
-    // doesn't contain
-    return false;
-}
-
-static void searchTestMainR(FileNode *file,
-                            std::vector< FileNode * > &vTestMainFiles)
-{
-    if (vTestMainFiles.size() > 2)
-        return;
-    if (file->isRegularFile()) {
-        if (containsMain(file))
-            vTestMainFiles.push_back(file);
-        return;
-    }
-    else {
-        // directory
-        for (auto childFile : file->childs())
-            searchTestMainR(childFile, vTestMainFiles);
-    }
-}
-
-static FileNode *searchTestMain(FileTree &testTree)
-{
-    std::vector< FileNode * > vTestMainFiles;
-    vTestMainFiles.reserve(2);
-    searchTestMainR(testTree._rootDirectoryNode, vTestMainFiles);
-    // return file only if main() implemented in exactly one file
-    if (vTestMainFiles.size() == 1)
-        return vTestMainFiles.front();
-    return nullptr;
-}
-
-void FileTreeFunc::labelMainAffected(FileTree &testTree)
-{
-    if (FileNode *testMainFile = searchTestMain(testTree))
-        testMainFile->setLabeled();
-}
-
-static void writeModifiedR(const FileNode *file, FILE *fp)
-{
-    if (file == nullptr)
-        return;
-
-    if (file->isModified()) {
-        SplittedPath tmp = file->path();
-        tmp.setUnixSeparator();
-        fprintf(fp, "%s\n", tmp.joint().c_str());
-    }
-    for (auto child : file->childs())
-        writeModifiedR(child, fp);
-}
-
-void FileTreeFunc::writeModified(const FileTree &tree,
-                                 const std::string &filename)
-{
-    /* open the file for writing*/
-    if (FILE *fp = fopen(filename.c_str(), "w")) {
-        writeModifiedR(tree._rootDirectoryNode, fp);
-        /* close the file*/
-        fclose(fp);
-    }
 }

@@ -25,10 +25,8 @@ public:
     bool verbal() const { return _verbal; }
     bool isNoMain() const { return _isNoMain; }
 
-    const SplittedPath &srcsDumpIn() const { return _srcsDumpIn; }
-    const SplittedPath &srcsDumpOut() const { return _srcsDumpOut; }
-    const SplittedPath &testsDumpIn() const { return _testsDumpIn; }
-    const SplittedPath &testsDumpOut() const { return _testsDumpOut; }
+    const SplittedPath &ftreeDumpIn() const { return _ftreeDumpIn; }
+    const SplittedPath &ftreeDumpOut() const { return _ftreeDumpOut; }
     const SplittedPath &srcsAffected() const { return _srcsAffected; }
     const SplittedPath &testsAffected() const { return _testsAffected; }
     const SplittedPath &totalAffected() const { return _totalAffected; }
@@ -65,19 +63,14 @@ private:
     bool _verbal;
     bool _isNoMain;
 
-    static std::string _srcsFileTreeName;
-    static std::string _testsFileTreeName;
+    static std::string _rootFTreeFilename;
     static std::string _srcsAffectedFileName;
     static std::string _testsAffectedFileName;
     static std::string _totalAffectedFileName;
-    static std::string _srcsModifiedFileName;
-    static std::string _testsModifiedFileName;
 
     // derived data
-    SplittedPath _srcsDumpIn;
-    SplittedPath _srcsDumpOut;
-    SplittedPath _testsDumpIn;
-    SplittedPath _testsDumpOut;
+    SplittedPath _ftreeDumpIn;
+    SplittedPath _ftreeDumpOut;
     SplittedPath _srcsAffected;
     SplittedPath _testsAffected;
     SplittedPath _totalAffected;
