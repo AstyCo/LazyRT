@@ -122,8 +122,10 @@ set(SRCS
 ##
 add_executable(${LAZYUT_TARGET_NAME} ${SRCS} ${HEADERS})
 
-target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/lib)
-target_include_directories(${LAZYUT_TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/lib/external)
+target_include_directories(${LAZYUT_TARGET_NAME} PUBLIC
+    ${PROJECT_SOURCE_DIR}/lib)
+target_include_directories(${LAZYUT_TARGET_NAME} PUBLIC
+    ${PROJECT_SOURCE_DIR}/lib/external)
 
 target_compile_features(${LAZYUT_TARGET_NAME} PUBLIC cxx_std_11)
 
@@ -135,15 +137,18 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost 1.45.0 COMPONENTS filesystem system REQUIRED)
 
 if(Boost_FOUND)
-    target_include_directories(${LAZYUT_TARGET_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
-    target_link_libraries(${LAZYUT_TARGET_NAME} PUBLIC ${Boost_LIBRARIES})
+    target_include_directories(${LAZYUT_TARGET_NAME}
+        PUBLIC
+        ${Boost_INCLUDE_DIRS})
+    target_link_libraries(${LAZYUT_TARGET_NAME}
+        PUBLIC
+        ${Boost_LIBRARIES})
 endif()
 
 if (WIN32)
     # disable autolinking in boost
-    add_definitions( -DBOOST_ALL_NO_LIB )
-
+    target_compile_definitions(${LAZYUT_TARGET_NAME} PUBLIC BOOST_ALL_NO_LIB)
     # force all boost libraries to dynamic link (we already disabled
     # autolinking, so I don't know why we need this, but we do!)
-    add_definitions( -DBOOST_ALL_DYN_LINK )
+    target_compile_definitions(${LAZYUT_TARGET_NAME} PUBLIC BOOST_ALL_DYN_LINK)
 endif()
