@@ -141,6 +141,7 @@ pushFiles(flatbuffers::FlatBufferBuilder &builder,
 void FileTreeFunc::serialize(const FileTree &tree, const SplittedPath &sp)
 {
     assert(tree.rootNode());
+
     // store to binary file
     flatbuffers::FlatBufferBuilder builder(1024);
 

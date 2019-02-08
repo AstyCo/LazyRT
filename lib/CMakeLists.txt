@@ -1,6 +1,5 @@
 set(FLATBUFFERS_PWD external/flatbuffers)
 set(CLI11_PWD external/CLI11)
-set(RAPIDJSON_PWD external/rapidjson)
 
 ##
 ## HEADERS
@@ -28,48 +27,9 @@ set(FLATBUFFERS_HEADERS
 set(CLI11_HEADERS
     ${CLI11_PWD}/CLI11.hpp)
 
-set(RAPIDJSON_HEADERS
-    ${RAPIDJSON_PWD}/allocators.h
-    ${RAPIDJSON_PWD}/cursorstreamwrapper.h
-    ${RAPIDJSON_PWD}/document.h
-    ${RAPIDJSON_PWD}/encodedstream.h
-    ${RAPIDJSON_PWD}/encodings.h
-    ${RAPIDJSON_PWD}/error/en.h
-    ${RAPIDJSON_PWD}/error/error.h
-    ${RAPIDJSON_PWD}/filereadstream.h
-    ${RAPIDJSON_PWD}/filewritestream.h
-    ${RAPIDJSON_PWD}/fwd.h
-    ${RAPIDJSON_PWD}/internal/biginteger.h
-    ${RAPIDJSON_PWD}/internal/diyfp.h
-    ${RAPIDJSON_PWD}/internal/dtoa.h
-    ${RAPIDJSON_PWD}/internal/ieee754.h
-    ${RAPIDJSON_PWD}/internal/itoa.h
-    ${RAPIDJSON_PWD}/internal/meta.h
-    ${RAPIDJSON_PWD}/internal/pow10.h
-    ${RAPIDJSON_PWD}/internal/regex.h
-    ${RAPIDJSON_PWD}/internal/stack.h
-    ${RAPIDJSON_PWD}/internal/strfunc.h
-    ${RAPIDJSON_PWD}/internal/strtod.h
-    ${RAPIDJSON_PWD}/internal/swap.h
-    ${RAPIDJSON_PWD}/istreamwrapper.h
-    ${RAPIDJSON_PWD}/memorybuffer.h
-    ${RAPIDJSON_PWD}/memorystream.h
-    ${RAPIDJSON_PWD}/msinttypes/inttypes.h
-    ${RAPIDJSON_PWD}/msinttypes/stdint.h
-    ${RAPIDJSON_PWD}/ostreamwrapper.h
-    ${RAPIDJSON_PWD}/pointer.h
-    ${RAPIDJSON_PWD}/prettywriter.h
-    ${RAPIDJSON_PWD}/rapidjson.h
-    ${RAPIDJSON_PWD}/reader.h
-    ${RAPIDJSON_PWD}/schema.h
-    ${RAPIDJSON_PWD}/stream.h
-    ${RAPIDJSON_PWD}/stringbuffer.h
-    ${RAPIDJSON_PWD}/writer.h)
-
 set(EXTERNAL_HEADERS
     ${FLATBUFFERS_HEADERS}
-    ${CLI11_HEADERS}
-    ${RAPIDJSON_HEADERS})
+    ${CLI11_HEADERS})
 
 set(HEADERS
     ${FLATBUFFERS_HEADERS}
@@ -84,7 +44,7 @@ set(HEADERS
     directoryreader.hpp
     dependency_analyzer.hpp
     command_line_args.hpp
-    json_reader.hpp
+    extra_dependency_reader.hpp
     lazyut_global.hpp)
 
 ##
@@ -103,7 +63,7 @@ set(SRCS
     directoryreader.cpp
     dependency_analyzer.cpp
     command_line_args.cpp
-    json_reader.cpp
+    extra_dependency_reader.cpp
     parsers/sourceparser.cpp
     extensions/error_reporter.cpp
     extensions/help_functions.cpp

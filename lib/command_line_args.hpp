@@ -20,7 +20,7 @@ public:
 
     const SplittedPath &outDir() const { return _outDirectory; }
     const SplittedPath &inDir() const { return _inDirectory; }
-    const std::string &deps() const { return _extraDependencies; }
+    const SplittedPath &extraDeps() const { return _extraDependencies; }
 
     bool verbal() const { return _verbal; }
     bool isNoMain() const { return _isNoMain; }
@@ -50,7 +50,7 @@ private:
     std::string _testDirectories;
     SplittedPath _outDirectory;
     SplittedPath _inDirectory;
-    std::string _extraDependencies;
+    SplittedPath _extraDependencies;
 
     std::string _exts;
 

@@ -6,6 +6,7 @@
 #include "command_line_args.hpp"
 #include "directoryreader.hpp"
 #include "dependency_analyzer.hpp"
+#include "extra_dependency_reader.hpp"
 
 #include "flatbuffers_schemes/file_tree_generated.h"
 
@@ -402,6 +403,14 @@ FileNode *FileNode::search(const SplittedPath &path)
     return current_dir;
 }
 
+void FileNode::addDependency(FileNode *node)
+{
+    _setDependencies.insert(node);
+    node->_setDependentBy.insert(this);
+}
+
+void FileNode::addDependentBy(FileNode *node) { node->addDependency(this); }
+
 void FileNode::installExplicitDep(FileNode *includedNode)
 {
     assert(includedNode);
@@ -588,6 +597,23 @@ void FileTree::print() const
     else {
         _rootDirectoryNode->print();
     }
+}
+
+void FileTree::printAll() const
+{
+    print();
+
+    std::cout << "AFFECTED SOURCES" << std::endl;
+    writeFiles(std::cout, &FileNode::isAffectedSource);
+
+    std::cout << "\nAFFECTED TESTS" << std::endl;
+    writeFiles(std::cout, &FileNode::isAffectedTest);
+
+    std::cout << "\nMODIFIED" << std::endl;
+    writeFiles(std::cout, &FileNode::isModified);
+
+    std::cout << "\nwrite lazyut files to " << clargs.outDir().joint()
+              << std::endl;
 }
 
 FileNode *FileTree::addFile(const SplittedPath &relPath)
@@ -787,6 +813,14 @@ void FileTree::writeFiles(std::ostream &os,
     std::vector< SplittedPath > outFiles;
     pushFiles(_rootDirectoryNode, checkSatisfy, outFiles);
     printPaths(os, outFiles);
+}
+
+void FileTree::installExtraDependencies(const SplittedPath &pathToExtraDeps)
+{
+    if (pathToExtraDeps.empty())
+        return;
+    ExtraDependencyReader reader;
+    reader.set_extra_dependencies(pathToExtraDeps, *this);
 }
 
 void FileTree::addIncludePaths(const std::vector< SplittedPath > &paths)

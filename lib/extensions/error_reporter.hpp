@@ -15,7 +15,7 @@ class ErrorStream
     std::shared_ptr< NewlinePrinter > _nlprntr;
 
 public:
-    ErrorStream() : _nlprntr(new NewlinePrinter()) {}
+    ErrorStream();
 };
 
 ErrorStream errors();

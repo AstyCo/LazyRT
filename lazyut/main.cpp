@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
     rootTree.addIncludePaths(clargs.includePaths());
 
-    /// TODO: CHECK EXTRA_DEPS
+    rootTree.installExtraDependencies(clargs.extraDeps());
 
     PROFILE(rootTree.parsePhase(clargs.ftreeDumpIn()));
 
@@ -36,18 +36,8 @@ int main(int argc, char *argv[])
 
     rootTree.writeAffectedFiles(clargs);
 
-    if (clargs.verbal()) {
-        rootTree.print();
-        std::cout << "AFFECTED SOURCES" << std::endl;
-        rootTree.writeFiles(std::cout, &FileNode::isAffectedSource);
-        std::cout << "AFFECTED TESTS" << std::endl;
-        rootTree.writeFiles(std::cout, &FileNode::isAffectedTest);
-        std::cout << "MODIFIED" << std::endl;
-        rootTree.writeFiles(std::cout, &FileNode::isModified);
-
-        std::cout << "write lazyut files to " << clargs.outDir().joint()
-                  << std::endl;
-    }
+    if (clargs.verbal())
+        rootTree.printAll();
 
     PROFILE(FileTreeFunc::serialize(rootTree, clargs.ftreeDumpOut()));
 

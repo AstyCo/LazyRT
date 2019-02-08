@@ -85,6 +85,8 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     if (!exts.empty())
         DirectoryReader::_sourceFileExtensions = split(exts, ",");
 
+    _rootDirectory = SplittedPath(rootDir, SplittedPath::unixSep());
+
     _outDirectory = SplittedPath(outDirectory, SplittedPath::unixSep());
     _inDirectory = SplittedPath(inDirectory, SplittedPath::unixSep());
 
@@ -108,7 +110,8 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     _totalAffected = _outDirectory;
     _totalAffected.append(std::string(_totalAffectedFileName));
 
-    _rootDirectory = SplittedPath(rootDir, SplittedPath::unixSep());
+    _extraDependencies =
+        SplittedPath(extra_dependencies, SplittedPath::unixSep());
 
     if (!srcBase.empty())
         _srcBase = SplittedPath(srcBase, SplittedPath::unixSep());

@@ -9,3 +9,5 @@ ErrorStream operator<<(ErrorStream stream, const std::string &text)
 }
 
 ErrorStream::NewlinePrinter::~NewlinePrinter() { std::cerr << std::endl; }
+
+ErrorStream::ErrorStream() : _nlprntr(new NewlinePrinter()) {}

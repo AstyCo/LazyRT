@@ -25,7 +25,7 @@
 #define COUNT_LINES(x)
 
 template < typename T >
-std::string numberToString(T Number)
+std::string ntos(T Number)
 {
     std::ostringstream ss;
     ss << Number;

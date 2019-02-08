@@ -139,6 +139,9 @@ public:
 
     FileNode *search(const SplittedPath &path);
 
+    void addDependency(FileNode *node);
+    void addDependentBy(FileNode *node);
+
     void installExplicitDep(FileNode *includedNode);
     void installExplicitDepBy(FileNode *implementedNode);
 
@@ -246,6 +249,7 @@ public:
 
     ///---Debug
     void print() const;
+    void printAll() const;
     ///
 
     FileNode *rootNode() const { return _rootDirectoryNode; }
@@ -286,6 +290,8 @@ public:
                     FileNode::BoolProcedureCPtr checkSatisfy) const;
     void writeFiles(std::ostream &os,
                     FileNode::BoolProcedureCPtr checkSatisfy) const;
+
+    void installExtraDependencies(const SplittedPath &pathToExtraDeps);
 
 public:
     SplittedPath _projectDirectory;

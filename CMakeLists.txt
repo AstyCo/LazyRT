@@ -24,7 +24,7 @@ endif()
 ##
 add_subdirectory(lib) # source files used in subprojects
 add_subdirectory(lazyut) # lazyut executable
-add_subdirectory(dep_parser) # utility for parsing extra dependencies
+#add_subdirectory(dep_parser) # utility for parsing extra dependencies
 add_subdirectory(test) # Tests
 
 include(cmake/printInfo.cmake REQUIRED) # prints general configuration
