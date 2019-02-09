@@ -69,7 +69,7 @@ void HashedStringNode::print(int indent)
 }
 
 void HashedStringNode::insert(
-    const HashedStringNode::TSplittedString &splittedString, FileNodePtr fnode)
+    const HashedStringNode::TSplittedString &splittedString, FileNode *fnode)
 {
     HashedStringNode *current_node = this;
     for (const auto &s : splittedString.splitted())

@@ -128,6 +128,6 @@ void ExtraDependencyReader::set_extra_dependencies(
                      << dep.dependencyPath.jointOs() << "not found";
             continue;
         }
-        file->installExplicitDep(depFile);
+        file->addExplicitDep(depFile);
     }
 }

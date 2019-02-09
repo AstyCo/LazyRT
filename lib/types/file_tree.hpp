@@ -129,21 +129,21 @@ public:
 
     void destroy();
 
-    void installIncludes(const FileTree &fileTree);
-    void installInheritances(const FileTree &fileTree);
-    void installImplements(const FileTree &fileTree);
-
     void installDependencies();
     void installDependentBy();
     void clearVisited();
 
+    void initExplicitDeps();
+
     FileNode *search(const SplittedPath &path);
 
     void addDependency(FileNode *node);
+    void addDependencies(const SetFileNode &nodes);
+
     void addDependentBy(FileNode *node);
 
-    void installExplicitDep(FileNode *includedNode);
-    void installExplicitDepBy(FileNode *implementedNode);
+    void addExplicitDep(FileNode *includedNode);
+    void addExplicitDepBy(FileNode *implementedNode);
 
     void swapParsedData(FileNode *file);
 
@@ -182,10 +182,11 @@ public:
     void printInheritsFiles(int indent = 0) const;
     ///
 private:
-    void installDepsPrivate(SetFileNode FileNode::*getSetDeps,
-                            const SetFileNode FileNode::*getSetExplicitDeps);
-    void installDepsPrivateR(FileNode *node, SetFileNode FileNode::*getSetDeps,
-                             const SetFileNode FileNode::*getSetExplicitDeps);
+    void installIncludes();
+    void installInheritances();
+    void installImplements();
+
+    void installDependenciesR(FileNode *node);
 
     FileNode *_parent;
     ListFileNode _childs;
@@ -235,13 +236,8 @@ public:
     void removeEmptyDirectories();
     void calculateFileHashes();
     void parseFiles();
-    void installIncludeNodes();
-    void installInheritanceNodes();
-    void installImplementNodes();
 
     void clearVisitedR();
-    void installDependencies();
-    void installDependentBy();
 
     void installAffectedFiles();
 
@@ -315,10 +311,6 @@ public:
     void compareModifiedFilesRecursive(FileNode *node, FileNode *restored_node);
     void installModifiedFiles(FileNode *node);
     void parseFilesRecursive(FileNode *node);
-
-    void installIncludeNodesRecursive(FileNode &node);
-    void installInheritanceNodesRecursive(FileNode &node);
-    void installImplementNodesRecursive(FileNode &node);
 
     void installAffectedFilesRecursive(FileNode *node);
 

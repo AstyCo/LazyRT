@@ -353,41 +353,66 @@ void FileNode::destroy()
     delete this;
 }
 
-void FileNode::installIncludes(const FileTree &fileTree)
+void FileNode::installIncludes()
 {
     for (auto &include_directive : _record._listIncludes) {
         if (FileNode *includedFile =
-                fileTree.searchIncludedFile(include_directive, this))
-            installExplicitDep(includedFile);
+                _fileTree.searchIncludedFile(include_directive, this))
+            addExplicitDep(includedFile);
     }
 }
 
-void FileNode::installInheritances(const FileTree &fileTree)
+void FileNode::installInheritances()
 {
     for (auto &file_path : _record._setBaseClassFiles) {
-        if (FileNode *baseClassFile = fileTree.searchInRoot(file_path))
-            installExplicitDep(baseClassFile);
+        if (FileNode *baseClassFile = _fileTree.searchInRoot(file_path))
+            addExplicitDep(baseClassFile);
     }
 }
 
-void FileNode::installImplements(const FileTree &fileTree)
+void FileNode::installImplements()
 {
     for (auto &file_path : _record._setImplementFiles) {
-        if (FileNode *implementedFile = fileTree.searchInRoot(file_path))
-            installExplicitDepBy(implementedFile);
+        if (FileNode *implementedFile = _fileTree.searchInRoot(file_path))
+            addExplicitDepBy(implementedFile);
     }
+}
+
+void FileNode::installDependenciesR(FileNode *node)
+{
+    if (node->_visited)
+        return;
+    node->_visited = true;
+
+    const SetFileNode &nodeDeps = node->_setDependencies;
+    const SetFileNode &nodeExplicitDeps = node->_setExplicitDependencies;
+
+    if (!nodeDeps.empty()) {
+        addDependencies(nodeDeps);
+        return;
+    }
+
+    addDependencies(nodeExplicitDeps);
+
+    for (FileNode *explDepsNode : nodeExplicitDeps)
+        installDependenciesR(explDepsNode);
+}
+
+void FileNode::initExplicitDeps()
+{
+    installImplements();
+    installIncludes();
+    installInheritances();
 }
 
 void FileNode::installDependencies()
 {
-    installDepsPrivate(&FileNode::_setDependencies,
-                       &FileNode::_setExplicitDependencies);
-}
+    _fileTree.clearVisitedR();
 
-void FileNode::installDependentBy()
-{
-    installDepsPrivate(&FileNode::_setDependentBy,
-                       &FileNode::_setExplicitDependendentBy);
+    installDependenciesR(this);
+
+    // File allways depends on himself
+    addDependency(this);
 }
 
 void FileNode::clearVisited() { _visited = false; }
@@ -409,19 +434,25 @@ void FileNode::addDependency(FileNode *node)
     node->_setDependentBy.insert(this);
 }
 
+void FileNode::addDependencies(const FileNode::SetFileNode &nodes)
+{
+    for (FileNode *node : nodes)
+        addDependency(node);
+}
+
 void FileNode::addDependentBy(FileNode *node) { node->addDependency(this); }
 
-void FileNode::installExplicitDep(FileNode *includedNode)
+void FileNode::addExplicitDep(FileNode *includedNode)
 {
     assert(includedNode);
     _setExplicitDependencies.insert(includedNode);
     includedNode->_setExplicitDependendentBy.insert(this);
 }
 
-void FileNode::installExplicitDepBy(FileNode *implementedNode)
+void FileNode::addExplicitDepBy(FileNode *implementedNode)
 {
     assert(implementedNode);
-    implementedNode->installExplicitDep(this);
+    implementedNode->addExplicitDep(this);
 }
 
 void FileNode::swapParsedData(FileNode *file)
@@ -448,46 +479,10 @@ bool FileNode::isAffected() const
     return false;
 }
 
-void FileNode::installDepsPrivate(
-    FileNode::SetFileNode FileNode::*getSetDeps,
-    const FileNode::SetFileNode FileNode::*getSetExplicitDeps)
-{
-    _fileTree.clearVisitedR();
-
-    installDepsPrivateR(this, getSetDeps, getSetExplicitDeps);
-
-    // File allways depends on himself
-    (this->*getSetDeps).insert(this);
-}
-
 template < typename T >
 static void append(T &lhs, const T &rhs)
 {
     lhs.insert(rhs.begin(), rhs.end());
-}
-
-void FileNode::installDepsPrivateR(
-    FileNode *node, FileNode::SetFileNode FileNode::*getSetDeps,
-    const FileNode::SetFileNode FileNode::*getSetExplicitDeps)
-{
-    if (node->_visited)
-        return;
-    node->_visited = true;
-
-    SetFileNode &deps = this->*getSetDeps;
-    const SetFileNode &nodeDeps = node->*getSetDeps;
-
-    const SetFileNode &nodeExplicitDeps = node->*getSetExplicitDeps;
-
-    if (!nodeDeps.empty()) {
-        append(deps, nodeDeps);
-        return;
-    }
-
-    append(deps, nodeExplicitDeps);
-
-    for (auto &&explDepsNode : nodeExplicitDeps)
-        installDepsPrivateR(explDepsNode, getSetDeps, getSetExplicitDeps);
 }
 
 FileNode *FileNode::findChild(const HashedFileName &hfname) const
@@ -538,40 +533,10 @@ void FileTree::parseFiles()
     }
 }
 
-void FileTree::installIncludeNodes()
-{
-    if (_rootDirectoryNode)
-        installIncludeNodesRecursive(*_rootDirectoryNode);
-}
-
-void FileTree::installInheritanceNodes()
-{
-    if (_rootDirectoryNode)
-        installInheritanceNodesRecursive(*_rootDirectoryNode);
-}
-
-void FileTree::installImplementNodes()
-{
-    if (_rootDirectoryNode)
-        installImplementNodesRecursive(*_rootDirectoryNode);
-}
-
 void FileTree::clearVisitedR()
 {
     if (_rootDirectoryNode)
         recursiveCall(*_rootDirectoryNode, &FileNode::clearVisited);
-}
-
-void FileTree::installDependencies()
-{
-    if (_rootDirectoryNode)
-        recursiveCall(*_rootDirectoryNode, &FileNode::installDependencies);
-}
-
-void FileTree::installDependentBy()
-{
-    if (_rootDirectoryNode)
-        recursiveCall(*_rootDirectoryNode, &FileNode::installDependentBy);
 }
 
 void FileTree::installAffectedFiles()
@@ -943,34 +908,13 @@ void FileTree::installModifiedFiles(FileNode *node)
 
 void FileTree::parseFilesRecursive(FileNode *node)
 {
-    if (node->isRegularFile()) {
+    if (node->isSourceFile()) {
         _srcParser.parseFile(node);
         return;
     }
     // else, if directory
     for (auto child : node->childs())
         parseFilesRecursive(child);
-}
-
-void FileTree::installIncludeNodesRecursive(FileNode &node)
-{
-    node.installIncludes(*this);
-    for (auto &&child : node.childs())
-        installIncludeNodesRecursive(*child);
-}
-
-void FileTree::installInheritanceNodesRecursive(FileNode &node)
-{
-    node.installInheritances(*this);
-    for (auto &&child : node.childs())
-        installInheritanceNodesRecursive(*child);
-}
-
-void FileTree::installImplementNodesRecursive(FileNode &node)
-{
-    node.installImplements(*this);
-    for (auto &&child : node.childs())
-        installImplementNodesRecursive(*child);
 }
 
 void FileTree::installAffectedFilesRecursive(FileNode *node)
@@ -987,15 +931,13 @@ void FileTree::analyzeNodes()
     DependencyAnalyzer dep;
     dep.analyze(_rootDirectoryNode);
 
-    installImplementNodes();
-    installIncludeNodes();
-    installInheritanceNodes();
+    recursiveCall(*_rootDirectoryNode, &FileNode::initExplicitDeps);
 }
 
 void FileTree::propagateDeps()
 {
-    installDependencies();
-    installDependentBy();
+    if (_rootDirectoryNode)
+        recursiveCall(*_rootDirectoryNode, &FileNode::installDependencies);
 }
 
 void FileTree::recursiveCall(FileNode &node, FileNode::VoidProcedurePtr f)

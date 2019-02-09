@@ -7,8 +7,7 @@
 
 struct HashedStringNode
 {
-    using FileNodePtr = FileNode *;
-    using ExtraData = std::vector< FileNodePtr >;
+    using ExtraData = std::vector< FileNode * >;
     using TSplittedString = ScopedName;
     using MapLeafs = std::map< HashedString::HashType, HashedStringNode * >;
 
@@ -20,7 +19,7 @@ struct HashedStringNode
     HashedStringNode(const HashedString &hs_);
     ~HashedStringNode();
 
-    void insert(const TSplittedString &splittedString, FileNodePtr fnode);
+    void insert(const TSplittedString &splittedString, FileNode *fnode);
 
     HashedStringNode *findOrNew(const HashedString &key);
 

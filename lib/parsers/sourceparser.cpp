@@ -538,8 +538,7 @@ static std::vector< std::string > initInheritanceChl()
 
 void SourceParser::parseFile(FileNode *node)
 {
-    if (!node->isSourceFile())
-        return;
+    assert(node->isSourceFile());
 
     std::string fname = node->fullPath().joint();
     auto data_pair = readFile(fname.c_str(), "r");
