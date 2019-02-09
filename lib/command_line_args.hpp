@@ -23,6 +23,8 @@ public:
     const SplittedPath &extraDeps() const { return _extraDependencies; }
 
     bool verbal() const { return _verbal; }
+    bool isMostVerbosity() const { return _verbosityLevel >= 2; }
+
     bool isNoMain() const { return _isNoMain; }
 
     const SplittedPath &ftreeDumpIn() const { return _ftreeDumpIn; }
@@ -61,6 +63,8 @@ private:
     SplittedPath _testBase;
 
     bool _verbal;
+    uint8_t _verbosityLevel;
+
     bool _isNoMain;
 
     static std::string _rootFTreeFilename;

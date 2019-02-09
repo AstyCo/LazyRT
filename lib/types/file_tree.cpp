@@ -580,7 +580,8 @@ void FileTree::print() const
 
 void FileTree::printAll() const
 {
-    print();
+    if (clargs.isMostVerbosity())
+        print();
 
     std::cout << "AFFECTED SOURCES" << std::endl;
     writeFiles(std::cout, &FileNode::isAffectedSource);

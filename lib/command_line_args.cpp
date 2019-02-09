@@ -11,7 +11,7 @@ std::string CommandLineArgs::_totalAffectedFileName = "total_affected.txt";
 CommandLineArgs clargs;
 
 CommandLineArgs::CommandLineArgs()
-    : _verbal(false), _isNoMain(false), _retCode(0)
+    : _verbal(false), _isNoMain(false), _verbosityLevel(0), _retCode(0)
 {
 }
 
@@ -67,6 +67,8 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
                    "Extra include paths both for source and test, "
                    "relative to project directory,"
                    "separated by comma (,)");
+    app.add_option("--verbosity-level", _verbosityLevel,
+                   "From 0 to 2, the higher is more verbose");
 
     app.add_flag("-m,--no-main", _isNoMain,
                  "Don't keep test source file with main() implementation");
