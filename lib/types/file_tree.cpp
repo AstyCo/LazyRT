@@ -479,6 +479,20 @@ bool FileNode::isAffected() const
     return false;
 }
 
+std::vector< FileNode * > FileNode::getFiles() const
+{
+    std::vector< FileNode * > vfs;
+    if (isRegularFile()) {
+        vfs.push_back(const_cast< FileNode * >(this));
+        return vfs;
+    }
+    for (FileNode *child : _childs) {
+        auto vfs_child = child->getFiles();
+        vfs.insert(vfs.end(), vfs_child.begin(), vfs_child.end());
+    }
+    return vfs;
+}
+
 template < typename T >
 static void append(T &lhs, const T &rhs)
 {

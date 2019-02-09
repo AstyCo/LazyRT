@@ -168,6 +168,8 @@ public:
     bool isAffectedSource() const { return isAffected() && !isTestFile(); }
     bool isAffectedTest() const { return isAffected() && isTestFile(); }
 
+    std::vector< FileNode * > getFiles() const;
+
 public:
     ///---Debug
     void print(int indent = 0) const;

@@ -117,17 +117,25 @@ void ExtraDependencyReader::set_extra_dependencies(
     auto deps = read_extra_dependencies(path_to_extra_deps);
     for (const auto &dep : deps) {
         FileNode *file = tree.searchInRoot(dep.filePath);
-        FileNode *depFile = tree.searchInRoot(dep.dependencyPath);
+        FileNode *depNode = tree.searchInRoot(dep.dependencyPath);
         if (!file) {
             errors() << "failed to set dependency, file"
                      << dep.filePath.jointOs() << "not found";
             continue;
         }
-        if (!depFile) {
+        if (!file->isRegularFile()) {
+            errors() << "failed to set dependency, file"
+                     << dep.filePath.jointOs() << "must be regular file";
+            continue;
+        }
+
+        if (!depNode) {
             errors() << "failed to set dependency, file"
                      << dep.dependencyPath.jointOs() << "not found";
             continue;
         }
-        file->addExplicitDep(depFile);
+        auto fs = depNode->getFiles();
+        for (FileNode *depFile : fs)
+            file->addExplicitDep(depFile);
     }
 }
