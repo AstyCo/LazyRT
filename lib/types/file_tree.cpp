@@ -857,7 +857,7 @@ void FileTree::calculateFileHashes(FileNode *node)
 
 void FileTree::parseModifiedFilesRecursive(FileNode *node)
 {
-    if (node->isRegularFile() && node->isModified())
+    if (node->isModified())
         _srcParser.parseFile(node);
 
     for (auto child : node->childs())
@@ -908,11 +908,7 @@ void FileTree::installModifiedFiles(FileNode *node)
 
 void FileTree::parseFilesRecursive(FileNode *node)
 {
-    if (node->isSourceFile()) {
-        _srcParser.parseFile(node);
-        return;
-    }
-    // else, if directory
+    _srcParser.parseFile(node);
     for (auto child : node->childs())
         parseFilesRecursive(child);
 }
