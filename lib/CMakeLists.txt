@@ -100,7 +100,7 @@ if(Boost_FOUND)
         PUBLIC
         ${Boost_INCLUDE_DIRS})
     target_link_libraries(${LIB_TARGET_NAME}
-        PUBLIC
+        INTERFACE
         ${Boost_LIBRARIES})
 endif()
 
