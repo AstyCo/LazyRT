@@ -223,7 +223,7 @@ void FileNode::print(int indent) const
     std::string strIndents = makeIndents(indent);
 
     std::cout << strIndents << "file:" << _record._path.joint();
-    if (_record._type == FileRecord::RegularFile)
+    if (isRegularFile())
         std::cout << "\thex:[" << _record.hashHex() << "]";
     std::cout << std::endl;
     //    printInherits(indent);
@@ -335,7 +335,7 @@ void FileNode::printInheritsFiles(int indent) const
 
 bool FileNode::hasRegularFiles() const
 {
-    if (_record._type == FileRecord::RegularFile)
+    if (isRegularFile())
         return true;
     FileNodeConstIterator it(_childs.begin());
     while (it != _childs.end()) {
@@ -461,6 +461,14 @@ void FileNode::swapParsedData(FileNode *file)
     _record.swapParsedData(file->_record);
 }
 
+void FileNode::setSourceFile()
+{
+    if (isSourceFile())
+        return;
+    _flags |= Flags::SourceFile;
+    _fileTree._vectorSourceFile.push_back(this);
+}
+
 bool FileNode::isAffected() const
 {
     // if some dependency is affected then this is affected too
@@ -491,6 +499,30 @@ std::vector< FileNode * > FileNode::getFiles() const
         vfs.insert(vfs.end(), vfs_child.begin(), vfs_child.end());
     }
     return vfs;
+}
+
+void FileNode::calculateHash()
+{
+    if (isRegularFile())
+        record().calculateHash(_fileTree.rootPath());
+}
+
+void FileNode::removeEmptySubdirectories()
+{
+    FileNode::FileNodeIterator it(_childs.begin());
+
+    while (it != _childs.end()) {
+        if ((*it)->hasRegularFiles())
+            ++it;
+        else
+            it = _childs.erase(it);
+    }
+}
+
+void FileNode::setTestIfSource()
+{
+    if (isSourceFile())
+        setTestFile();
 }
 
 template < typename T >
@@ -527,14 +559,14 @@ void FileTree::clean()
 void FileTree::removeEmptyDirectories()
 {
     assert(_state == Filled);
-    removeEmptyDirectories(_rootDirectoryNode);
+    recursiveCall(*_rootDirectoryNode, &FileNode::removeEmptySubdirectories);
     _state = Filtered;
 }
 
 void FileTree::calculateFileHashes()
 {
     assert(_state == Filtered);
-    calculateFileHashes(_rootDirectoryNode);
+    recursiveCall(*_rootDirectoryNode, &FileNode::calculateHash);
     _state = CachesCalculated;
 }
 
@@ -542,15 +574,15 @@ void FileTree::parseFiles()
 {
     assert(_state == CachesCalculated);
     if (_rootDirectoryNode) {
-        parseFilesRecursive(_rootDirectoryNode);
         installModifiedFiles(_rootDirectoryNode);
+        parseModifiedSourceFiles();
     }
 }
 
 void FileTree::clearVisitedR()
 {
-    if (_rootDirectoryNode)
-        recursiveCall(*_rootDirectoryNode, &FileNode::clearVisited);
+    for (FileNode *src : _vectorSourceFile)
+        src->clearVisited();
 }
 
 void FileTree::installAffectedFiles()
@@ -565,7 +597,7 @@ void FileTree::parseModifiedFiles(const FileTree &restored_file_tree)
     assert(_state == CachesCalculated);
     compareModifiedFilesRecursive(_rootDirectoryNode,
                                   restored_file_tree._rootDirectoryNode);
-    parseModifiedFilesRecursive(_rootDirectoryNode);
+    parseModifiedSourceFiles();
 }
 
 void FileTree::print() const
@@ -580,11 +612,12 @@ void FileTree::print() const
 
 void FileTree::printAll() const
 {
-    if (clargs.isMostVerbosity())
+    if (clargs.isMostVerbosity()) {
         print();
 
-    std::cout << "AFFECTED SOURCES" << std::endl;
-    writeFiles(std::cout, &FileNode::isAffectedSource);
+        std::cout << "AFFECTED SOURCES" << std::endl;
+        writeFiles(std::cout, &FileNode::isAffectedSource);
+    }
 
     std::cout << "\nAFFECTED TESTS" << std::endl;
     writeFiles(std::cout, &FileNode::isAffectedTest);
@@ -737,15 +770,13 @@ void FileTree::labelTest(const SplittedPath &relPath)
                  << "doesn't exists -> skipping labeling test file";
         return;
     }
-    recursiveCall(*node, &FileNode::setTestFile);
+    recursiveCall(*node, &FileNode::setTestIfSource);
 }
 
 void FileTree::analyzePhase()
 {
     analyzeNodes();
     propagateDeps();
-
-    DEBUG(Debug::test_analyse_phase(*this));
 }
 
 void FileTree::printPaths(std::ostream &os,
@@ -833,50 +864,12 @@ FileTree::affectedFiles(const SplittedPath &spBase,
     return result;
 }
 
-void FileTree::removeEmptyDirectories(FileNode *node)
+void FileTree::parseModifiedSourceFiles()
 {
-    if (!node)
-        return;
-    if (node->record()._type == FileRecord::RegularFile)
-        return;
-
-    FileNode::ListFileNode &childs = node->childs();
-    FileNode::FileNodeIterator it(childs.begin());
-
-    while (it != childs.end()) {
-        removeEmptyDirectories(*it);
-
-        if ((*it)->hasRegularFiles())
-            ++it;
-        else
-            it = childs.erase(it);
+    for (FileNode *src : _vectorSourceFile) {
+        if (src->isModified())
+            _srcParser.parseFile(src);
     }
-}
-
-void FileTree::calculateFileHashes(FileNode *node)
-{
-    if (!node)
-        return;
-    if (node->record()._type == FileRecord::RegularFile)
-        node->record().calculateHash(_rootPath);
-
-    FileNode::ListFileNode &childs = node->childs();
-    FileNode::FileNodeIterator it(childs.begin());
-
-    while (it != childs.end()) {
-        calculateFileHashes(*it);
-
-        ++it;
-    }
-}
-
-void FileTree::parseModifiedFilesRecursive(FileNode *node)
-{
-    if (node->isModified())
-        _srcParser.parseFile(node);
-
-    for (auto child : node->childs())
-        parseModifiedFilesRecursive(child);
 }
 
 void FileTree::compareModifiedFilesRecursive(FileNode *node,
@@ -921,13 +914,6 @@ void FileTree::installModifiedFiles(FileNode *node)
         installModifiedFiles(child);
 }
 
-void FileTree::parseFilesRecursive(FileNode *node)
-{
-    _srcParser.parseFile(node);
-    for (auto child : node->childs())
-        parseFilesRecursive(child);
-}
-
 void FileTree::installAffectedFilesRecursive(FileNode *node)
 {
     if (node->isAffected())
@@ -942,13 +928,14 @@ void FileTree::analyzeNodes()
     DependencyAnalyzer dep;
     dep.analyze(_rootDirectoryNode);
 
-    recursiveCall(*_rootDirectoryNode, &FileNode::initExplicitDeps);
+    for (FileNode *src : _vectorSourceFile)
+        src->initExplicitDeps();
 }
 
 void FileTree::propagateDeps()
 {
-    if (_rootDirectoryNode)
-        recursiveCall(*_rootDirectoryNode, &FileNode::installDependencies);
+    for (FileNode *src : _vectorSourceFile)
+        src->installDependencies();
 }
 
 void FileTree::recursiveCall(FileNode &node, FileNode::VoidProcedurePtr f)

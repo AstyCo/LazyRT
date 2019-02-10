@@ -7,11 +7,16 @@
 #include <string.h>
 
 #ifdef WIN32
-#include <windows.h> // file_size
-#include <fileapi.h> // file_size
-#else                // POSIX
-#include <sys/stat.h>
+#include <windows.h>     // file_size
+#include <fileapi.h>     // file_size
+#include <io.h>          // access
+#define access _access_s // access
+#else                    // POSIX
+#include <sys/stat.h>    // file_size
+#include <unistd.h>      // access
 #endif
+
+static bool is_file_exists(const char *fname) { return access(fname, 0) == 0; }
 
 std::pair< char *, long > readBinaryFile(const char *fname)
 {
@@ -20,6 +25,11 @@ std::pair< char *, long > readBinaryFile(const char *fname)
 
 std::pair< char *, long > readFile(const char *fname, const char *mode)
 {
+    if (!is_file_exists(fname)) {
+        if (clargs.verbal())
+            errors() << "file" << std::string(fname) << "doesn't exist";
+        return std::pair< char *, long >(nullptr, 0);
+    }
     FILE *file = fopen(fname, mode);
     if (!file) {
         if (clargs.verbal())

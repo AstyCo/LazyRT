@@ -153,7 +153,7 @@ public:
     void setLabeled() { _flags |= Flags::Labeled; }
     bool isManuallyLabeled() const { return _flags & Flags::Labeled; }
 
-    void setSourceFile() { _flags |= Flags::SourceFile; }
+    void setSourceFile();
     bool isSourceFile() const { return _flags & Flags::SourceFile; }
 
     void setTestFile() { _flags |= Flags::TestFile; }
@@ -169,6 +169,10 @@ public:
     bool isAffectedTest() const { return isAffected() && isTestFile(); }
 
     std::vector< FileNode * > getFiles() const;
+
+    void calculateHash();
+    void removeEmptySubdirectories();
+    void setTestIfSource();
 
 public:
     ///---Debug
@@ -307,12 +311,9 @@ public:
                                               FileNode::FlagsType flags) const;
 
 public:
-    void removeEmptyDirectories(FileNode *node);
-    void calculateFileHashes(FileNode *node);
-    void parseModifiedFilesRecursive(FileNode *node);
     void compareModifiedFilesRecursive(FileNode *node, FileNode *restored_node);
     void installModifiedFiles(FileNode *node);
-    void parseFilesRecursive(FileNode *node);
+    void parseModifiedSourceFiles();
 
     void installAffectedFilesRecursive(FileNode *node);
 
@@ -342,6 +343,10 @@ private:
     SourceParser _srcParser;
     SplittedPath _relativeBasePath;
     State _state;
+
+public:
+    // optimization
+    std::vector< FileNode * > _vectorSourceFile;
 };
 
 // + INLINE FUNCTIONS
