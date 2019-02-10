@@ -36,33 +36,28 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
                    "File tree Root directory, every listed file should be "
                    "relative to this")
         ->required();
-    app.add_option("-s,--src-dirs", _srcDirectories,
-                   "Directories with source files, separated by comma (,),"
-                   "relative to Root")
-        ->required();
-    app.add_option("-t,--test-dirs", _testDirectories,
-                   "Directories with test files, separated by comma (,),"
-                   "relative to Root")
-        ->required();
     app.add_option("-o,--outdir", outDirectory, "Output directory")->required();
 
     // optional arguments
+    app.add_option("-s,--src-dirs", _srcDirectories,
+                   "Directories with source files, separated by comma (,),"
+                   "relative to Root, by default \"\"");
+    app.add_option("-t,--test-dirs", _testDirectories,
+                   "Directories with test files, separated by comma (,),"
+                   "relative to Root, by default \"\"");
+    app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-d,--deps", extra_dependencies,
                    "Path to the JSON file with extra dependencies");
-    app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-e,--extensions", exts,
                    "Source files extensions, separated by comma (,)");
-
     app.add_option("--ignore", _ignoredSubstrings,
                    "Substrings of the ignored paths, separated by comma (,) ");
-
     app.add_option(
         "--test-base", testBase,
         "Directory relative to which the test source files are displayed");
     app.add_option("--src-base", srcBase,
                    "Directory relative to which the project source files "
                    "are displayed");
-
     app.add_option("--include-paths", _includePaths,
                    "Extra include paths both for source and test, "
                    "relative to project directory,"
@@ -130,12 +125,18 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
 
 std::vector< SplittedPath > CommandLineArgs::srcDirectories() const
 {
-    return splittedPaths(_srcDirectories);
+    auto tmp = splittedPaths(_srcDirectories);
+    if (tmp.empty())
+        tmp.push_back(SplittedPath("", SplittedPath::unixSep()));
+    return tmp;
 }
 
 std::vector< SplittedPath > CommandLineArgs::testDirectories() const
 {
-    return splittedPaths(_testDirectories);
+    auto tmp = splittedPaths(_testDirectories);
+    if (tmp.empty())
+        tmp.push_back(SplittedPath("", SplittedPath::unixSep()));
+    return tmp;
 }
 
 std::vector< SplittedPath > CommandLineArgs::includePaths() const
