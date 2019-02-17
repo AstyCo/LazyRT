@@ -2,6 +2,9 @@
 
 #include "types/file_tree.hpp"
 
+#include "tokenizer.hpp"
+#include "parsers_utils.hpp"
+
 #include <set>
 #include <map>
 
@@ -128,83 +131,6 @@ const char *SourceParser::parseWord(const char *p, int &wordLength) const
     return p;
 }
 
-class CharTreeNode
-{
-public:
-    using LeafMap = std::map< char, CharTreeNode * >;
-
-public:
-    CharTreeNode() : finite(false) {}
-
-    ~CharTreeNode()
-    {
-        for (auto &n : leafs)
-            delete n.second;
-    }
-
-    void insert(const std::string &key)
-    {
-        CharTreeNode *node = this;
-        for (auto it = key.begin(); it < key.end(); ++it)
-            node = node->insertCh(*it);
-
-        node->finite = true;
-    }
-    void insertRev(const std::string &key)
-    {
-        auto rev_key = std::string(key.rbegin(), key.rend());
-        insert(rev_key);
-    }
-
-    CharTreeNode *find(char ch) const
-    {
-        auto it = leafs.find(ch);
-        if (it != leafs.end()) {
-            return it->second;
-        }
-        return nullptr;
-    }
-
-    CharTreeNode *insertCh(char ch)
-    {
-        if (auto node = find(ch)) {
-            // found
-            return node;
-        }
-
-        CharTreeNode *leaf = new CharTreeNode();
-        leafs.insert(std::make_pair(ch, leaf));
-        return leaf;
-    }
-
-public:
-    bool finite;
-    LeafMap leafs;
-};
-
-namespace Debug {
-
-void printCharTreeR(const CharTreeNode *n, int indent = 1)
-{
-    std::string strIndents = makeIndents(indent);
-
-    for (auto &p : n->leafs) {
-        std::cout << strIndents << p.first << ' ' << p.second->finite
-                  << std::endl;
-        printCharTreeR(p.second, indent + 1);
-    }
-}
-
-void printCharTree(const CharTreeNode *n, int indent = 1)
-{
-    std::string strIndents = makeIndents(indent);
-    std::cout << strIndents << "CharTreeNode_ROOT" << std::endl;
-
-    printCharTreeR(n, indent + 1);
-}
-
-} // namespace Debug
-
 static CharTreeNode initOverloadingOperators()
 {
     CharTreeNode root;
@@ -222,8 +148,6 @@ static CharTreeNode initOverloadingOperators()
 
     return root;
 }
-
-static CharTreeNode charTreeRevOverloadTokens = initOverloadingOperators();
 
 int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
 {
@@ -274,6 +198,7 @@ int SourceParser::parseNameR(const char *p, int len, ScopedName &name) const
 int SourceParser::dealWithOperatorOverloadingR(
     const char *p, int len, std::vector< std::string > &nsname) const
 {
+    static CharTreeNode charTreeRevOverloadTokens = initOverloadingOperators();
     CharTreeNode *node = &charTreeRevOverloadTokens;
     for (int d = 0; d < len; ++d) {
         const char ch = *(p - d);
@@ -541,6 +466,10 @@ void SourceParser::parseFile(FileNode *node)
     if (!node->isSourceFile())
         return;
 
+    Tokenizer tkn;
+    tkn.tokenize(node->fullPath());
+    Debug::printTokens(tkn.tokens());
+
     std::string fname = node->fullPath().joint();
     auto data_pair = readFile(fname.c_str(), "r");
     char *data = data_pair.first;
@@ -549,7 +478,7 @@ void SourceParser::parseFile(FileNode *node)
                  << '\'' + std::string(fname) + '\'';
         return;
     }
-    long file_size = data_pair.second;
+    auto file_size = data_pair.second;
     int lbrackets = 0;
     int lcbrackets = 0;
     int nsbrackets = 0;
@@ -711,8 +640,11 @@ void SourceParser::parseFile(FileNode *node)
                 dir.type = IncludeDirective::Brackets;
             }
             else {
-                std::cout << std::string(p) << std::endl;
-                assert(false);
+                errors() << "warning: skip include directive in file"
+                         << _currentFile->fullPath().jointOs() << "on the line"
+                         << ntos(_line);
+                _state = NotIncludeMacroState;
+                continue;
             }
             ++p;
             const char *end_of_filename =

@@ -22,7 +22,7 @@
 #define VERBAL_0(x)
 #define VERBAL_1(x)
 
-#define COUNT_LINES(x)
+#define COUNT_LINES(x) x
 
 template < typename T >
 std::string ntos(T Number)

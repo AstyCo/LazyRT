@@ -41,6 +41,8 @@ set(HEADERS
     types/file_tree.hpp
     types/splitted_string.hpp
     parsers/sourceparser.hpp
+    parsers/tokenizer.hpp
+    parsers/parsers_utils.hpp
     directoryreader.hpp
     dependency_analyzer.hpp
     command_line_args.hpp
@@ -65,6 +67,8 @@ set(SRCS
     command_line_args.cpp
     extra_dependency_reader.cpp
     parsers/sourceparser.cpp
+    parsers/tokenizer.cpp
+    parsers/parsers_utils.cpp
     extensions/error_reporter.cpp
     extensions/help_functions.cpp
     extensions/profiling.cpp
@@ -86,7 +90,7 @@ target_include_directories(${LIB_TARGET_NAME} PUBLIC
 target_include_directories(${LIB_TARGET_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/lib/external)
 
-target_compile_features(${LIB_TARGET_NAME} PUBLIC cxx_std_11)
+target_compile_features(${LIB_TARGET_NAME} PUBLIC cxx_std_14)
 
 # link boost
 set(Boost_USE_STATIC_LIBS OFF)

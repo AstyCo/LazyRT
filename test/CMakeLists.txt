@@ -6,9 +6,11 @@ if (BUILD_TESTS)
 
     add_executable(testrunner ${hdrs} ${srcs})
 
-    message(LAZYUT_TARGET_NAME " " ${LAZYUT_TARGET_NAME})
-    add_dependencies(testrunner ${LAZYUT_TARGET_NAME})
+    message(LIB_TARGET_NAME " " ${LIB_TARGET_NAME})
+    target_link_libraries(testrunner ${LIB_TARGET_NAME})
 
-    add_test(NAME testrunner COMMAND testrunner WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    add_test(NAME testrunner
+        COMMAND testrunner
+        WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 endif()
