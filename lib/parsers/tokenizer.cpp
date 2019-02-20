@@ -6,11 +6,13 @@
 
 static decltype(auto) initSymbolTree()
 {
-    CharTreeNode root;
+    TreeNode< char > root;
 
     auto map_size = special_symbols.size();
-    for (int i = 0; i < map_size; ++i)
-        root.insert(special_symbols[i].second);
+    for (int i = 0; i < map_size; ++i) {
+        auto str = special_symbols[i].second;
+        root.insert(str, strlen(str));
+    }
 
     return root;
 }
@@ -38,27 +40,26 @@ static void update_state(char *p, TokenizerState &state, char *&word_start)
 
 void Tokenizer::tokenize(const SplittedPath &path)
 {
-    static const CharTreeNode symbolsTree = initSymbolTree();
+    static const auto symbolsTree = initSymbolTree();
     std::string fname = path.jointOs();
-    auto data_pair = readFile(fname.c_str(), "r");
-    char *data = data_pair.first;
+    _fileData = readFile(fname.c_str(), "r");
+
+    char *data = _fileData.data.get();
+    auto file_size = _fileData.size;
     if (!data) {
         errors() << "Failed to open the file"
                  << '\"' + std::string(fname) + '\"';
         return;
     }
-    auto file_size = data_pair.second;
 
     TokenizerState state = TokenizerState::Default;
     char *word_start = nullptr;
 
     initDebug(fname);
 
-    for (long offset = 0; offset < file_size; ++offset) {
+    for (long offset = 0; offset < file_size; increment(data, offset)) {
         auto p = data + offset;
         int ch = *p;
-
-        updateDebug(ch);
 
         switch (state) {
         case TokenizerState::Default:
@@ -112,7 +113,6 @@ static int read_char(const char *data)
                     break;
                 ++offset;
             }
-            return offset;
         }
         else if (fch == 'x') {
             // case 2)
@@ -124,25 +124,24 @@ static int read_char(const char *data)
             ++offset;
             for (int i = 0; i < 4; ++i) {
                 // TODO remove this cycle
-                assert(ishexdigit(data[offset + i + offset]));
+                assert(ishexdigit(data[offset + i]));
             }
-            return offset + 4;
+            offset += 4;
         }
         else if (fch == 'U') {
             ++offset;
             for (int i = 0; i < 8; ++i) {
                 // TODO remove this cycle
-                assert(ishexdigit(data[offset + i + offset]));
+                assert(ishexdigit(data[offset + i]));
             }
-            return offset + 8;
+            offset += 8;
         }
         else {
-            assert(false);
+            ++offset;
         }
+        return offset;
     }
-    else {
-        return 1;
-    }
+    return 1;
 }
 
 void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
@@ -153,17 +152,15 @@ void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
     case TokenName::SingleQuote: {
         long tmp = read_char(data + offset);
         assert(data[offset + tmp] == '\'');
-        offset += tmp + 1;
+        increment_n(data, offset, tmp + 1);
         break;
     }
     case TokenName::DoubleQuote: {
         for (;;) {
             auto tmp = read_char(data + offset);
-            if (tmp == 1 && data[offset] == '\"') {
-                offset += tmp;
+            increment_n(data, offset, tmp);
+            if (tmp == 1 && data[offset - tmp] == '\"')
                 break;
-            }
-            offset += tmp;
         }
         const char *token_start = last_token.lexeme;
 
@@ -175,7 +172,7 @@ void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
         readUntil(data, offset, [](const char *data, long offset) {
             return (data[offset] == '\n' && data[offset - 1] != '\\');
         });
-        ++offset;
+        increment(data, offset);
         _tokens.pop_back(); // skip comments
         break;
     }
@@ -183,13 +180,20 @@ void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
         readUntil(data, offset, [](const char *data, long offset) {
             return strncmp(data + offset, "*/", 2) == 0;
         });
-        offset += sizeof("*/");
+
+        increment_n(data, offset, sizeof("*/"));
         _tokens.pop_back(); // skip comments
         break;
     }
     default:
         return;
     }
+}
+
+void Tokenizer::increment_n(const char *data, long &offset, int n)
+{
+    for (int i = 0; i < n; ++i)
+        increment(data, offset);
 }
 
 void Tokenizer::emplaceToken(Token &&token)
@@ -246,6 +250,17 @@ Token::Token(const char *p, LengthType size)
     : name(TokenName::Undefined), lexeme(p), length(size)
 {
     name = tok(lexeme, length);
+}
+
+bool Token::isClass() const
+{
+    return name == TokenName::Class || name == TokenName::Struct;
+}
+
+bool Token::isInheritance() const
+{
+    return name == TokenName::Private || name == TokenName::Protected ||
+           name == TokenName::Public;
 }
 
 void Debug::printTokens(const std::vector< Token > &tokens)

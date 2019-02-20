@@ -48,8 +48,17 @@ MurmurHashType MurmurHash2(const void *key, int len, unsigned int seed = 0);
 double getWallTime();
 double getCpuTime();
 
-std::pair< char *, long > readBinaryFile(const char *fname);
-std::pair< char *, long > readFile(const char *fname, const char *mode);
+struct FileData
+{
+    std::shared_ptr< char > data;
+    size_t size;
+
+    FileData(const std::shared_ptr< char > &d, size_t s) : data(d), size(s) {}
+    FileData() : size(0) {}
+};
+
+FileData readBinaryFile(const char *fname);
+FileData readFile(const char *fname, const char *mode);
 
 void writeBinaryFile(const char *fname, const void *data, size_t type_size,
                      size_t length);

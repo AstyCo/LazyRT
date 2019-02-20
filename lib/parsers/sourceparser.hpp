@@ -1,76 +1,75 @@
 #ifndef SOURCE_PARSER_HPP
 #define SOURCE_PARSER_HPP
 
+#include "tokenizer.hpp"
 #include "types/splitted_string.hpp"
 
 class FileNode;
 class FileTree;
 
+template < typename T >
+class SimpleStack
+{
+    std::vector< T > stack;
+
+public:
+    void push(const T &value) { stack.push_back(value); }
+
+    bool isOnTop(const T &value) const
+    {
+        if (stack.empty())
+            return false;
+        return stack.back() == value;
+    }
+    void pop() { stack.pop_back(); }
+    void clear() { stack.clear(); }
+};
+
 class SourceParser
 {
+    using TokenVector = std::vector< Token >;
+    using TokenNameSet = std::unordered_set< TokenName, EnumClassHash >;
+
 public:
     explicit SourceParser(const FileTree &ftree);
 
     void parseFile(FileNode *node);
 
-    const char *skipTemplateAndSpaces(const char *p) const;
-    int skipTemplateR(const char *line, int len) const;
-    const char *skipLine(const char *p) const;
-    const char *skipSpaces(const char *line) const;
-    const char *skipSpacesAndComments(const char *line) const;
-    int skipSpacesAndCommentsR(const char *line, int len) const;
+private:
+    bool parseScopedName(const TokenVector &v, int offset, int end,
+                         SplittedPath &name);
 
-    const char *parseName(const char *p, ScopedName &name) const;
-    const char *parseWord(const char *p, int &wordLength) const;
+    int getIdentifierStart(const TokenVector &v, int offset) const;
+    void skipOperatorOverloadingReverse(const TokenVector &v,
+                                        int &offset) const;
+    void skipLine(const TokenVector &tokens, int &offset);
+    void skipTemplate(const TokenVector &v, int &offset);
+    void skipTemplateReverse(const TokenVector &tokens, int &offset) const;
 
-    int parseNameR(const char *p, int len, ScopedName &name) const;
-    int dealWithOperatorOverloadingR(const char *p, int len,
-                                     std::vector< std::string > &nsname) const;
-    int parseWordR(const char *p, int len) const;
-    bool checkIfFunctionHeadR(const char *p, int len) const;
+    void prepare();
+    TokenName readUntil(const TokenVector &tokens, int &offset,
+                        const TokenNameSet &tokenNames);
 
-    const char *readUntil(const char *p, const char *substr) const;
-    const char *
-    readUntilM(const char *p, const std::vector< std::string > &substrings,
-               std::vector< std::string >::const_iterator &it) const;
+    void increment(const TokenVector &tokens, int &offset);
+    bool isTopLevelCB() const;
+    void setNamespace();
+    void dealWithClassDeclaration(const TokenVector &tokens, int offset);
+
+    bool checkOffset(const TokenVector &tokens, int offset);
+    bool isClassToken(const TokenVector &tokens, int offset);
+    bool isInheritanceToken(const TokenVector &tokens, int offset);
 
 private:
     const FileTree &_fileTree;
-
-private:
-    // States
-    enum SpecialState {
-        NoSpecialState,       //
-        HashSign,             // #
-        IncludeState,         // #include
-        NotIncludeMacroState, // #smth (not #include)
-
-        ClassState,   // class
-        StructState,  // struct
-        UnionState,   // union
-        TypedefState, // typedef
-
-        UsingState,     // using
-        NamespaceState, // namespace
-        TemplateState,  // template
-        Quotes,         // "
-
-        SingleQuotes,  // '
-        OpenBracket,   // (
-        MultiComments, // /*
-        SingleComments // //
-    };
-    static std::string stateToString(SpecialState state);
-
-    SpecialState _state;
+    FileNode *_node;
 
     ScopedName _currentNamespace;
     std::vector< ScopedName > _listUsingNamespace;
 
-    ScopedName _funcName;
-    ScopedName _classNameDecl;
-    mutable int _line;
-    FileNode *_currentFile;
+    int _openBracketCount;
+    int _openCurlyBracketCount;
+    int _namespaceDeep;
+    SimpleStack< int > _stackNamespaceBrackets;
 };
 
 #endif // SOURCE_PARSER_HPP

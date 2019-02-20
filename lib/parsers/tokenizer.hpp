@@ -30,6 +30,7 @@ enum class TokenName {
     Extern,
     Final,
     Implicit,
+    Include,
     Inline,
     Namespace,
     New,
@@ -85,8 +86,8 @@ enum class TokenName {
     Star,                // --- *
     Percent,             // --- %
     DoubleLess,          // --- <<
-    DoubleGreater,       // --- >>
     SlashEquals,         // --- /=
+    StarEquals,          // --- *=
     PercentEquals,       // --- %=
     PlusEquals,          // --- +=
     MinusEquals,         // --- -=
@@ -101,6 +102,14 @@ enum class TokenName {
     Undefined
 };
 
+struct EnumClassHash
+{
+    template < typename T >
+    std::size_t operator()(T t) const
+    {
+        return static_cast< std::size_t >(t);
+    }
+};
 constexpr LengthType cstr_len(const char *s)
 {
     assert(s);
@@ -208,20 +217,32 @@ private:
 
 constexpr decltype(auto) makeKeyWords()
 {
-    constexpr TokenPair KWmap[] = {
-        {TokenName::Auto, "auto"},         {TokenName::Class, "class"},
-        {TokenName::Const, "const"},       {TokenName::Constexpr, "constexpr"},
-        {TokenName::Decltype, "decltype"}, {TokenName::Default, "default"},
-        {TokenName::Delete, "delete"},     {TokenName::Explicit, "explicit"},
-        {TokenName::Export, "export"},     {TokenName::Extern, "extern"},
-        {TokenName::Final, "final"},       {TokenName::Implicit, "implicit"},
-        {TokenName::Inline, "inline"},     {TokenName::Namespace, "namespace"},
-        {TokenName::New, "new"},           {TokenName::Operator, "operator"},
-        {TokenName::Private, "private"},   {TokenName::Protected, "protected"},
-        {TokenName::Public, "public"},     {TokenName::Struct, "struct"},
-        {TokenName::Template, "template"}, {TokenName::Typedef, "typedef"},
-        {TokenName::Typename, "typename"}, {TokenName::Union, "union"},
-        {TokenName::Using, "using"}};
+    constexpr TokenPair KWmap[] = {{TokenName::Auto, "auto"},
+                                   {TokenName::Class, "class"},
+                                   {TokenName::Const, "const"},
+                                   {TokenName::Constexpr, "constexpr"},
+                                   {TokenName::Decltype, "decltype"},
+                                   {TokenName::Default, "default"},
+                                   {TokenName::Delete, "delete"},
+                                   {TokenName::Explicit, "explicit"},
+                                   {TokenName::Export, "export"},
+                                   {TokenName::Extern, "extern"},
+                                   {TokenName::Final, "final"},
+                                   {TokenName::Implicit, "implicit"},
+                                   {TokenName::Include, "include"},
+                                   {TokenName::Inline, "inline"},
+                                   {TokenName::Namespace, "namespace"},
+                                   {TokenName::New, "new"},
+                                   {TokenName::Operator, "operator"},
+                                   {TokenName::Private, "private"},
+                                   {TokenName::Protected, "protected"},
+                                   {TokenName::Public, "public"},
+                                   {TokenName::Struct, "struct"},
+                                   {TokenName::Template, "template"},
+                                   {TokenName::Typedef, "typedef"},
+                                   {TokenName::Typename, "typename"},
+                                   {TokenName::Union, "union"},
+                                   {TokenName::Using, "using"}};
     return TokenMap< token_pairs_sz(KWmap) >(KWmap);
 }
 
@@ -267,8 +288,8 @@ constexpr decltype(auto) makeSymbols()
                                   {TokenName::Star, "*"},
                                   {TokenName::Percent, "%"},
                                   {TokenName::DoubleLess, "<<"},
-                                  {TokenName::DoubleGreater, ">>"},
                                   {TokenName::SlashEquals, "/="},
+                                  {TokenName::StarEquals, "*="},
                                   {TokenName::PercentEquals, "%="},
                                   {TokenName::PlusEquals, "+="},
                                   {TokenName::MinusEquals, "-="},
@@ -316,10 +337,17 @@ public:
     TokenName name;
     const char *lexeme;
     LengthType length;
+
+    std::string lexeme_str() const { return std::string(lexeme, length); }
     // Debug
     std::string filename;
     uint16_t n_line;
     uint16_t n_char;
+
+public:
+    // common methods
+    bool isClass() const;
+    bool isInheritance() const;
 };
 
 enum class TokenizerState {
@@ -343,8 +371,16 @@ private:
     void dealWithSpecialTokens(const char *data, long &offset);
     void emplaceToken(Token &&tok);
 
+    void increment(const char *data, long &offset)
+    {
+        updateDebug(data[offset]);
+        ++offset;
+    }
+    void increment_n(const char *data, long &offset, int n);
+
 private:
     TokenVector _tokens;
+    FileData _fileData;
     // Debug
     void initDebug(const std::string &fname);
     void updateDebug(int ch);
@@ -354,9 +390,8 @@ private:
     template < typename TFunc >
     void readUntil(const char *data, long &offset, TFunc f)
     {
-        updateDebug(*data);
         while (!f(data, offset))
-            ++offset;
+            increment(data, offset);
     }
 
     std::string _filename;

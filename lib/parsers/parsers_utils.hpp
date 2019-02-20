@@ -3,23 +3,25 @@
 
 #include <map>
 
-class CharTreeNode
+template < typename T >
+class TreeNode
 {
 public:
-    using LeafMap = std::map< char, CharTreeNode * >;
+    using LeafMap = std::map< T, TreeNode * >;
+    using LengthType = int;
 
 public:
-    CharTreeNode();
+    TreeNode();
 
-    ~CharTreeNode();
+    ~TreeNode();
 
-    void insert(const std::string &key);
-    void insertRev(const std::string &key);
+    void insert(const T *key, int length);
+    void insertRev(const T *key, int length);
 
-    CharTreeNode *find(char ch) const;
-    CharTreeNode *insertCh(char ch);
+    TreeNode *find(T ch) const;
+    TreeNode *insertCh(T ch);
 
-    const CharTreeNode *find(const char *s, size_t len) const;
+    const TreeNode *find(const T *s, size_t len) const;
 
     bool hasChilds() const { return !leafs.empty(); }
 
@@ -30,8 +32,10 @@ public:
 
 namespace Debug {
 
-void printCharTreeR(const CharTreeNode *n, int indent = 1);
-void printCharTree(const CharTreeNode *n, int indent = 1);
+template < typename T >
+void printCharTreeR(const TreeNode< T > *n, int indent = 1);
+template < typename T >
+void printCharTree(const TreeNode< T > *n, int indent = 1);
 
 } // namespace Debug
 

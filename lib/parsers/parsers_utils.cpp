@@ -1,52 +1,45 @@
 #include "parsers_utils.hpp"
-
+#include "tokenizer.hpp"
 #include "extensions/help_functions.hpp" // makeIndents
 
-static CharTreeNode initOverloadingOperators()
+template < typename T >
+TreeNode< T >::TreeNode() : finite(false)
 {
-    CharTreeNode root;
-    const char
-        *const operators[] =
-            {"+",     "-",       "*",  "/",  "%",  "^",   "&",   "|",
-             "~",     "!",       ",",  "=",  "<",  ">",   "<=",  ">=",
-             "++",    "--",      "<<", ">>", "==", "!=",  "&&",  "||",
-             "+=",    "-=",      "/=", "%=", "^=", "&=",  "|=",  "*=",
-             "<<=",   ">>=",     "[]", "()", "->", "->*", "new", "delete",
-             "new[]", "delete[]"}; // table is taken from
-                                   // https://www.tutorialspoint.com/cplusplus/cpp_overloading.htm
-    for (auto &op : operators)
-        root.insertRev(op);
-
-    return root;
 }
 
-static CharTreeNode charTreeRevOverloadTokens = initOverloadingOperators();
-
-CharTreeNode::CharTreeNode() : finite(false) {}
-
-CharTreeNode::~CharTreeNode()
+template < typename T >
+TreeNode< T >::~TreeNode()
 {
-    std::cout << "~CharTreeNode map_size " << leafs.size() << std::endl;
     for (auto &n : leafs)
         delete n.second;
 }
 
-void CharTreeNode::insert(const std::__cxx11::string &key)
+template < typename T >
+void insert_g(TreeNode< T > *node, const T *key, int length, int inc)
 {
-    CharTreeNode *node = this;
-    for (auto it = key.begin(); it < key.end(); ++it)
-        node = node->insertCh(*it);
+    int first = (inc > 0 ? 0 : length - 1);
+    int last = (inc > 0 ? length : -1);
+
+    for (int i = first; i != last; i += inc)
+        node = node->insertCh(key[i]);
 
     node->finite = true;
 }
 
-void CharTreeNode::insertRev(const std::__cxx11::string &key)
+template < typename T >
+void TreeNode< T >::insert(const T *key, int length)
 {
-    auto rev_key = std::string(key.rbegin(), key.rend());
-    insert(rev_key);
+    insert_g(this, key, length, 1);
 }
 
-CharTreeNode *CharTreeNode::find(char ch) const
+template < typename T >
+void TreeNode< T >::insertRev(const T *key, int length)
+{
+    insert_g(this, key, length, -1);
+}
+
+template < typename T >
+TreeNode< T > *TreeNode< T >::find(T ch) const
 {
     auto it = leafs.find(ch);
     if (it != leafs.end()) {
@@ -55,21 +48,23 @@ CharTreeNode *CharTreeNode::find(char ch) const
     return nullptr;
 }
 
-CharTreeNode *CharTreeNode::insertCh(char ch)
+template < typename T >
+TreeNode< T > *TreeNode< T >::insertCh(T ch)
 {
     if (auto node = find(ch)) {
         // found
         return node;
     }
 
-    CharTreeNode *leaf = new CharTreeNode();
+    TreeNode< T > *leaf = new TreeNode< T >();
     leafs.insert(std::make_pair(ch, leaf));
     return leaf;
 }
 
-const CharTreeNode *CharTreeNode::find(const char *s, size_t len) const
+template < typename T >
+const TreeNode< T > *TreeNode< T >::find(const T *s, size_t len) const
 {
-    const CharTreeNode *currentNode = this;
+    auto currentNode = this;
     for (size_t i = 0; i < len; ++i) {
         if ((currentNode = currentNode->find(s[i])) == nullptr)
             return nullptr;
@@ -77,7 +72,8 @@ const CharTreeNode *CharTreeNode::find(const char *s, size_t len) const
     return currentNode;
 }
 
-void Debug::printCharTreeR(const CharTreeNode *n, int indent)
+template < typename T >
+void Debug::printCharTreeR(const TreeNode< T > *n, int indent)
 {
     std::string strIndents = makeIndents(indent);
 
@@ -88,10 +84,15 @@ void Debug::printCharTreeR(const CharTreeNode *n, int indent)
     }
 }
 
-void Debug::printCharTree(const CharTreeNode *n, int indent)
+template < typename T >
+void Debug::printCharTree(const TreeNode< T > *n, int indent)
 {
     std::string strIndents = makeIndents(indent);
     std::cout << strIndents << "CharTreeNode_ROOT" << std::endl;
 
     printCharTreeR(n, indent + 1);
 }
+
+// Explicit template specialization (so it can be defined in .cpp)
+template class TreeNode< char >;
+template class TreeNode< TokenName >;

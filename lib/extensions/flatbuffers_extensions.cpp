@@ -35,7 +35,8 @@ FileTreeFunc::copyListSplitted< SetScopedName >(const LazyUT::ListSplitted &fv,
 
 void FileTreeFunc::deserialize(FileTree &tree, const SplittedPath &sp)
 {
-    char *file_tree_dump = readBinaryFile(sp.jointOs().c_str()).first;
+    auto fileData = readBinaryFile(sp.jointOs().c_str());
+    char *file_tree_dump = fileData.data.get();
     if (file_tree_dump) {
         auto file_tree = LazyUT::GetFileTree(file_tree_dump);
 

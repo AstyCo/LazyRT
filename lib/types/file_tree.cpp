@@ -101,8 +101,8 @@ FileRecord::FileRecord(const SplittedPath &path, Type type)
 
 void FileRecord::calculateHash(const SplittedPath &dir_base)
 {
-    auto data_pair = readBinaryFile((dir_base + _path).c_str());
-    char *data = data_pair.first;
+    auto fileData = readBinaryFile((dir_base + _path).c_str());
+    char *data = fileData.data.get();
     if (!data) {
         char buff[1000];
         snprintf(buff, sizeof(buff),
@@ -113,7 +113,7 @@ void FileRecord::calculateHash(const SplittedPath &dir_base)
         //        assert(false);
         return;
     }
-    MD5 md5((unsigned char *)data, data_pair.second);
+    MD5 md5((unsigned char *)data, fileData.size);
     md5.copyResultTo(_hashArray);
 
     _isHashValid = true;
@@ -226,15 +226,16 @@ void FileNode::print(int indent) const
     if (isRegularFile())
         std::cout << "\thex:[" << _record.hashHex() << "]";
     std::cout << std::endl;
-    //    printInherits(indent);
-    //    printInheritsFiles(indent);
-    printDependencies(indent);
-    printDependentBy(indent);
+    //    printDependencies(indent);
+    //    printDependentBy(indent);
+    printInherits(indent);
     printImpls(indent);
-    printImplFiles(indent);
     printDecls(indent);
     printFuncImpls(indent);
     printClassImpls(indent);
+
+    //    printInheritsFiles(indent);
+    //    printImplFiles(indent);
 
     auto it = _childs.begin();
     while (it != _childs.end()) {
@@ -615,15 +616,15 @@ void FileTree::printAll() const
     if (clargs.isMostVerbosity()) {
         print();
 
-        std::cout << "AFFECTED SOURCES" << std::endl;
+        //        std::cout << "AFFECTED SOURCES" << std::endl;
         writeFiles(std::cout, &FileNode::isAffectedSource);
     }
 
-    std::cout << "\nAFFECTED TESTS" << std::endl;
+    //    std::cout << "\nAFFECTED TESTS" << std::endl;
     writeFiles(std::cout, &FileNode::isAffectedTest);
 
-    std::cout << "\nMODIFIED" << std::endl;
-    writeFiles(std::cout, &FileNode::isModified);
+    //    std::cout << "\nMODIFIED" << std::endl;
+    //    writeFiles(std::cout, &FileNode::isModified);
 
     std::cout << "\nwrite lazyut files to " << clargs.outDir().joint()
               << std::endl;

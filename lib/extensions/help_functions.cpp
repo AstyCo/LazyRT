@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
+#include <memory>
 
 #ifdef WIN32
 #include <windows.h>     // file_size
@@ -18,30 +19,27 @@
 
 static bool is_file_exists(const char *fname) { return access(fname, 0) == 0; }
 
-std::pair< char *, long > readBinaryFile(const char *fname)
-{
-    return readFile(fname, "rb");
-}
+FileData readBinaryFile(const char *fname) { return readFile(fname, "rb"); }
 
-std::pair< char *, long > readFile(const char *fname, const char *mode)
+FileData readFile(const char *fname, const char *mode)
 {
     if (!is_file_exists(fname)) {
         if (clargs.verbal())
             errors() << "file" << std::string(fname) << "doesn't exist";
-        return std::pair< char *, long >(nullptr, 0);
+        return FileData();
     }
     FILE *file = fopen(fname, mode);
     if (!file) {
         if (clargs.verbal())
             errors() << "file" << std::string(fname) << "can not be opened";
-        return std::pair< char *, long >(nullptr, 0);
+        return FileData();
     }
     long long fsize = file_size(fname);
-    char *data = new char[fsize + 1];
-    size_t read_count = fread(data, sizeof(char), fsize, file);
+    std::shared_ptr< char > data(new char[fsize + 1]);
+    size_t read_count = fread(data.get(), sizeof(char), fsize, file);
     fclose(file);
 
-    return std::make_pair(data, read_count);
+    return FileData(data, read_count);
 }
 
 std::vector< char > strToVChar(const std::string &str)

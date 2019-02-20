@@ -89,9 +89,9 @@ ExtraDependencyReader::read_extra_dependencies(
     const SplittedPath &path_to_extra_deps)
 {
     std::string fname = path_to_extra_deps.jointOs();
-    auto p = readFile(fname.c_str(), "r");
-    char *data = p.first;
-    auto size = p.second;
+    auto fileData = readFile(fname.c_str(), "r");
+    char *data = fileData.data.get();
+    auto size = fileData.size;
     if (!data)
         return Dependencies();
 
