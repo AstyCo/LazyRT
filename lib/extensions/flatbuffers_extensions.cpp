@@ -64,7 +64,6 @@ void FileTreeFunc::deserialize(FileTree &tree, const SplittedPath &sp)
         }
 
         tree.setState(FileTree::Restored);
-        delete file_tree_dump;
     }
 }
 
