@@ -86,7 +86,7 @@ bool DirectoryReader::isSourceFile(const SplittedPath &sp) const
 {
     assert(boost::filesystem::is_regular_file(sp.jointOs()));
     return std::find(_sourceFileExtensions.begin(), _sourceFileExtensions.end(),
-                     boost::filesystem::extension(sp.jointOs()).c_str()) !=
+                     boost::filesystem::extension(sp.jointOs())) !=
            _sourceFileExtensions.end();
 }
 

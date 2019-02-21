@@ -226,16 +226,15 @@ void FileNode::print(int indent) const
     if (isRegularFile())
         std::cout << "\thex:[" << _record.hashHex() << "]";
     std::cout << std::endl;
-    //    printDependencies(indent);
-    //    printDependentBy(indent);
+    printDependencies(indent);
+    printDependentBy(indent);
     printInherits(indent);
     printImpls(indent);
     printDecls(indent);
     printFuncImpls(indent);
     printClassImpls(indent);
-
-    //    printInheritsFiles(indent);
-    //    printImplFiles(indent);
+    printInheritsFiles(indent);
+    printImplFiles(indent);
 
     auto it = _childs.begin();
     while (it != _childs.end()) {
@@ -616,15 +615,14 @@ void FileTree::printAll() const
     if (clargs.isMostVerbosity()) {
         print();
 
-        //        std::cout << "AFFECTED SOURCES" << std::endl;
+        std::cout << "AFFECTED SOURCES" << std::endl;
         writeFiles(std::cout, &FileNode::isAffectedSource);
+        std::cout << "\nMODIFIED" << std::endl;
+        writeFiles(std::cout, &FileNode::isModified);
     }
 
-    //    std::cout << "\nAFFECTED TESTS" << std::endl;
+    std::cout << "\nAFFECTED TESTS" << std::endl;
     writeFiles(std::cout, &FileNode::isAffectedTest);
-
-    //    std::cout << "\nMODIFIED" << std::endl;
-    //    writeFiles(std::cout, &FileNode::isModified);
 
     std::cout << "\nwrite lazyut files to " << clargs.outDir().joint()
               << std::endl;
@@ -840,8 +838,8 @@ void FileTree::addIncludePaths(const std::vector< SplittedPath > &paths)
     for (const SplittedPath &path : paths)
         addIncludePath(path);
 
-    if (paths.empty()) // if flags is not set search in project directory
-        addIncludePath(SplittedPath("", SplittedPath::unixSep()));
+    // search in the project directory
+    addIncludePath(SplittedPath("", SplittedPath::unixSep()));
 }
 
 void FileTree::addIncludePath(const SplittedPath &path)

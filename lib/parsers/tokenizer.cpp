@@ -152,13 +152,13 @@ void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
     case TokenName::SingleQuote: {
         long tmp = read_char(data + offset);
         assert(data[offset + tmp] == '\'');
-        increment_n(data, offset, tmp + 1);
+        offset += tmp + 1;
         break;
     }
     case TokenName::DoubleQuote: {
         for (;;) {
             auto tmp = read_char(data + offset);
-            increment_n(data, offset, tmp);
+            offset += tmp;
             if (tmp == 1 && data[offset - tmp] == '\"')
                 break;
         }
@@ -210,8 +210,8 @@ void Tokenizer::emplaceToken(Token &&token)
 void Tokenizer::initDebug(const std::__cxx11::string &fname)
 {
     _filename = fname;
-    _n_line = 0;
-    _n_char = 0;
+    _n_line = 1;
+    _n_char = 1;
     _n_token_line = 0;
     _n_token_char = 0;
 }
@@ -237,7 +237,7 @@ void Tokenizer::newTokenDebug()
 {
     if (_n_token_line > 0) {
         _n_line += _n_token_line;
-        _n_char = 0;
+        _n_char = 1;
     }
     else {
         _n_char += _n_token_char;
@@ -262,6 +262,8 @@ bool Token::isInheritance() const
     return name == TokenName::Private || name == TokenName::Protected ||
            name == TokenName::Public;
 }
+
+bool Token::isKeyWord() const { return key_words.findLexeme(name) != nullptr; }
 
 void Debug::printTokens(const std::vector< Token > &tokens)
 {

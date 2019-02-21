@@ -85,7 +85,6 @@ enum class TokenName {
     Slash,               // --- /
     Star,                // --- *
     Percent,             // --- %
-    DoubleLess,          // --- <<
     SlashEquals,         // --- /=
     StarEquals,          // --- *=
     PercentEquals,       // --- %=
@@ -287,7 +286,6 @@ constexpr decltype(auto) makeSymbols()
                                   {TokenName::Slash, "/"},
                                   {TokenName::Star, "*"},
                                   {TokenName::Percent, "%"},
-                                  {TokenName::DoubleLess, "<<"},
                                   {TokenName::SlashEquals, "/="},
                                   {TokenName::StarEquals, "*="},
                                   {TokenName::PercentEquals, "%="},
@@ -348,6 +346,7 @@ public:
     // common methods
     bool isClass() const;
     bool isInheritance() const;
+    bool isKeyWord() const;
 };
 
 enum class TokenizerState {
@@ -381,6 +380,7 @@ private:
 private:
     TokenVector _tokens;
     FileData _fileData;
+
     // Debug
     void initDebug(const std::string &fname);
     void updateDebug(int ch);

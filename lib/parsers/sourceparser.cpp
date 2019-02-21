@@ -1,22 +1,13 @@
-#include "parsers/sourceparser.hpp"
-
-#include "types/file_tree.hpp"
-
+#include "sourceparser.hpp"
 #include "parsers_utils.hpp"
+
+#include <types/file_tree.hpp>
 
 #include <set>
 #include <map>
 
 #define M_MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define M_MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-// template < typename TInList >
-// static decltype(auto) makeTokenSet(TInList &&il)
-//{
-//    TokenName tkns[] = il;
-//    return std::unordered_set< TokenName >(tkns, tkns + sizeof(tkns) /
-//                                                            sizeof(tkns[0]));
-//}
 
 static decltype(auto) initOverloadingOperators()
 {
@@ -39,7 +30,7 @@ static decltype(auto) initOverloadingOperators()
         {TokenName::GreaterEquals},
         {TokenName::DoublePlus},
         {TokenName::DoubleMinus},
-        {TokenName::DoubleLess},
+        {TokenName::Less, TokenName::Less},
         {TokenName::Greater, TokenName::Greater},
         {TokenName::DoubleEquals},
         {TokenName::ExclamationEqual},
@@ -94,7 +85,8 @@ bool SourceParser::parseScopedName(const SourceParser::TokenVector &v,
             inserted = true;
             return true;
         case TokenName::Less:
-            skipTemplate(v, start);
+            if (!skipTemplate(v, start))
+                return false;
             --start;
             break;
         default:
@@ -159,54 +151,87 @@ void SourceParser::skipLine(const SourceParser::TokenVector &tokens,
     increment(tokens, offset);
 }
 
-void SourceParser::skipTemplate(const SourceParser::TokenVector &tokens,
+bool SourceParser::skipTemplate(const SourceParser::TokenVector &tokens,
                                 int &offset)
 {
-    int lbcount = 0;
+    if (tokens[offset].name != TokenName::Less)
+        return true;
+    int depth = 0;
+    int openBracketCount = 0;
     do {
         const Token &token = tokens[offset];
         increment(tokens, offset);
         switch (token.name) {
-        case TokenName::Less:
-            ++lbcount;
+        case TokenName::BracketLeft:
+            ++openBracketCount;
             break;
-        case TokenName::Greater:
-            --lbcount;
+        case TokenName::BracketRight:
+            --openBracketCount;
             break;
         default:
             break;
         }
-    } while (lbcount > 0);
+        if (openBracketCount > 0)
+            continue;
+        switch (token.name) {
+        case TokenName::Less:
+            ++depth;
+            break;
+        case TokenName::Greater:
+            --depth;
+            break;
+        default:
+            break;
+        }
+        if (offset == 0)
+            return false;
+    } while (depth > 0);
+    return true;
 }
 
-void SourceParser::skipTemplateReverse(const SourceParser::TokenVector &tokens,
+bool SourceParser::skipTemplateReverse(const SourceParser::TokenVector &tokens,
                                        int &offset) const
 {
     if (tokens[offset].name != TokenName::Greater)
-        return;
-    int lbcount = 0;
+        return true;
+    int depth = 0;
+    int openBracketCount = 0;
     do {
         const Token &token = tokens[offset--];
         switch (token.name) {
-        case TokenName::Less:
-            --lbcount;
+        case TokenName::BracketLeft:
+            --openBracketCount;
             break;
-        case TokenName::Greater:
-            ++lbcount;
+        case TokenName::BracketRight:
+            ++openBracketCount;
             break;
         default:
             break;
         }
-        assert(offset >= 0);
-    } while (lbcount > 0);
+        if (openBracketCount > 0)
+            continue;
+        switch (token.name) {
+        case TokenName::Less:
+            --depth;
+            break;
+        case TokenName::Greater:
+            ++depth;
+            break;
+        default:
+            break;
+        }
+        if (offset == 0)
+            return false;
+    } while (depth > 0);
+    return true;
 }
 
 void SourceParser::prepare()
 {
     _openBracketCount = 0;
     _openCurlyBracketCount = 0;
-    _namespaceDeep = 0;
     _stackNamespaceBrackets.clear();
+    _stackExternConstruction.clear();
 
     _currentNamespace.clear();
     _listUsingNamespace.clear();
@@ -234,11 +259,9 @@ void SourceParser::increment(const TokenVector &tokens, int &offset)
     case TokenName::BracketCurlyRight:
         assert(_openCurlyBracketCount > 0);
         --_openCurlyBracketCount;
-        if (_stackNamespaceBrackets.isOnTop(_openCurlyBracketCount)) {
-            _stackNamespaceBrackets.pop();
-            --_namespaceDeep;
+        if (_stackNamespaceBrackets.pop(_openCurlyBracketCount))
             _currentNamespace.removeLast();
-        }
+
         break;
     case TokenName::BracketLeft:
         ++_openBracketCount;
@@ -254,12 +277,12 @@ void SourceParser::increment(const TokenVector &tokens, int &offset)
 
 bool SourceParser::isTopLevelCB() const
 {
-    return _namespaceDeep == _openCurlyBracketCount;
+    return _stackNamespaceBrackets.deep() + _stackExternConstruction.deep() ==
+           _openCurlyBracketCount;
 }
 
 void SourceParser::setNamespace()
 {
-    ++_namespaceDeep;
     _stackNamespaceBrackets.push(_openCurlyBracketCount);
 }
 
@@ -289,6 +312,40 @@ void SourceParser::dealWithClassDeclaration(
                 }
             }
         }
+    }
+}
+
+void SourceParser::parseIncludeFilename(const SourceParser::TokenVector &tokens,
+                                        int &offset, IncludeDirective &dir)
+{
+    const Token &token = tokens[offset];
+    if (token.name == TokenName::String) {
+        dir.type = IncludeDirective::Quotes;
+        dir.filename = std::string(token.lexeme + 1, token.length - 2);
+    }
+    else if (token.name == TokenName::Less) {
+        increment(tokens, offset);
+
+        dir.type = IncludeDirective::Brackets;
+        SplittedPath path;
+        readPath(tokens, offset, path);
+        dir.filename = path.jointUnix();
+    }
+}
+
+void SourceParser::readPath(const SourceParser::TokenVector &tokens,
+                            int &offset, SplittedPath &path)
+{
+    for (; offset < tokens.size(); increment(tokens, offset)) {
+        const Token &token = tokens[offset];
+        if (token.name == TokenName::Identifier)
+            path.append(token.lexeme_str());
+        else if (token.isKeyWord())
+            path.append(ttos(token.name));
+        else if (token.name == TokenName::Slash)
+            continue;
+        else
+            break;
     }
 }
 
@@ -341,36 +398,22 @@ void SourceParser::parseFile(FileNode *node)
         switch (tokens[i].name) {
         case TokenName::Hash:
             // check if include directive
-            if (tokens[i + 1].name == TokenName::Include) { // include directive
-                const Token *curr_tok = tokens.data() + i + 2;
-                const Token &textualToken = *curr_tok;
+            increment(tokens, i);
+            if (tokens[i].name == TokenName::Include) { // include directive
+                increment(tokens, i);
+
                 IncludeDirective dir;
-                bool error = false;
-                if (textualToken.name == TokenName::String) {
-                    dir.type = IncludeDirective::Quotes;
-                    dir.filename = std::string(textualToken.lexeme + 1,
-                                               textualToken.length - 2);
-                }
-                else if (textualToken.name == TokenName::Less) {
-                    dir.type = IncludeDirective::Brackets;
-                    const Token &fnameToken = *(++curr_tok);
-                    if (fnameToken.name != TokenName::Identifier)
-                        error = true;
-                    else
-                        dir.filename = fnameToken.lexeme_str();
+                parseIncludeFilename(tokens, i, dir);
+
+                if (!dir.filename.empty()) {
+                    if (FileNode *includeFile =
+                            _fileTree.searchIncludedFile(dir, node))
+                        node->record()._listIncludes.push_back(dir);
                 }
                 else {
-                    error = true;
-                }
-                if (error) {
                     errors() << "warning: skip include directive in file"
                              << filename.jointOs() << "on the line"
                              << ntos(tokens[i].n_line);
-                }
-                else {
-                    if (FileNode *includedFile =
-                            _fileTree.searchIncludedFile(dir, node))
-                        node->record()._listIncludes.push_back(dir);
                 }
             }
             skipLine(tokens, i);
@@ -421,6 +464,17 @@ void SourceParser::parseFile(FileNode *node)
             parseScopedName(tokens, i, tokens.size(), _currentNamespace);
             setNamespace();
             break;
+        case TokenName::Extern:
+            // extern "C"
+            increment(tokens, i);
+            if (tokens[i].name == TokenName::String) {
+                increment(tokens, i);
+                if (tokens[i].name == TokenName::BracketCurlyLeft) {
+                    _stackExternConstruction.push(_openCurlyBracketCount);
+                    increment(tokens, i);
+                }
+            }
+            continue;
         default:
             break;
         }
