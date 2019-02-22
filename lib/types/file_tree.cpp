@@ -519,10 +519,18 @@ void FileNode::removeEmptySubdirectories()
     }
 }
 
-void FileNode::setTestIfSource()
+void FileNode::setTest()
 {
     if (isSourceFile())
-        setTestFile();
+        setTestFlag();
+}
+
+void FileNode::setTestIfMatchPatterns(
+    const std::vector< std::string > &patterns)
+{
+    if (!patterns.empty() && !checkPatterns(name(), patterns))
+        return;
+    setTest();
 }
 
 template < typename T >
@@ -615,16 +623,18 @@ void FileTree::printAll() const
     if (clargs.isMostVerbosity()) {
         print();
 
-        std::cout << "AFFECTED SOURCES" << std::endl;
+        std::cout << "--- AFFECTED SOURCES" << std::endl;
         writeFiles(std::cout, &FileNode::isAffectedSource);
-        std::cout << "\nMODIFIED" << std::endl;
+        std::cout << std::endl << "--- MODIFIED" << std::endl;
         writeFiles(std::cout, &FileNode::isModified);
     }
 
-    std::cout << "\nAFFECTED TESTS" << std::endl;
-    writeFiles(std::cout, &FileNode::isAffectedTest);
-
-    std::cout << "\nwrite lazyut files to " << clargs.outDir().joint()
+    std::cout << std::endl << "--- AFFECTED TESTS" << std::endl;
+    int count = writeFiles(std::cout, &FileNode::isAffectedTest);
+    std::cout << std::endl
+              << "--- Total affected test files: " << count << '/'
+              << countTestFile() << std::endl
+              << "--- Write LazyUT files to " << clargs.outDir().joint()
               << std::endl;
 }
 
@@ -663,7 +673,7 @@ void FileTree::setState(const State &state) { _state = state; }
 void FileTree::readFiles(const CommandLineArgs &clargs)
 {
     readSources(clargs.srcDirectories(), clargs.ignoredSubstrings());
-    readTests(clargs.testDirectories(), clargs.ignoredSubstrings());
+    readTests(clargs.testDirectories(), clargs);
     _state = Filled;
 
     removeEmptyDirectories();
@@ -739,29 +749,31 @@ void FileTree::labelTestMain()
 }
 
 void FileTree::readSources(const std::vector< SplittedPath > &relPaths,
-                           const std::vector< std::string > &ignoreSubstrings)
+                           const std::vector< std::string > &ignoredSubstrings)
 {
     DirectoryReader dr;
-    dr._ignore_substrings = ignoreSubstrings;
+    dr._ignore_substrings = ignoredSubstrings;
 
     for (const SplittedPath &relPath : relPaths)
         dr.readSources(relPath, *this);
 }
 
 void FileTree::readTests(const std::vector< SplittedPath > &relPaths,
-                         const std::vector< std::string > &ignoreSubstrings)
+                         const CommandLineArgs &clargs)
 {
-    readSources(relPaths, ignoreSubstrings);
-    labelTests(relPaths);
+    readSources(relPaths, clargs.ignoredSubstrings());
+    labelTests(relPaths, clargs.testPatterns());
 }
 
-void FileTree::labelTests(const std::vector< SplittedPath > &relPaths)
+void FileTree::labelTests(const std::vector< SplittedPath > &relPaths,
+                          const std::vector< std::string > &testPatterns)
 {
     for (const SplittedPath &relPath : relPaths)
-        labelTest(relPath);
+        labelTest(relPath, testPatterns);
 }
 
-void FileTree::labelTest(const SplittedPath &relPath)
+void FileTree::labelTest(const SplittedPath &relPath,
+                         const std::vector< std::string > &testPatterns)
 {
     FileNode *node = _rootDirectoryNode->search(relPath);
     if (!node) {
@@ -769,7 +781,7 @@ void FileTree::labelTest(const SplittedPath &relPath)
                  << "doesn't exists -> skipping labeling test file";
         return;
     }
-    recursiveCall(*node, &FileNode::setTestIfSource);
+    recursiveCall(*node, &FileNode::setTestIfMatchPatterns, testPatterns);
 }
 
 void FileTree::analyzePhase()
@@ -817,12 +829,13 @@ void FileTree::writeFiles(const SplittedPath &path,
     writePaths(path, outFiles);
 }
 
-void FileTree::writeFiles(std::ostream &os,
-                          FileNode::BoolProcedureCPtr checkSatisfy) const
+int FileTree::writeFiles(std::ostream &os,
+                         FileNode::BoolProcedureCPtr checkSatisfy) const
 {
     std::vector< SplittedPath > outFiles;
     pushFiles(_rootDirectoryNode, checkSatisfy, outFiles);
     printPaths(os, outFiles);
+    return outFiles.size();
 }
 
 void FileTree::installExtraDependencies(const SplittedPath &pathToExtraDeps)
@@ -937,13 +950,6 @@ void FileTree::propagateDeps()
         src->installDependencies();
 }
 
-void FileTree::recursiveCall(FileNode &node, FileNode::VoidProcedurePtr f)
-{
-    (node.*f)();
-    for (auto &&child : node.childs())
-        recursiveCall(*child, f);
-}
-
 FileNode *FileTree::searchIncludedFile(const IncludeDirective &id,
                                        FileNode *node) const
 {
@@ -991,6 +997,16 @@ void FileTree::updateRoot()
     delete _rootDirectoryNode;
     _rootDirectoryNode = new FileNode(SplittedPath("", SplittedPath::unixSep()),
                                       FileRecord::Directory, *this);
+}
+
+int FileTree::countTestFile() const
+{
+    int total = 0;
+    for (FileNode *node : _vectorSourceFile) {
+        if (node->isTestFile())
+            ++total;
+    }
+    return total;
 }
 
 std::string IncludeDirective::toPrint() const

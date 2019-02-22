@@ -45,6 +45,8 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     app.add_option("-t,--test-dirs", _testDirectories,
                    "Directories with test files, separated by comma (,),"
                    "relative to Root, by default \"\"");
+    app.add_option("--test-patterns", _testPatterns,
+                   "Patterns for test file names, separated by comma (,)");
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-d,--deps", extra_dependencies,
                    "Path to the JSON file with extra dependencies");
@@ -139,12 +141,17 @@ std::vector< SplittedPath > CommandLineArgs::testDirectories() const
     return tmp;
 }
 
+CommandLineArgs::StringVector CommandLineArgs::testPatterns() const
+{
+    return split(_testPatterns, ",");
+}
+
 std::vector< SplittedPath > CommandLineArgs::includePaths() const
 {
     return splittedPaths(_includePaths);
 }
 
-std::vector< std::string > CommandLineArgs::ignoredSubstrings() const
+CommandLineArgs::StringVector CommandLineArgs::ignoredSubstrings() const
 {
     return split(_ignoredSubstrings, ",");
 }

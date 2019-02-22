@@ -87,4 +87,7 @@ std::string makeIndents(int indent, int extra_spaces = 0);
 std::vector< std::string > split(const std::string &str,
                                  const std::string &delim);
 
+bool checkPatterns(const std::string &str,
+                   const std::vector< std::string > &patterns);
+
 #endif // LAZYRT_HELP_FUNCTIONS_HPP

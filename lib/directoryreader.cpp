@@ -32,6 +32,12 @@ bool DirectoryReader::exists(const SplittedPath &sp) const
     return boost::filesystem::exists(sp.jointOs());
 }
 
+void DirectoryReader::setTestPatterns(
+    const DirectoryReader::StringVector &patterns)
+{
+    _testPatterns = patterns;
+}
+
 void DirectoryReader::readSources(const SplittedPath &relPath,
                                   FileTree &filetree)
 {

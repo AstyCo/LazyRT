@@ -3,9 +3,11 @@
 #include "command_line_args.hpp"
 
 #include <iostream>
+#include <memory>
+#include <algorithm> // any_of
+
 #include <stdio.h>
 #include <string.h>
-#include <memory>
 
 #ifdef WIN32
 #include <windows.h>     // file_size
@@ -153,4 +155,13 @@ void writeBinaryFile(const char *fname, const void *data, size_t type_size,
 
     fwrite(data, type_size, length, pFile);
     fclose(pFile);
+}
+
+bool checkPatterns(const std::__cxx11::string &str,
+                   const std::vector< std::__cxx11::string > &patterns)
+{
+    return std::any_of(patterns.begin(), patterns.end(),
+                       [str](const std::string &pattern) {
+                           return str_contains(str, pattern);
+                       });
 }

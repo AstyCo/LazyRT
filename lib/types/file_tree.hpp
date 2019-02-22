@@ -156,7 +156,7 @@ public:
     void setSourceFile();
     bool isSourceFile() const { return _flags & Flags::SourceFile; }
 
-    void setTestFile() { _flags |= Flags::TestFile; }
+    void setTestFlag() { _flags |= Flags::TestFile; }
     bool isTestFile() const { return _flags & Flags::TestFile; }
 
     bool isThisAffected() const { return isModified() || isManuallyLabeled(); }
@@ -172,7 +172,8 @@ public:
 
     void calculateHash();
     void removeEmptySubdirectories();
-    void setTestIfSource();
+    void setTest();
+    void setTestIfMatchPatterns(const std::vector< std::string > &patterns);
 
 public:
     ///---Debug
@@ -274,12 +275,14 @@ public:
     void labelTestMain();
 
     void readSources(const std::vector< SplittedPath > &relPaths,
-                     const std::vector< std::string > &ignoreSubstrings);
+                     const std::vector< std::string > &ignoredSubstrings);
     void readTests(const std::vector< SplittedPath > &relPaths,
-                   const std::vector< std::string > &ignoreSubstrings);
+                   const CommandLineArgs &clargs);
 
-    void labelTests(const std::vector< SplittedPath > &relPaths);
-    void labelTest(const SplittedPath &relPath);
+    void labelTests(const std::vector< SplittedPath > &relPaths,
+                    const std::vector< std::string > &testPatterns);
+    void labelTest(const SplittedPath &relPath,
+                   const std::vector< std::__cxx11::string > &testPatterns);
 
     void analyzePhase();
 
@@ -290,8 +293,8 @@ public:
 
     void writeFiles(const SplittedPath &path,
                     FileNode::BoolProcedureCPtr checkSatisfy) const;
-    void writeFiles(std::ostream &os,
-                    FileNode::BoolProcedureCPtr checkSatisfy) const;
+    int writeFiles(std::ostream &os,
+                   FileNode::BoolProcedureCPtr checkSatisfy) const;
 
     void installExtraDependencies(const SplittedPath &pathToExtraDeps);
 
@@ -320,7 +323,13 @@ public:
     void analyzeNodes();
     void propagateDeps();
 
-    void recursiveCall(FileNode &node, FileNode::VoidProcedurePtr f);
+    template < typename TFunc, typename... TArgs >
+    void recursiveCall(FileNode &node, TFunc f, TArgs... args)
+    {
+        (node.*f)(args...);
+        for (auto &&child : node.childs())
+            recursiveCall(*child, f, args...);
+    }
 
     FileNode *searchIncludedFile(const IncludeDirective &id,
                                  FileNode *node) const;
@@ -332,6 +341,7 @@ public:
 
 private:
     void updateRoot();
+    int countTestFile() const;
 
 private:
     FileNode *_rootDirectoryNode;

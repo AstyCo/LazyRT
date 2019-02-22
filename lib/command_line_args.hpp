@@ -7,6 +7,7 @@ class CommandLineArgs
 {
 public:
     enum State { Success = 0, Failure = 1 };
+    using StringVector = std::vector< std::string >;
 
 public:
     CommandLineArgs();
@@ -38,7 +39,8 @@ public:
     int status() const { return _status; }
     int retCode() const { return _retCode; }
 
-    std::vector< std::string > ignoredSubstrings() const;
+    StringVector testPatterns() const;
+    StringVector ignoredSubstrings() const;
     std::vector< SplittedPath > includePaths() const;
 
     const SplittedPath &srcBase() const { return _srcBase; }
@@ -55,6 +57,7 @@ private:
     SplittedPath _extraDependencies;
 
     std::string _exts;
+    std::string _testPatterns;
 
     std::string _ignoredSubstrings;
     std::string _includePaths;
