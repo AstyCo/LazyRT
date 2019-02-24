@@ -347,6 +347,13 @@ public:
     bool isClass() const;
     bool isInheritance() const;
     bool isKeyWord() const;
+    bool isEndif() const;
+    bool isElseMacro() const;
+    bool isIfMacro() const;
+    bool isIfdef() const;
+    bool isElif() const;
+
+    std::string toString() const;
 };
 
 enum class TokenizerState {

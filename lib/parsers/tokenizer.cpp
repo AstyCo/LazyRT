@@ -3,6 +3,7 @@
 #include <algorithm> // for_each
 
 #include <cstring> // strncmp
+#include <sstream> // stringstream
 
 static decltype(auto) initSymbolTree()
 {
@@ -162,9 +163,11 @@ void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
             if (tmp == 1 && data[offset - tmp] == '\"')
                 break;
         }
-        const char *token_start = last_token.lexeme;
 
-        last_token.length = data + offset - token_start;
+        ++last_token.lexeme;
+        const char *string_start = last_token.lexeme;
+
+        last_token.length = data + offset - string_start - 1;
         last_token.name = TokenName::String;
         break;
     }
@@ -264,6 +267,43 @@ bool Token::isInheritance() const
 }
 
 bool Token::isKeyWord() const { return key_words.findLexeme(name) != nullptr; }
+
+bool Token::isEndif() const
+{
+    return name == TokenName::Identifier && str_equal(lexeme_str(), "endif");
+}
+
+bool Token::isElseMacro() const
+{
+    return name == TokenName::Identifier && str_equal(lexeme_str(), "else");
+}
+
+bool Token::isIfMacro() const
+{
+    return name == TokenName::Identifier && str_equal(lexeme_str(), "if");
+}
+
+bool Token::isIfdef() const
+{
+    return name == TokenName::Identifier && str_equal(lexeme_str(), "ifdef");
+}
+
+bool Token::isElif() const
+{
+    return name == TokenName::Identifier && str_equal(lexeme_str(), "elif");
+}
+
+std::__cxx11::string Token::toString() const
+{
+    std::string str;
+    if (name == TokenName::Identifier || name == TokenName::String)
+        str = lexeme_str();
+    else
+        str = ttos(name);
+    std::stringstream ss;
+    ss << str << " line: " << n_line << " offset: " << n_char;
+    return ss.str();
+}
 
 void Debug::printTokens(const std::vector< Token > &tokens)
 {

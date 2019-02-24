@@ -144,11 +144,30 @@ void SourceParser::skipLine(const SourceParser::TokenVector &tokens,
         if (tokens[offset].name == TokenName::Backslash)
             line = tokens[offset + 1].n_line;
 
-        increment(tokens, offset);
+        increment_pp(offset);
         if (tokens[offset].n_line > line)
             return;
     }
-    increment(tokens, offset);
+}
+
+void SourceParser::skipUntilEndif(const SourceParser::TokenVector &tokens,
+                                  int &offset)
+{
+    int deep = 1;
+    for (; offset + 1 < tokens.size(); skipLine(tokens, offset)) {
+        if (tokens[offset].name == TokenName::Hash) {
+            const Token &macroKeyToken = tokens[offset + 1];
+            if (macroKeyToken.isEndif())
+                --deep;
+            else if (macroKeyToken.isIfMacro() || macroKeyToken.isIfdef() ||
+                     macroKeyToken.isElif())
+                ++deep;
+
+            if (deep == 0) {
+                break;
+            }
+        }
+    }
 }
 
 bool SourceParser::skipTemplate(const SourceParser::TokenVector &tokens,
@@ -245,7 +264,6 @@ TokenName SourceParser::readUntil(const SourceParser::TokenVector &tokens,
         if (it != tokenNames.end())
             return *it;
     }
-    assert(false);
     return TokenName::Undefined;
 }
 
@@ -255,10 +273,17 @@ void SourceParser::increment(const TokenVector &tokens, int &offset)
     switch (token.name) {
     case TokenName::BracketCurlyLeft:
         ++_openCurlyBracketCount;
+        //        std::cerr << "{ at " << token.n_line << ' ' <<
+        //        _openCurlyBracketCount
+        //                  << std::endl;
         break;
     case TokenName::BracketCurlyRight:
-        assert(_openCurlyBracketCount > 0);
         --_openCurlyBracketCount;
+        if (_openCurlyBracketCount < 0)
+            throw std::string("Broken {,} sequence");
+        //        std::cerr << "} at " << token.n_line << ' ' <<
+        //        _openCurlyBracketCount
+        //                  << std::endl;
         if (_stackNamespaceBrackets.pop(_openCurlyBracketCount))
             _currentNamespace.removeLast();
 
@@ -321,7 +346,7 @@ void SourceParser::parseIncludeFilename(const SourceParser::TokenVector &tokens,
     const Token &token = tokens[offset];
     if (token.name == TokenName::String) {
         dir.type = IncludeDirective::Quotes;
-        dir.filename = std::string(token.lexeme + 1, token.length - 2);
+        dir.filename = token.lexeme_str();
     }
     else if (token.name == TokenName::Less) {
         increment(tokens, offset);
@@ -385,99 +410,112 @@ void SourceParser::parseFile(FileNode *node)
     Tokenizer tkn;
     const SplittedPath &filename = node->fullPath();
     tkn.tokenize(filename);
-
     const auto &tokens = tkn.tokens();
 
     prepare();
 
-    for (int i = 0; i < tokens.size();) {
-        if (!isTopLevelCB()) {
-            increment(tokens, i);
-            continue;
-        }
-        switch (tokens[i].name) {
-        case TokenName::Hash:
-            // check if include directive
-            increment(tokens, i);
-            if (tokens[i].name == TokenName::Include) { // include directive
+    int i = 0;
+    try {
+        for (; i < tokens.size();) {
+            const Token &curTok = tokens[i];
+            if (curTok.name == TokenName::Hash) {
+                // check if include directive
                 increment(tokens, i);
-
-                IncludeDirective dir;
-                parseIncludeFilename(tokens, i, dir);
-
-                if (!dir.filename.empty()) {
-                    if (FileNode *includeFile =
-                            _fileTree.searchIncludedFile(dir, node))
-                        node->record()._listIncludes.push_back(dir);
-                }
-                else {
-                    errors() << "warning: skip include directive in file"
-                             << filename.jointOs() << "on the line"
-                             << ntos(tokens[i].n_line);
-                }
-            }
-            skipLine(tokens, i);
-            continue;
-        case TokenName::BracketLeft: {
-            if (_openBracketCount > 0)
-                break;
-            ScopedName funcName = _currentNamespace;
-            auto fstart = getIdentifierStart(tokens, i);
-            if (parseScopedName(tokens, fstart, i, funcName)) {
-                static const TokenNameSet typeTokens = {
-                    TokenName::BracketCurlyLeft, TokenName::Semicolon};
-                auto t = readUntil(tokens, i, typeTokens);
-                switch (t) {
-                case TokenName::BracketCurlyLeft:
-                    // impl function/method
-                    node->record()._setImplements.insert(funcName);
-                    break;
-                case TokenName::Semicolon:
-                    // global function decl
-                    node->record()._setFuncDecl.insert(funcName);
-                    break;
-                default:
-                    assert(false);
-                    break;
-                }
-            }
-            break;
-        }
-        case TokenName::BracketCurlyLeft: {
-            dealWithClassDeclaration(tokens, i);
-            break;
-        }
-        case TokenName::Using:
-            increment(tokens, i);
-            if (tokens[i].name == TokenName::Namespace) {
-                // using namespace ->ns
-                ScopedName ns;
-                ns.setNamespaceSeparator();
-                increment(tokens, i);
-                parseScopedName(tokens, i, tokens.size(), ns);
-                if (!ns.empty())
-                    node->record()._listUsingNamespace.push_back(ns);
-            }
-            break;
-        case TokenName::Namespace:
-            increment(tokens, i);
-            parseScopedName(tokens, i, tokens.size(), _currentNamespace);
-            setNamespace();
-            break;
-        case TokenName::Extern:
-            // extern "C"
-            increment(tokens, i);
-            if (tokens[i].name == TokenName::String) {
-                increment(tokens, i);
-                if (tokens[i].name == TokenName::BracketCurlyLeft) {
-                    _stackExternConstruction.push(_openCurlyBracketCount);
+                if (tokens[i].name == TokenName::Include) { // include directive
                     increment(tokens, i);
+
+                    IncludeDirective dir;
+                    parseIncludeFilename(tokens, i, dir);
+
+                    if (!dir.filename.empty()) {
+                        if (FileNode *includeFile =
+                                _fileTree.searchIncludedFile(dir, node))
+                            node->record()._listIncludes.push_back(dir);
+                    }
+                    else {
+                        errors() << "warning: skip include directive in file"
+                                 << filename.jointOs() << "on the line"
+                                 << ntos(tokens[i].n_line);
+                    }
                 }
+                else if (tokens[i].isElseMacro() || tokens[i].isElif()) {
+                    skipLine(tokens, i);
+                    // skip until endif (dont parse #else #endif blocks)
+                    skipUntilEndif(tokens, i);
+                }
+                skipLine(tokens, i);
+                continue;
             }
-            continue;
-        default:
-            break;
+            if (!isTopLevelCB()) {
+                increment(tokens, i);
+                continue;
+            }
+            switch (curTok.name) {
+            case TokenName::BracketLeft: {
+                if (_openBracketCount > 0)
+                    break;
+                ScopedName funcName = _currentNamespace;
+                auto fstart = getIdentifierStart(tokens, i);
+                if (parseScopedName(tokens, fstart, i, funcName)) {
+                    static const TokenNameSet typeTokens = {
+                        TokenName::BracketCurlyLeft, TokenName::Semicolon};
+                    auto t = readUntil(tokens, i, typeTokens);
+                    switch (t) {
+                    case TokenName::BracketCurlyLeft:
+                        // impl function/method
+                        node->record()._setImplements.insert(funcName);
+                        break;
+                    case TokenName::Semicolon:
+                        // global function decl
+                        node->record()._setFuncDecl.insert(funcName);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                break;
+            }
+            case TokenName::BracketCurlyLeft: {
+                dealWithClassDeclaration(tokens, i);
+                break;
+            }
+            case TokenName::Using:
+                increment(tokens, i);
+                if (tokens[i].name == TokenName::Namespace) {
+                    // using namespace ->ns
+                    ScopedName ns;
+                    ns.setNamespaceSeparator();
+                    increment(tokens, i);
+                    parseScopedName(tokens, i, tokens.size(), ns);
+                    if (!ns.empty())
+                        node->record()._listUsingNamespace.push_back(ns);
+                }
+                break;
+            case TokenName::Namespace:
+                increment(tokens, i);
+                parseScopedName(tokens, i, tokens.size(), _currentNamespace);
+                setNamespace();
+                break;
+            case TokenName::Extern:
+                // extern "C"
+                increment(tokens, i);
+                if (tokens[i].name == TokenName::String) {
+                    increment(tokens, i);
+                    if (tokens[i].name == TokenName::BracketCurlyLeft) {
+                        _stackExternConstruction.push(_openCurlyBracketCount);
+                        increment(tokens, i);
+                    }
+                }
+                continue;
+            default:
+                break;
+            }
+            increment(tokens, i);
         }
-        increment(tokens, i);
+    }
+    catch (const std::string &msg) {
+        errors() << "Parsing of the file" << filename.joint()
+                 << "was stopped by the token" << tokens[i].toString()
+                 << "Reason:" << msg;
     }
 }

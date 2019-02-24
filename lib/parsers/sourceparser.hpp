@@ -75,6 +75,7 @@ private:
     void skipOperatorOverloadingReverse(const TokenVector &v,
                                         int &offset) const;
     void skipLine(const TokenVector &tokens, int &offset);
+    void skipUntilEndif(const TokenVector &tokens, int &offset);
     bool skipTemplate(const TokenVector &v, int &offset);
     bool skipTemplateReverse(const TokenVector &tokens, int &offset) const;
 
@@ -83,6 +84,7 @@ private:
                         const TokenNameSet &tokenNames);
 
     void increment(const TokenVector &tokens, int &offset);
+    void increment_pp(int &offset, int n = 1) const { offset += n; }
     bool isTopLevelCB() const;
     void setNamespace();
     void dealWithClassDeclaration(const TokenVector &tokens, int offset);
