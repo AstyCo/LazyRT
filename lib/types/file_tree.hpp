@@ -56,17 +56,17 @@ public:
 
     // Parse stage
     std::vector< IncludeDirective > _listIncludes;
-    std::set< ScopedName > _setImplements;
-    std::set< ScopedName > _setClassDecl;
-    std::set< ScopedName > _setFuncDecl;
-    std::set< ScopedName > _setInheritances;
+    std::unordered_set< ScopedName > _setImplements;
+    std::unordered_set< ScopedName > _setClassDecl;
+    std::unordered_set< ScopedName > _setFuncDecl;
+    std::unordered_set< ScopedName > _setInheritances;
     std::vector< ScopedName > _listUsingNamespace;
 
     // Analyze stage
-    std::set< ScopedName > _setFuncImplFiles;
-    std::set< ScopedName > _setClassImplFiles;
-    std::set< ScopedName > _setBaseClassFiles;
-    std::set< ScopedName > _setImplementFiles;
+    std::unordered_set< ScopedName > _setFuncImplFiles;
+    std::unordered_set< ScopedName > _setClassImplFiles;
+    std::unordered_set< ScopedName > _setBaseClassFiles;
+    std::unordered_set< ScopedName > _setImplementFiles;
 
 public:
     MD5::HashArray _hashArray;
@@ -87,7 +87,7 @@ public:
     using FlagsType = uint8_t;
 
     using ListFileNode = std::vector< FileNode * >;
-    using SetFileNode = std::set< FileNode * >;
+    using SetFileNode = std::unordered_set< FileNode * >;
     using FileNodeIterator = ListFileNode::iterator;
     using FileNodeConstIterator = ListFileNode::const_iterator;
 

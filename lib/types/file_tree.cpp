@@ -43,8 +43,8 @@ static void test_dependency_dependentyBy_match(FileNode *fnode)
 
 static void
 test_dependencies_recursion_h(FileNode *depNode,
-                              const std::set< FileNode * > &totalDependencies,
-                              std::set< FileNode * > &testedNodes)
+                              const FileNode::SetFileNode &totalDependencies,
+                              std::unordered_set< FileNode * > &testedNodes)
 {
     assert(depNode);
 
@@ -65,7 +65,7 @@ static void test_dependencies_recursion(FileNode *fnode)
     assert(fnode);
     const auto &deps = fnode->_setDependencies;
 
-    std::set< FileNode * > testedNodes;
+    std::unordered_set< FileNode * > testedNodes;
     testedNodes.insert(fnode);
 
     for (auto &&file : fnode->_setDependencies)
@@ -625,9 +625,9 @@ void FileTree::printAll() const
 
         std::cout << "--- AFFECTED SOURCES" << std::endl;
         writeFiles(std::cout, &FileNode::isAffectedSource);
-        std::cout << std::endl << "--- MODIFIED" << std::endl;
-        writeFiles(std::cout, &FileNode::isModified);
     }
+    std::cout << std::endl << "--- MODIFIED" << std::endl;
+    writeFiles(std::cout, &FileNode::isModified);
 
     std::cout << std::endl << "--- AFFECTED TESTS" << std::endl;
     int count = writeFiles(std::cout, &FileNode::isAffectedTest);

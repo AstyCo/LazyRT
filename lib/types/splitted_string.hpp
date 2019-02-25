@@ -131,6 +131,19 @@ protected:
 using ScopedName = SplittedString< HashedFileName >;
 using SplittedPath = SplittedString< HashedFileName >;
 
+// definition of std::hash for ScopedName/SplittedPath
+// so it could be used in std::unordered_set
+namespace std {
+template <>
+struct hash< ScopedName >
+{
+    size_t operator()(const ScopedName &o) const
+    {
+        return hash< std::string >{}(o.joint());
+    }
+};
+} // namespace std
+
 // result.separator() is base.separator()
 SplittedPath relative_path(const SplittedPath &path_to_file,
                            const SplittedPath &base, bool *error = nullptr);
