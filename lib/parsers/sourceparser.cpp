@@ -361,17 +361,18 @@ void SourceParser::parseIncludeFilename(const SourceParser::TokenVector &tokens,
 void SourceParser::readPath(const SourceParser::TokenVector &tokens,
                             int &offset, SplittedPath &path)
 {
+    std::string strPath;
     for (; offset < tokens.size(); increment(tokens, offset)) {
         const Token &token = tokens[offset];
-        if (token.name == TokenName::Identifier)
-            path.append(token.lexeme_str());
-        else if (token.isKeyWord())
-            path.append(ttos(token.name));
-        else if (token.name == TokenName::Slash)
+        if (token.name == TokenName::Identifier ||
+            token.name == TokenName::Slash || token.name == TokenName::Dot ||
+            token.isKeyWord()) {
+            strPath += token.lexeme_str();
             continue;
-        else
-            break;
+        }
+        break;
     }
+    path = SplittedPath(strPath, SplittedPath::unixSep());
 }
 
 bool SourceParser::checkOffset(const SourceParser::TokenVector &tokens,
