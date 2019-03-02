@@ -374,7 +374,7 @@ public:
     const TokenVector &tokens() const;
 
 private:
-    void dealWithSpecialTokens(const char *data, long &offset);
+    void dealWithSpecialTokens(const char *data, long &offset, long file_size);
     void emplaceToken(Token &&tok);
 
     void increment(const char *data, long &offset)

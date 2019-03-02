@@ -77,7 +77,7 @@ void Tokenizer::tokenize(const SplittedPath &path)
             if (tmp)
                 continue;
             emplaceToken(Token(word_start, p - word_start));
-            dealWithSpecialTokens(data, offset);
+            dealWithSpecialTokens(data, offset, file_size);
             updateState(data + offset, state, word_start);
             break;
         }
@@ -89,86 +89,35 @@ void Tokenizer::tokenize(const SplittedPath &path)
 
 const Tokenizer::TokenVector &Tokenizer::tokens() const { return _tokens; }
 
-// Control characters:
-
-// Numeric character references:
-// 1) \ + up to 3 octal digits
-// 2) \x + any number of hex digits
-// 3) \u + 4 hex digits (Unicode BMP, new in C++11)
-// 4) \U + 8 hex digits (Unicode astral planes, new in C++11)
-
-static bool ishexdigit(char ch)
+int read_string(const char *data, char qch, long max)
 {
-    return isdigit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
-}
-
-static int read_char(const char *data)
-{
-    if (*data == '\\') {
-        const char fch = data[1];
-        int offset = 1;
-        if (isdigit(fch)) {
-            // case 1)
-            for (int i = 0; i < 3; ++i) {
-                if (!isdigit(data[offset]))
-                    break;
-                ++offset;
-            }
-        }
-        else if (fch == 'x') {
-            // case 2)
+    for (int offset = 0; offset < max; ++offset) {
+        if (data[offset] == '\\')
             ++offset;
-            while (ishexdigit(data[offset]))
-                ++offset;
-        }
-        else if (fch == 'u') {
-            ++offset;
-            for (int i = 0; i < 4; ++i) {
-                // TODO remove this cycle
-                assert(ishexdigit(data[offset + i]));
-            }
-            offset += 4;
-        }
-        else if (fch == 'U') {
-            ++offset;
-            for (int i = 0; i < 8; ++i) {
-                // TODO remove this cycle
-                assert(ishexdigit(data[offset + i]));
-            }
-            offset += 8;
-        }
-        else {
-            ++offset;
-        }
-        return offset;
+        else if (data[offset] == qch)
+            return offset;
     }
-    return 1;
+    assert(false);
+    return max;
 }
 
-void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
+void Tokenizer::dealWithSpecialTokens(const char *data, long &offset,
+                                      long file_size)
 {
     assert(!_tokens.empty());
     Token &last_token = _tokens.back();
     switch (last_token.name) {
-    case TokenName::SingleQuote: {
-        long tmp = read_char(data + offset);
-        assert(data[offset + tmp] == '\'');
-        offset += tmp + 1;
-        break;
-    }
+    case TokenName::SingleQuote:
     case TokenName::DoubleQuote: {
-        for (;;) {
-            auto tmp = read_char(data + offset);
-            offset += tmp;
-            if (tmp == 1 && data[offset - tmp] == '\"')
-                break;
-        }
+        const char qch =
+            ((last_token.name == TokenName::SingleQuote) ? '\'' : '\"');
+        int str_len = read_string(data + offset, qch, file_size - offset);
 
         ++last_token.lexeme;
-        const char *string_start = last_token.lexeme;
-
-        last_token.length = data + offset - string_start - 1;
+        last_token.length = str_len;
         last_token.name = TokenName::String;
+
+        offset += str_len + 1;
         break;
     }
     case TokenName::DoubleSlash: {
@@ -184,7 +133,7 @@ void Tokenizer::dealWithSpecialTokens(const char *data, long &offset)
             return strncmp(data + offset, "*/", 2) == 0;
         });
 
-        increment_n(data, offset, sizeof("*/"));
+        increment_n(data, offset, sizeof("*/") - 1);
         _tokens.pop_back(); // skip comments
         break;
     }
@@ -301,7 +250,8 @@ std::__cxx11::string Token::toString() const
     else
         str = ttos(name);
     std::stringstream ss;
-    ss << str << " line: " << n_line << " offset: " << n_char;
+    ss << '\'' << str << '\'' << " file: " << filename << " line: " << n_line
+       << " offset: " << n_char;
     return ss.str();
 }
 
