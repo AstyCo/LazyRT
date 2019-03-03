@@ -6,6 +6,7 @@
 std::string CommandLineArgs::_rootFTreeFilename = "file_tree.bin";
 std::string CommandLineArgs::_srcsAffectedFileName = "srcs_affected.txt";
 std::string CommandLineArgs::_testsAffectedFileName = "tests_affected.txt";
+std::string CommandLineArgs::_testsFileName = "tests_files.txt";
 std::string CommandLineArgs::_totalAffectedFileName = "total_affected.txt";
 
 CommandLineArgs clargs;
@@ -123,6 +124,13 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
         _testBase = SplittedPath("", SplittedPath::unixSep());
     _status = Success;
     _retCode = 0;
+}
+
+SplittedPath CommandLineArgs::testFilesPath() const
+{
+    auto tmp = _outDirectory;
+    tmp.append(_testsFileName);
+    return tmp;
 }
 
 std::vector< SplittedPath > CommandLineArgs::srcDirectories() const

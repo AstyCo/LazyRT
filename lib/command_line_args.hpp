@@ -35,6 +35,7 @@ public:
     const SplittedPath &totalAffected() const { return _totalAffected; }
     const SplittedPath &srcsModified() const { return _srcsModified; }
     const SplittedPath &testsModified() const { return _testsModified; }
+    SplittedPath testFilesPath() const;
 
     int status() const { return _status; }
     int retCode() const { return _retCode; }
@@ -74,6 +75,7 @@ private:
     static std::string _srcsAffectedFileName;
     static std::string _testsAffectedFileName;
     static std::string _totalAffectedFileName;
+    static std::string _testsFileName;
 
     // derived data
     SplittedPath _ftreeDumpIn;

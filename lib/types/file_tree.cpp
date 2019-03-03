@@ -702,6 +702,8 @@ void FileTree::writeAffectedFiles(const CommandLineArgs &clargs)
 
     writeFiles(clargs.srcsAffected(), &FileNode::isAffectedSource);
     writeFiles(clargs.testsAffected(), &FileNode::isAffectedTest);
+    writeFiles(clargs.testFilesPath(), &FileNode::isTestFile);
+
 }
 
 static bool containsMain(FileNode *file)
