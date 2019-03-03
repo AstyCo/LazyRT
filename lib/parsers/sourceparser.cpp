@@ -325,11 +325,11 @@ void SourceParser::dealWithClassDeclaration(
         else if (isInheritanceToken(tokens, fstart - 1)) {
             // class/struct inheritance
             _node->record()._setInheritances.insert(className);
-            int nextOffset = fstart - 1;
+            int nextOffset = fstart - 2;
             if (nextOffset >= 0) {
                 switch (tokens[nextOffset].name) {
                 case TokenName::Comma:
-                case TokenName::DoubleColon:
+                case TokenName::Colon:
                     dealWithClassDeclaration(tokens, nextOffset);
                     break;
                 default:
