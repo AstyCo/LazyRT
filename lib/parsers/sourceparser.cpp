@@ -179,7 +179,7 @@ bool SourceParser::skipTemplate(const SourceParser::TokenVector &tokens,
     int openBracketCount = 0;
     do {
         const Token &token = tokens[offset];
-        increment(tokens, offset);
+        increment_pp(offset);
         switch (token.name) {
         case TokenName::BracketLeft:
             ++openBracketCount;
@@ -273,20 +273,13 @@ void SourceParser::increment(const TokenVector &tokens, int &offset)
     switch (token.name) {
     case TokenName::BracketCurlyLeft:
         ++_openCurlyBracketCount;
-        //        std::cerr << "{ at " << token.n_line << ' ' <<
-        //        _openCurlyBracketCount
-        //                  << std::endl;
         break;
     case TokenName::BracketCurlyRight:
         --_openCurlyBracketCount;
         if (_openCurlyBracketCount < 0)
             throw std::string("Broken {,} sequence");
-        //        std::cerr << "} at " << token.n_line << ' ' <<
-        //        _openCurlyBracketCount
-        //                  << std::endl;
         if (_stackNamespaceBrackets.pop(_openCurlyBracketCount))
             _currentNamespace.removeLast();
-
         break;
     case TokenName::BracketLeft:
         ++_openBracketCount;
