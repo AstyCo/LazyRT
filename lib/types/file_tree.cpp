@@ -816,7 +816,8 @@ static void pushFiles(const FileNode *file,
     if (file == nullptr)
         return;
 
-    if ((file->*checkSatisfy)()) {
+    if ((file->*checkSatisfy)() &&
+        !checkPatterns(file->name(), clargs.ignoredOutputs())) {
         if (file->isTestFile())
             outFiles.push_back(relative_path(file->path(), clargs.testBase()));
         else if (file->isSourceFile())

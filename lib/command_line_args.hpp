@@ -42,6 +42,7 @@ public:
 
     StringVector testPatterns() const;
     StringVector ignoredSubstrings() const;
+    const StringVector &ignoredOutputs() const;
     std::vector< SplittedPath > includePaths() const;
 
     const SplittedPath &srcBase() const { return _srcBase; }
@@ -61,6 +62,7 @@ private:
     std::string _testPatterns;
 
     std::string _ignoredSubstrings;
+    StringVector _ignoredOutput;
     std::string _includePaths;
 
     SplittedPath _srcBase;

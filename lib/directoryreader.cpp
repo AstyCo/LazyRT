@@ -98,14 +98,7 @@ bool DirectoryReader::isSourceFile(const SplittedPath &sp) const
 
 bool DirectoryReader::isIgnored(const SplittedPath &sp) const
 {
-    auto pathUnixSep = sp.jointUnix();
-
-    for (auto &ignore_substring : _ignore_substrings) {
-        if (pathUnixSep.find(ignore_substring) != std::string::npos)
-            return true;
-    }
-    // not found
-    return false;
+    return checkPatterns(sp.jointUnix(), _ignore_substrings);
 }
 
 bool DirectoryReader::isIgnoredOsSep(const std::string &path) const

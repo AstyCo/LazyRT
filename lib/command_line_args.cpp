@@ -32,6 +32,8 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     std::string exts;
     std::string extra_dependencies;
 
+    std::string ignoredOutput;
+
     // required arguments
     app.add_option("-r,--root", rootDir,
                    "File tree Root directory, every listed file should be "
@@ -55,6 +57,10 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
                    "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", _ignoredSubstrings,
                    "Substrings of the ignored paths, separated by comma (,) ");
+    app.add_option(
+        "--ignore-out", ignoredOutput,
+        "Substrings of the paths which will not be included in output,"
+        "separated by comma (,) ");
     app.add_option(
         "--test-base", testBase,
         "Directory relative to which the test source files are displayed");
@@ -122,6 +128,9 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
         _testBase = SplittedPath(testBase, SplittedPath::unixSep());
     else
         _testBase = SplittedPath("", SplittedPath::unixSep());
+
+    _ignoredOutput = split(ignoredOutput, ",");
+
     _status = Success;
     _retCode = 0;
 }
@@ -162,6 +171,11 @@ std::vector< SplittedPath > CommandLineArgs::includePaths() const
 CommandLineArgs::StringVector CommandLineArgs::ignoredSubstrings() const
 {
     return split(_ignoredSubstrings, ",");
+}
+
+const CommandLineArgs::StringVector &CommandLineArgs::ignoredOutputs() const
+{
+    return _ignoredOutput;
 }
 
 std::vector< SplittedPath >
