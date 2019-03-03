@@ -115,12 +115,12 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
     if (!srcBase.empty())
         _srcBase = SplittedPath(srcBase, SplittedPath::unixSep());
     else
-        _srcBase = _rootDirectory;
+        _srcBase = SplittedPath("", SplittedPath::unixSep());
 
     if (!testBase.empty())
         _testBase = SplittedPath(testBase, SplittedPath::unixSep());
     else
-        _testBase = _rootDirectory;
+        _testBase = SplittedPath("", SplittedPath::unixSep());
     _status = Success;
     _retCode = 0;
 }
