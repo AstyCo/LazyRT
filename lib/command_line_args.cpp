@@ -52,7 +52,7 @@ void CommandLineArgs::parseArguments(int argc, char *argv[])
                    "Patterns for test file names, separated by comma (,)");
     app.add_option("-i,--indir", inDirectory, "Input directory");
     app.add_option("-d,--deps", extra_dependencies,
-                   "Path to the JSON file with extra dependencies");
+                   "Path to the file with extra dependencies");
     app.add_option("-e,--extensions", exts,
                    "Source files extensions, separated by comma (,)");
     app.add_option("--ignore", _ignoredSubstrings,
