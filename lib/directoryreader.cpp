@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 std::vector< std::string > initSourceFileExtensions()
 {
@@ -29,7 +30,7 @@ std::vector< std::string > DirectoryReader::_ignore_substrings =
 
 bool DirectoryReader::exists(const SplittedPath &sp) const
 {
-    return boost::filesystem::exists(sp.jointOs());
+    return is_directory()
 }
 
 void DirectoryReader::setTestPatterns(
@@ -56,18 +57,16 @@ void DirectoryReader::readSources(const SplittedPath &relPath, FileNode *parent)
     }
     const auto &splitted = relPath.splitted();
     if (splitted.empty()) {
-        boost::filesystem::path dirPath = parent->fullPath().jointOs();
-        if (!boost::filesystem::is_directory(dirPath))
+        SplittedPath dirPath = parent->fullPath();
+        if (!is_directory(dirPath.jointOs().c_str()))
             return;
-        boost::filesystem::directory_iterator it(dirPath);
-        boost::filesystem::directory_iterator end;
+        DirectoryIterator it(dirPath);
+        DirectoryIterator end;
         while (it != end) {
-            std::string filePath = (*it).path().string();
-            SplittedPath spInnerFile(filePath, SplittedPath::osSep());
-            SplittedPath spRelative(spInnerFile.last(),
-                                    SplittedPath::unixSep());
+            SplittedPath fileName = *it;
+            fileName.setSeparator(SplittedPath::unixSep());
 
-            readSources(spRelative, parent);
+            readSources(fileName, parent);
             ++it;
         }
         return;
@@ -90,7 +89,7 @@ void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)
 
 bool DirectoryReader::isSourceFile(const SplittedPath &sp) const
 {
-    assert(boost::filesystem::is_regular_file(sp.jointOs()));
+    assert(is_file(sp.jointOs().c_str()));
     return std::find(_sourceFileExtensions.begin(), _sourceFileExtensions.end(),
                      boost::filesystem::extension(sp.jointOs())) !=
            _sourceFileExtensions.end();
@@ -109,7 +108,113 @@ bool DirectoryReader::isIgnoredOsSep(const std::string &path) const
 
 FileRecord::Type DirectoryReader::getFileType(const SplittedPath &sp) const
 {
-    if (boost::filesystem::is_directory(sp.jointOs()))
+    if (is_directory(sp.jointOs().c_str())
         return FileRecord::Directory;
     return FileRecord::RegularFile;
+}
+
+class DirectoryIteratorImpl
+{
+
+public:
+    DirectoryIteratorImpl() : offset(-1) {}
+
+    void increment()
+    {
+        if (offset >= 0)
+            ++offset;
+        updateOffset();
+    }
+
+    bool cmpOffsets(const DirectoryIteratorImpl &o) const
+    {
+        return offset == o.offset;
+    }
+
+    const SplittedPath &value() const
+    {
+        static const SplittedPath emptyPath;
+        if (offset >= 0 && offset < files.size())
+            return files[offset];
+        throw "DirectoryIteratorImpl:: invalid value access";
+        return emptyPath;
+    }
+
+    void readDirectory(const SplittedPath &path)
+    {
+        DIR *dir;
+        struct dirent *ent;
+        if ((dir = opendir(path.jointOs().c_str())) != NULL) {
+            while ((ent = readdir(dir)) != NULL) {
+                HashedFileName fname(ent->d_name);
+                if (fname.isDot() || fname.isDotDot())
+                    continue;
+                files.push_back(SplittedPath(fname, SplittedPath::osSep()));
+            }
+            closedir(dir);
+        }
+        else {
+            std::cerr << "could not open directory " + path.jointOs()
+                      << std::endl;
+        }
+        setToBegin();
+    }
+
+private:
+    void setToBegin()
+    {
+        offset = 0;
+        updateOffset();
+    }
+
+    void updateOffset()
+    {
+        if (offset >= files.size())
+            offset = -1;
+    }
+
+private:
+    std::vector< SplittedPath > files;
+    int offset;
+};
+
+DirectoryIterator::DirectoryIterator(const SplittedPath &path)
+    : _impl(std::make_unique< DirectoryIteratorImpl >())
+{
+    if (!path.empty())
+        _impl->readDirectory(path);
+}
+
+template < class T >
+std::unique_ptr< T > copy_unique(const std::unique_ptr< T > &source)
+{
+    return source ? std::make_unique< T >(*source) : nullptr;
+}
+
+DirectoryIterator::DirectoryIterator(const DirectoryIterator &o)
+    : _impl(copy_unique(o._impl))
+{
+}
+
+DirectoryIterator &DirectoryIterator::operator++()
+{
+    _impl->increment();
+    return *this;
+}
+
+DirectoryIterator DirectoryIterator::operator++(int)
+{
+    DirectoryIterator tmp = *this;
+    ++(*this);
+    return tmp;
+}
+
+bool DirectoryIterator::operator==(const DirectoryIterator &o) const
+{
+    return _impl->cmpOffsets(*o._impl);
+}
+
+const SplittedPath &DirectoryIterator::operator*() const
+{
+    return _impl->value();
 }

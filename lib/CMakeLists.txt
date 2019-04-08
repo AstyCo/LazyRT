@@ -38,6 +38,7 @@ set(HEADERS
     extensions/help_functions.hpp
     extensions/md5.hpp
     extensions/flatbuffers_extensions.hpp
+    extensions/filesystem.hpp
     types/file_tree.hpp
     types/splitted_string.hpp
     parsers/sourceparser.hpp
@@ -75,6 +76,7 @@ set(SRCS
     extensions/murmur_hash_2.cpp
     extensions/md5.cpp
     extensions/flatbuffers_extensions.cpp
+    extensions/filesystem.cpp
     types/file_tree.cpp
     types/splitted_string.cpp
     )
@@ -91,27 +93,3 @@ target_include_directories(${LIB_TARGET_NAME} PUBLIC
     ${PROJECT_SOURCE_DIR}/lib/external)
 
 target_compile_features(${LIB_TARGET_NAME} PUBLIC cxx_std_14)
-
-# link boost
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-
-find_package(Boost 1.45.0 COMPONENTS filesystem system REQUIRED)
-
-if(Boost_FOUND)
-    target_include_directories(${LIB_TARGET_NAME}
-        PUBLIC
-        ${Boost_INCLUDE_DIRS})
-    target_link_libraries(${LIB_TARGET_NAME}
-        INTERFACE
-        ${Boost_LIBRARIES})
-endif()
-
-if (WIN32)
-    # disable autolinking in boost
-    target_compile_definitions(${LIB_TARGET_NAME} PUBLIC BOOST_ALL_NO_LIB)
-    # force all boost libraries to dynamic link (we already disabled
-    # autolinking, so I don't know why we need this, but we do!)
-    target_compile_definitions(${LIB_TARGET_NAME} PUBLIC BOOST_ALL_DYN_LINK)
-endif()

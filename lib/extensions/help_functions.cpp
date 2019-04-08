@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #ifdef WIN32
 #include <windows.h>     // file_size
@@ -165,3 +166,19 @@ bool checkPatterns(const std::__cxx11::string &str,
                            return str_contains(str, pattern);
                        });
 }
+
+bool is_directory(const char *path)
+{
+    struct stat buf;
+    stat(path, &buf);
+    return S_ISDIR(buf.st_mode);
+}
+
+bool is_file(const char *path)
+{
+    struct stat buf;
+    stat(path, &buf);
+    return S_ISREG(buf.st_mode);
+}
+
+bool exists(const char *path) {}

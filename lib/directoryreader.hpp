@@ -3,8 +3,6 @@
 
 #include "types/file_tree.hpp"
 
-#include <boost/filesystem.hpp>
-
 #include <iostream>
 #include <vector>
 

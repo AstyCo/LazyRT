@@ -57,6 +57,10 @@ struct FileData
     FileData() : size(0) {}
 };
 
+bool exists(const char *path);
+bool is_file(const char *path);
+bool is_directory(const char *path);
+
 FileData readBinaryFile(const char *fname);
 FileData readFile(const char *fname, const char *mode);
 
