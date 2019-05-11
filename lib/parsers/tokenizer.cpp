@@ -75,14 +75,16 @@ void Tokenizer::tokenize(const SplittedPath &path)
         case TokenizerState::Symbol: {
             if (symbolsTree.find(word_start, p - word_start + 1))
                 continue;
-            auto tmp = symbolsTree.find(word_start, p - word_start);
-            while (!tmp->finite) { // fix >>= (>) case
-                --offset;
-                tmp = symbolsTree.find(word_start, data + offset - word_start);
-            }
+            if (auto tmp = symbolsTree.find(word_start, p - word_start)) {
+                while (!tmp->finite) { // fix >>= (>) case
+                    --offset;
+                    tmp = symbolsTree.find(word_start,
+                                           data + offset - word_start);
+                }
 
-            emplaceToken(Token(word_start, data + offset - word_start));
-            dealWithSpecialTokens(data, offset, file_size);
+                emplaceToken(Token(word_start, data + offset - word_start));
+                dealWithSpecialTokens(data, offset, file_size);
+            }
             updateState(data + offset, state, word_start);
             break;
         }
