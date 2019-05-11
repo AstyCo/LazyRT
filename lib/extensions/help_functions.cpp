@@ -10,15 +10,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <direct.h> // _mkdir (win32), mkdir
 
 #ifdef WIN32
 #include <windows.h>     // file_size
 #include <fileapi.h>     // file_size
 #include <io.h>          // access
+#include <direct.h>      // _mkdir
 #define access _access_s // access
 #else                    // POSIX
-#include <sys/stat.h>    // file_size
+#include <sys/stat.h>    // file_size, mkdir
 #include <unistd.h>      // access
 #endif
 
