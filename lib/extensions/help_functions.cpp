@@ -1,14 +1,16 @@
-#include "extensions/help_functions.hpp"
-
-#include "command_line_args.hpp"
+#include "help_functions.hpp"
+#include <command_line_args.hpp>
+#include <types/splitted_string.hpp>
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <algorithm> // any_of
 
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <direct.h> // _mkdir (win32), mkdir
 
 #ifdef WIN32
 #include <windows.h>     // file_size
@@ -20,13 +22,11 @@
 #include <unistd.h>      // access
 #endif
 
-static bool is_file_exists(const char *fname) { return access(fname, 0) == 0; }
-
 FileData readBinaryFile(const char *fname) { return readFile(fname, "rb"); }
 
 FileData readFile(const char *fname, const char *mode)
 {
-    if (!is_file_exists(fname)) {
+    if (!exists(fname)) {
         if (clargs.verbal())
             errors() << "file" << std::string(fname) << "doesn't exist";
         return FileData();
@@ -158,8 +158,8 @@ void writeBinaryFile(const char *fname, const void *data, size_t type_size,
     fclose(pFile);
 }
 
-bool checkPatterns(const std::__cxx11::string &str,
-                   const std::vector< std::__cxx11::string > &patterns)
+bool checkPatterns(const std::string &str,
+                   const std::vector< std::string > &patterns)
 {
     return std::any_of(patterns.begin(), patterns.end(),
                        [str](const std::string &pattern) {
@@ -174,6 +174,11 @@ bool is_directory(const char *path)
     return S_ISDIR(buf.st_mode);
 }
 
+bool is_directory(const SplittedPath &sp)
+{
+    return is_directory(sp.jointOs().c_str());
+}
+
 bool is_file(const char *path)
 {
     struct stat buf;
@@ -181,4 +186,62 @@ bool is_file(const char *path)
     return S_ISREG(buf.st_mode);
 }
 
-bool exists(const char *path) {}
+bool is_file(const SplittedPath &sp) { return is_file(sp.jointOs().c_str()); }
+
+bool exists(const char *path) { return is_file(path) || is_directory(path); }
+
+bool exists(const SplittedPath &sp) { return exists(sp.jointOs().c_str()); }
+
+std::string extension(const std::string &filename)
+{
+    auto pos = filename.rfind('.');
+    if (pos == std::string::npos)
+        return std::string();
+    // check for filenames starting with dot
+    if (pos == 0 || is_separator(filename[pos - 1]))
+        return std::string();
+    std::string ext = filename.substr(pos);
+    // check for path/to/inner.dot/file (".dot/file")
+    for (auto it = ext.cbegin(); it != ext.cend(); ++it) {
+        const auto &ch = *it;
+        if (is_separator(ch))
+            return std::string();
+    }
+    return ext;
+}
+
+std::string extension(const SplittedPath &sp)
+{
+    return extension(sp.jointOs());
+}
+
+void create_directories(const std::string &path)
+{
+    create_directories(SplittedPath(path, SplittedPath::osSep()));
+}
+
+void create_directories(const SplittedPath &sp)
+{
+    SplittedPath currentPath;
+    currentPath.setOsSeparator();
+    for (const auto &filename : sp.splitted()) {
+        currentPath.append(filename);
+        create_directory(currentPath);
+    }
+}
+
+void create_directory(const std::string &path)
+{
+    int nError = 0;
+#if defined(_WIN32)
+    nError = _mkdir(path.c_str()); // can be used on Windows
+#else
+    mode_t nMode = 0733;                 // UNIX style permissions
+    nError = mkdir(path.c_str(), nMode); // can be used on non-Windows
+#endif
+}
+
+void create_directory(const SplittedPath &sp)
+{
+    create_directory(sp.jointOs());
+}

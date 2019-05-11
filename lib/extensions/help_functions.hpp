@@ -24,6 +24,11 @@
 
 #define COUNT_LINES(x) x
 
+class HashedFileName;
+template < typename T >
+class SplittedString;
+using SplittedPath = SplittedString< HashedFileName >;
+
 template < typename T >
 std::string ntos(T Number)
 {
@@ -57,9 +62,23 @@ struct FileData
     FileData() : size(0) {}
 };
 
+char osSeparator();
+inline bool is_separator(char ch) { return ch == '/' || ch == '\\'; }
 bool exists(const char *path);
 bool is_file(const char *path);
 bool is_directory(const char *path);
+std::string extension(const std::string &filename);
+void create_directory(const std::string &path);
+void create_directories(const std::string &path);
+
+bool exists(const SplittedPath &sp);
+bool is_file(const SplittedPath &sp);
+bool is_directory(const SplittedPath &sp);
+std::string extension(const SplittedPath &sp);
+void create_directory(const SplittedPath &sp);
+void create_directories(const SplittedPath &sp);
+
+long long file_size(const char *fname);
 
 FileData readBinaryFile(const char *fname);
 FileData readFile(const char *fname, const char *mode);
@@ -81,10 +100,6 @@ public:
 };
 
 std::vector< char > strToVChar(const std::string &str);
-
-char osSeparator();
-
-long long file_size(const char *fname);
 
 std::string makeIndents(int indent, int extra_spaces = 0);
 

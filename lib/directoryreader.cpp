@@ -11,8 +11,9 @@
 std::vector< std::string > initSourceFileExtensions()
 {
     using CharArray = const char[5];
-    const CharArray exts_c[] = {".c", ".cpp", ".cc", ".C", ".cxx", ".c++",
-                                ".h", ".hpp", ".hh", ".H", ".hxx", ".h++"};
+    const CharArray exts_c[] = {".c",   ".cpp", ".cc",  ".C",  ".cxx",
+                                ".c++", ".h",   ".hpp", ".hh", ".H",
+                                ".hxx", ".h++", ".tpp", ".ipp"};
     int size = sizeof(exts_c) / sizeof(CharArray);
 
     std::vector< std::string > exts;
@@ -27,11 +28,6 @@ std::vector< std::string > DirectoryReader::_sourceFileExtensions =
     initSourceFileExtensions();
 std::vector< std::string > DirectoryReader::_ignore_substrings =
     std::vector< std::string >();
-
-bool DirectoryReader::exists(const SplittedPath &sp) const
-{
-    return is_directory()
-}
 
 void DirectoryReader::setTestPatterns(
     const DirectoryReader::StringVector &patterns)
@@ -90,9 +86,12 @@ void DirectoryReader::removeEmptyDirectories(FileTree &fileTree)
 bool DirectoryReader::isSourceFile(const SplittedPath &sp) const
 {
     assert(is_file(sp.jointOs().c_str()));
-    return std::find(_sourceFileExtensions.begin(), _sourceFileExtensions.end(),
-                     boost::filesystem::extension(sp.jointOs())) !=
-           _sourceFileExtensions.end();
+    std::string ext = extension(sp);
+    for (const auto &sourceFileExt : _sourceFileExtensions) {
+        if (sourceFileExt == ext)
+            return true;
+    }
+    return false;
 }
 
 bool DirectoryReader::isIgnored(const SplittedPath &sp) const
@@ -108,7 +107,7 @@ bool DirectoryReader::isIgnoredOsSep(const std::string &path) const
 
 FileRecord::Type DirectoryReader::getFileType(const SplittedPath &sp) const
 {
-    if (is_directory(sp.jointOs().c_str())
+    if (is_directory(sp.jointOs().c_str()))
         return FileRecord::Directory;
     return FileRecord::RegularFile;
 }

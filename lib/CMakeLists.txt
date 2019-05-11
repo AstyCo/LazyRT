@@ -38,7 +38,6 @@ set(HEADERS
     extensions/help_functions.hpp
     extensions/md5.hpp
     extensions/flatbuffers_extensions.hpp
-    extensions/filesystem.hpp
     types/file_tree.hpp
     types/splitted_string.hpp
     parsers/sourceparser.hpp
@@ -76,7 +75,6 @@ set(SRCS
     extensions/murmur_hash_2.cpp
     extensions/md5.cpp
     extensions/flatbuffers_extensions.cpp
-    extensions/filesystem.cpp
     types/file_tree.cpp
     types/splitted_string.cpp
     )

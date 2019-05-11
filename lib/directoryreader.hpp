@@ -6,6 +6,26 @@
 #include <iostream>
 #include <vector>
 
+#include <memory>
+
+class DirectoryIteratorImpl;
+class DirectoryIterator
+{
+public:
+    explicit DirectoryIterator(const SplittedPath &path = SplittedPath());
+    DirectoryIterator(const DirectoryIterator &o);
+
+    DirectoryIterator &operator++();   // prefix increment
+    DirectoryIterator operator++(int); // postfix increment
+
+    bool operator==(const DirectoryIterator &o) const;
+    bool operator!=(const DirectoryIterator &o) const { return !(*this == o); }
+    const SplittedPath &operator*() const;
+
+private:
+    std::unique_ptr< DirectoryIteratorImpl > _impl;
+};
+
 class DirectoryReader
 {
 public:
@@ -17,7 +37,6 @@ public:
     void readSources(const SplittedPath &relPath, FileNode *parent);
     void readSources(const SplittedPath &relPath, FileTree &filetree);
 
-    bool exists(const SplittedPath &sp) const;
     void setTestPatterns(const StringVector &patterns);
 
 private:

@@ -164,7 +164,7 @@ void Tokenizer::emplaceToken(Token &&token)
     emplaced_token.n_char = _n_char - emplaced_token.length;
 }
 
-void Tokenizer::initDebug(const std::__cxx11::string &fname)
+void Tokenizer::initDebug(const std::string &fname)
 {
     _filename = fname;
     _n_line = 1;
@@ -247,7 +247,7 @@ bool Token::isElif() const
     return name == TokenName::Identifier && str_equal(lexeme_str(), "elif");
 }
 
-std::__cxx11::string Token::toString() const
+std::string Token::toString() const
 {
     std::string str;
     if (name == TokenName::Identifier || name == TokenName::String)
@@ -272,7 +272,7 @@ void Debug::printTokens(const std::vector< Token > &tokens)
     });
 }
 
-std::__cxx11::string Debug::strToken(const Token &token)
+std::string Debug::strToken(const Token &token)
 {
     std::stringstream ss;
     ss << std::string(token.lexeme, token.length)
@@ -280,7 +280,7 @@ std::__cxx11::string Debug::strToken(const Token &token)
     return ss.str();
 }
 
-std::__cxx11::string ttos(const TokenName &t)
+std::string ttos(const TokenName &t)
 {
     ValueType cstr;
     if ((cstr = key_words.findLexeme(t)))

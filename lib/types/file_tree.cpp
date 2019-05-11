@@ -12,8 +12,9 @@
 
 #include <external/flatbuffers/flatbuffers.h>
 
-#include <sstream>
 #include <iostream>
+#include <sstream>
+#include <fstream>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -696,14 +697,13 @@ void FileTree::parsePhase(const SplittedPath &spFtreeDump)
 void FileTree::writeAffectedFiles(const CommandLineArgs &clargs)
 {
     // Create directories to put output files to
-    boost::filesystem::create_directories(clargs.outDir().joint());
+    create_directories(clargs.outDir());
 
     installAffectedFiles();
 
     writeFiles(clargs.srcsAffected(), &FileNode::isAffectedSource);
     writeFiles(clargs.testsAffected(), &FileNode::isAffectedTest);
     writeFiles(clargs.testFilesPath(), &FileNode::isTestFile);
-
 }
 
 static bool containsMain(FileNode *file)

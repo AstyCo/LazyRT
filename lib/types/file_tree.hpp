@@ -5,15 +5,11 @@
 #include "types/splitted_string.hpp"
 #include "parsers/sourceparser.hpp"
 
-#include <boost/filesystem.hpp>
-
 #include <string>
 #include <list>
 #include <set>
 
 using std::string;
-
-using BoostPath = boost::filesystem::path;
 
 struct IncludeDirective
 {
@@ -282,7 +278,7 @@ public:
     void labelTests(const std::vector< SplittedPath > &relPaths,
                     const std::vector< std::string > &testPatterns);
     void labelTest(const SplittedPath &relPath,
-                   const std::vector< std::__cxx11::string > &testPatterns);
+                   const std::vector< std::string > &testPatterns);
 
     void analyzePhase();
 
