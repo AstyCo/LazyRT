@@ -39,6 +39,10 @@ static void update_state(char *p, TokenizerState &state, char *&word_start)
     word_start = p;
 }
 
+Tokenizer::Tokenizer()
+    : _n_char(0), _n_line(0), _n_token_char(0), _n_token_line(0)
+{}
+
 void Tokenizer::tokenize(const SplittedPath &path)
 {
     static const auto symbolsTree = initSymbolTree();

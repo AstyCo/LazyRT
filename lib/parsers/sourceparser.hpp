@@ -74,17 +74,20 @@ private:
     int getIdentifierStart(const TokenVector &v, int offset) const;
     void skipOperatorOverloadingReverse(const TokenVector &v,
                                         int &offset) const;
-    void skipLine(const TokenVector &tokens, int &offset);
-    void skipUntilEndif(const TokenVector &tokens, int &offset);
-    bool skipTemplate(const TokenVector &v, int &offset);
+    void skipLine(const TokenVector &tokens, int &offset) const;
+    void skipUntilEndif(const TokenVector &tokens, int &offset) const;
+    bool skipTemplate(const TokenVector &v, int &offset) const;
     bool skipTemplateReverse(const TokenVector &tokens, int &offset) const;
 
     void prepare();
     TokenName readUntil(const TokenVector &tokens, int &offset,
                         const TokenNameSet &tokenNames);
 
-    void increment(const TokenVector &tokens, int &offset);
+    void increment(const TokenVector &tokens, int &offset,
+                   bool checkRange = false);
     void increment_pp(int &offset, int n = 1) const { offset += n; }
+    void decrement_pp(int &offset, int n = 1) const { offset -= n; }
+
     bool isTopLevelCB() const;
     void setNamespace();
     void dealWithClassDeclaration(const TokenVector &tokens, int offset);
@@ -92,9 +95,10 @@ private:
                               IncludeDirective &dir);
     void readPath(const TokenVector &tokens, int &offset, SplittedPath &path);
 
-    bool checkOffset(const TokenVector &tokens, int offset);
-    bool isClassToken(const TokenVector &tokens, int offset);
-    bool isInheritanceToken(const TokenVector &tokens, int offset);
+    bool checkOffset(const TokenVector &tokens, int offset) const;
+    void assertOnBadRange(const TokenVector &tokens, int offset) const;
+    bool isClassToken(const TokenVector &tokens, int offset) const;
+    bool isInheritanceToken(const TokenVector &tokens, int offset) const;
 
 private:
     const FileTree &_fileTree;

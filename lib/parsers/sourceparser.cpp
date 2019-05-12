@@ -136,7 +136,7 @@ void SourceParser::skipOperatorOverloadingReverse(
 }
 
 void SourceParser::skipLine(const SourceParser::TokenVector &tokens,
-                            int &offset)
+                            int &offset) const
 {
     int line = tokens[offset].n_line;
     int sizeM1 = tokens.size() - 1;
@@ -151,17 +151,19 @@ void SourceParser::skipLine(const SourceParser::TokenVector &tokens,
 }
 
 void SourceParser::skipUntilEndif(const SourceParser::TokenVector &tokens,
-                                  int &offset)
+                                  int &offset) const
 {
     int deep = 1;
     for (; offset + 1 < tokens.size(); skipLine(tokens, offset)) {
         if (tokens[offset].name == TokenName::Hash) {
             const Token &macroKeyToken = tokens[offset + 1];
-            if (macroKeyToken.isEndif())
+            if (macroKeyToken.isEndif()) {
                 --deep;
+            }
             else if (macroKeyToken.isIfMacro() || macroKeyToken.isIfdef() ||
-                     macroKeyToken.isElif())
+                     macroKeyToken.isElif()) {
                 ++deep;
+            }
 
             if (deep == 0) {
                 break;
@@ -171,7 +173,7 @@ void SourceParser::skipUntilEndif(const SourceParser::TokenVector &tokens,
 }
 
 bool SourceParser::skipTemplate(const SourceParser::TokenVector &tokens,
-                                int &offset)
+                                int &offset) const
 {
     if (tokens[offset].name != TokenName::Less)
         return true;
@@ -202,7 +204,7 @@ bool SourceParser::skipTemplate(const SourceParser::TokenVector &tokens,
         default:
             break;
         }
-        if (offset == 0)
+        if (!checkOffset(tokens, offset))
             return false;
     } while (depth > 0);
     return true;
@@ -216,7 +218,9 @@ bool SourceParser::skipTemplateReverse(const SourceParser::TokenVector &tokens,
     int depth = 0;
     int openBracketCount = 0;
     do {
-        const Token &token = tokens[offset--];
+        const Token &token = tokens[offset];
+        decrement_pp(offset);
+
         switch (token.name) {
         case TokenName::BracketLeft:
             --openBracketCount;
@@ -239,7 +243,7 @@ bool SourceParser::skipTemplateReverse(const SourceParser::TokenVector &tokens,
         default:
             break;
         }
-        if (offset == 0)
+        if (!checkOffset(tokens, offset))
             return false;
     } while (depth > 0);
     return true;
@@ -267,7 +271,8 @@ TokenName SourceParser::readUntil(const SourceParser::TokenVector &tokens,
     return TokenName::Undefined;
 }
 
-void SourceParser::increment(const TokenVector &tokens, int &offset)
+void SourceParser::increment(const TokenVector &tokens, int &offset,
+                             bool checkRange)
 {
     const Token &token = tokens[offset];
     switch (token.name) {
@@ -291,6 +296,8 @@ void SourceParser::increment(const TokenVector &tokens, int &offset)
         break;
     }
     ++offset;
+    if (checkRange)
+        assertOnBadRange(tokens, offset);
 }
 
 bool SourceParser::isTopLevelCB() const
@@ -342,7 +349,7 @@ void SourceParser::parseIncludeFilename(const SourceParser::TokenVector &tokens,
         dir.filename = token.lexeme_str();
     }
     else if (token.name == TokenName::Less) {
-        increment(tokens, offset);
+        increment(tokens, offset, true);
 
         dir.type = IncludeDirective::Brackets;
         SplittedPath path;
@@ -355,7 +362,7 @@ void SourceParser::readPath(const SourceParser::TokenVector &tokens,
                             int &offset, SplittedPath &path)
 {
     std::string strPath;
-    for (; offset < tokens.size(); increment(tokens, offset)) {
+    for (; offset < tokens.size(); increment(tokens, offset, true)) {
         const Token &token = tokens[offset];
         if (token.name == TokenName::Identifier ||
             token.name == TokenName::Slash || token.name == TokenName::Dot ||
@@ -369,13 +376,20 @@ void SourceParser::readPath(const SourceParser::TokenVector &tokens,
 }
 
 bool SourceParser::checkOffset(const SourceParser::TokenVector &tokens,
-                               int offset)
+                               int offset) const
 {
     return offset >= 0 && offset < tokens.size();
 }
 
+void SourceParser::assertOnBadRange(const SourceParser::TokenVector &tokens,
+                                    int offset) const
+{
+    if (!checkOffset(tokens, offset))
+        throw "unexpected end of tokens";
+}
+
 bool SourceParser::isClassToken(const SourceParser::TokenVector &tokens,
-                                int offset)
+                                int offset) const
 {
     if (!checkOffset(tokens, offset))
         return false;
@@ -383,7 +397,7 @@ bool SourceParser::isClassToken(const SourceParser::TokenVector &tokens,
 }
 
 bool SourceParser::isInheritanceToken(const SourceParser::TokenVector &tokens,
-                                      int offset)
+                                      int offset) const
 {
     if (!checkOffset(tokens, offset))
         return false;
@@ -401,8 +415,8 @@ void SourceParser::parseFile(FileNode *node)
         return;
     _node = node;
 
-    Tokenizer tkn;
     const SplittedPath &filename = node->fullPath();
+    Tokenizer tkn;
     tkn.tokenize(filename);
     const auto &tokens = tkn.tokens();
 
@@ -414,9 +428,9 @@ void SourceParser::parseFile(FileNode *node)
             const Token &curTok = tokens[i];
             if (curTok.name == TokenName::Hash) {
                 // check if include directive
-                increment(tokens, i);
+                increment(tokens, i, true);
                 if (tokens[i].name == TokenName::Include) { // include directive
-                    increment(tokens, i);
+                    increment(tokens, i, true);
 
                     IncludeDirective dir;
                     parseIncludeFilename(tokens, i, dir);
@@ -474,37 +488,38 @@ void SourceParser::parseFile(FileNode *node)
                 break;
             }
             case TokenName::Using:
-                increment(tokens, i);
+                increment(tokens, i, true);
                 if (tokens[i].name == TokenName::Namespace) {
                     // using namespace ->ns
                     ScopedName ns;
                     ns.setNamespaceSeparator();
-                    increment(tokens, i);
+                    increment(tokens, i, true);
                     parseScopedName(tokens, i, tokens.size(), ns);
                     if (!ns.empty())
                         node->record()._listUsingNamespace.push_back(ns);
                 }
                 break;
             case TokenName::Namespace:
-                increment(tokens, i);
+                increment(tokens, i, true);
                 parseScopedName(tokens, i, tokens.size(), _currentNamespace);
                 setNamespace();
                 break;
             case TokenName::Extern:
                 // extern "C"
-                increment(tokens, i);
+                increment(tokens, i, true);
                 if (tokens[i].name == TokenName::String) {
-                    increment(tokens, i);
+                    increment(tokens, i, true);
                     if (tokens[i].name == TokenName::BracketCurlyLeft) {
                         _stackExternConstruction.push(_openCurlyBracketCount);
-                        increment(tokens, i);
+                        increment(tokens, i, true);
                     }
                 }
                 continue;
             default:
                 break;
             }
-            increment(tokens, i);
+            if (i < tokens.size())
+                increment(tokens, i);
         }
     }
     catch (const std::string &msg) {
