@@ -332,7 +332,7 @@ void SplittedString< THashedString >::join() const
         _joint.reserve(totalSize);
         bool first = true;
         for (THashedString &sw : _splitted) {
-            if (!first)
+            if (!first || sw.empty())
                 _joint += _separator;
             else
                 first = false;

@@ -230,7 +230,6 @@ void create_directories(const SplittedPath &sp)
     currentPath.setOsSeparator();
     for (const auto &filename : sp.splitted()) {
         currentPath.append(filename);
-        currentPath.append(filename);
         if (exists(currentPath)) {
             if (!is_directory(currentPath)) {
                 errors() << "ERROR: can not create directory"
