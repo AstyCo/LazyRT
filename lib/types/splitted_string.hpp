@@ -118,7 +118,6 @@ private:
 private:
     mutable bool _isJointValid;
     mutable bool _isSplittedValid;
-    mutable bool _isEmpty;
 
 protected:
     mutable std::string _joint;

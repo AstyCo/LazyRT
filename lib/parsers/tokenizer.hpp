@@ -369,6 +369,8 @@ public:
     using StringSet = std::unordered_set< std::string >;
 
 public:
+    Tokenizer();
+
     void tokenize(const SplittedPath &path);
 
     const TokenVector &tokens() const;

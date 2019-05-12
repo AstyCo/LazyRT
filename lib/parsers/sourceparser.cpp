@@ -157,11 +157,13 @@ void SourceParser::skipUntilEndif(const SourceParser::TokenVector &tokens,
     for (; offset + 1 < tokens.size(); skipLine(tokens, offset)) {
         if (tokens[offset].name == TokenName::Hash) {
             const Token &macroKeyToken = tokens[offset + 1];
-            if (macroKeyToken.isEndif())
+            if (macroKeyToken.isEndif()) {
                 --deep;
+            }
             else if (macroKeyToken.isIfMacro() || macroKeyToken.isIfdef() ||
-                     macroKeyToken.isElif())
+                     macroKeyToken.isElif()) {
                 ++deep;
+            }
 
             if (deep == 0) {
                 break;
@@ -216,7 +218,9 @@ bool SourceParser::skipTemplateReverse(const SourceParser::TokenVector &tokens,
     int depth = 0;
     int openBracketCount = 0;
     do {
-        const Token &token = tokens[offset--];
+        const Token &token = tokens[offset];
+        decrement_pp(offset);
+
         switch (token.name) {
         case TokenName::BracketLeft:
             --openBracketCount;
@@ -254,6 +258,9 @@ void SourceParser::prepare()
 
     _currentNamespace.clear();
     _listUsingNamespace.clear();
+
+    _incrementCounter = 0;
+    _interest = false;
 }
 
 TokenName SourceParser::readUntil(const SourceParser::TokenVector &tokens,
@@ -269,13 +276,18 @@ TokenName SourceParser::readUntil(const SourceParser::TokenVector &tokens,
 
 void SourceParser::increment(const TokenVector &tokens, int &offset)
 {
+    ++_incrementCounter;
     const Token &token = tokens[offset];
     switch (token.name) {
     case TokenName::BracketCurlyLeft:
         ++_openCurlyBracketCount;
+        if (_interest)
+            std::cout << "++" << token.n_line << std::endl;
         break;
     case TokenName::BracketCurlyRight:
         --_openCurlyBracketCount;
+        if (_interest)
+            std::cout << "--" << token.n_line << std::endl;
         if (_openCurlyBracketCount < 0)
             throw std::string("Broken {,} sequence");
         if (_stackNamespaceBrackets.pop(_openCurlyBracketCount))
@@ -401,12 +413,14 @@ void SourceParser::parseFile(FileNode *node)
         return;
     _node = node;
 
-    Tokenizer tkn;
     const SplittedPath &filename = node->fullPath();
+    Tokenizer tkn;
     tkn.tokenize(filename);
     const auto &tokens = tkn.tokens();
 
     prepare();
+    if (str_contains(filename.joint(), "testbuf"))
+        _interest = true;
 
     int i = 0;
     try {
@@ -504,7 +518,8 @@ void SourceParser::parseFile(FileNode *node)
             default:
                 break;
             }
-            increment(tokens, i);
+            if (i < tokens.size())
+                increment(tokens, i);
         }
     }
     catch (const std::string &msg) {
@@ -512,4 +527,5 @@ void SourceParser::parseFile(FileNode *node)
                  << "was stopped by the token" << tokens[i].toString()
                  << "Reason:" << msg;
     }
+    std::cout << std::endl;
 }

@@ -85,6 +85,8 @@ private:
 
     void increment(const TokenVector &tokens, int &offset);
     void increment_pp(int &offset, int n = 1) const { offset += n; }
+    void decrement_pp(int &offset, int n = 1) const { offset -= n; }
+
     bool isTopLevelCB() const;
     void setNamespace();
     void dealWithClassDeclaration(const TokenVector &tokens, int offset);
@@ -107,6 +109,9 @@ private:
     int _openCurlyBracketCount;
     SparceStack< int > _stackNamespaceBrackets;
     SparceStack< int > _stackExternConstruction;
+
+    int _incrementCounter;
+    bool _interest;
 };
 
 #endif // SOURCE_PARSER_HPP
