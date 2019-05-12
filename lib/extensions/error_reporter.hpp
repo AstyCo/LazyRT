@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <memory>
+#include <utility> // std::forward
 
 class ErrorStream
 {
@@ -20,6 +21,11 @@ public:
 
 ErrorStream errors();
 
-ErrorStream operator<<(ErrorStream stream, const std::string &text);
+template < typename T >
+ErrorStream operator<<(ErrorStream stream, T &&var)
+{
+    std::cerr << std::forward< T >(var) << ' ';
+    return stream;
+}
 
 #endif // ERROR_REPORTER_HPP

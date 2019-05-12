@@ -188,7 +188,11 @@ bool is_file(const char *path)
 
 bool is_file(const SplittedPath &sp) { return is_file(sp.jointOs().c_str()); }
 
-bool exists(const char *path) { return is_file(path) || is_directory(path); }
+bool exists(const char *path) 
+{ 
+    struct stat buff;   
+    return stat(path, &buff) == 0; 
+}
 
 bool exists(const SplittedPath &sp) { return exists(sp.jointOs().c_str()); }
 
@@ -226,6 +230,15 @@ void create_directories(const SplittedPath &sp)
     currentPath.setOsSeparator();
     for (const auto &filename : sp.splitted()) {
         currentPath.append(filename);
+        currentPath.append(filename);
+        if (exists(currentPath)) {
+            if (!is_directory(currentPath)) {
+                errors() << "ERROR: can not create directory"
+                         << "file" << currentPath.jointOs()
+                         << "exists and is not directory";
+            }
+            continue;
+        }
         create_directory(currentPath);
     }
 }
@@ -233,12 +246,18 @@ void create_directories(const SplittedPath &sp)
 void create_directory(const std::string &path)
 {
     int nError = 0;
-#if defined(_WIN32)
+#ifdef _WIN32
     nError = _mkdir(path.c_str()); // can be used on Windows
 #else
-    mode_t nMode = 0733;                 // UNIX style permissions
+    auto previous_umask = umask(0);
+    mode_t nMode = 0755;                 // UNIX style permissions
     nError = mkdir(path.c_str(), nMode); // can be used on non-Windows
+    umask(previous_umask);
 #endif
+    if (nError != 0) {
+    	errors() << "create_directory: failed to create directory" 
+    	         << '"' + path + '"' << "errno" << nError;
+    }
 }
 
 void create_directory(const SplittedPath &sp)

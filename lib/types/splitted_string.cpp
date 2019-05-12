@@ -141,8 +141,6 @@ void SplittedString< THashedString >::append(const THashedString &s)
         split();
     clearJoint();
 
-    if (_splitted.size() == 1 && _splitted.front().empty())
-        _splitted.clear();
     _splitted.push_back(s);
 }
 
@@ -359,6 +357,7 @@ void SplittedString< THashedString >::split() const
 {
     assert(!_isSplittedValid);
     _isSplittedValid = true;
+    _splitted.clear();
     if (_joint.empty())
         return;
     size_t pos = 0, sepPos;
